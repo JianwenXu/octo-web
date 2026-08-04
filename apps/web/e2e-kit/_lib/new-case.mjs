@@ -9,7 +9,7 @@
  * **接入方需改的占位** (脚本顶部 config 常量):
  *   - CASE_SPECS_DIR / TESTS_DIR / HANDLERS_DIR  — 项目路径 (默认对齐 kit v0.4 扁平布局)
  *   - FIXTURES_IMPORT_PATH / MOCK_IM_IMPORT_PATH / SANITY_IMPORT_PATH / HANDLERS_IMPORT_ROOT
- *                       — import 路径 (相对 e2e/ 根)
+ *                       — import 路径 (相对 e2e-kit/ 根)
  *   - USE_MOCK_IM      — 是否装 mock-im-runtime (默认 **false**; 项目装了 mock-im-wksdk optional 后改成 true)
  *   - USE_SANITY       — 是否装 sanity helper (默认 true, 无 sanity 关掉)
  *   - FMT_CMD          — 生成后自动 fmt 命令 (默认 null, 项目要用 prettier 之类改这里)
@@ -55,10 +55,10 @@ import { spawnSync } from "node:child_process";
 // ---------- config (接入方按需改) ----------
 //
 // **默认值对齐 kit v0.4 sync 产物的扁平布局**:
-//   e2e/fixtures-authed.ts        (template 落根)
-//   e2e/_kit/mock-im-runtime/     (overwrite 落 _kit/)
-//   e2e/_lib/sanity.ts            (overwrite 落 _lib/)
-//   e2e/msw-handlers/             (hands_off 目录, kit 首次落 README 占位)
+//   e2e-kit/fixtures-authed.ts        (template 落根)
+//   e2e-kit/_kit/mock-im-runtime/     (overwrite 落 _kit/)
+//   e2e-kit/_lib/sanity.ts            (overwrite 落 _lib/)
+//   e2e-kit/msw-handlers/             (hands_off 目录, kit 首次落 README 占位)
 //
 // 若接入方项目采用其他布局 (例如 e2e-research 的 shared/), 改下面常量即可.
 
@@ -67,7 +67,7 @@ const CASE_SPECS_DIR = resolve(REPO_ROOT, "e2e-kit/case-specs");
 const TESTS_DIR = resolve(REPO_ROOT, "e2e-kit/tests");
 const HANDLERS_DIR = resolve(REPO_ROOT, "e2e-kit/msw-handlers");
 
-// import path segments (相对 e2e/ 根). test 到根的相对前缀由 upToE2eRoot() 算.
+// import path segments (相对 e2e-kit/ 根). test 到根的相对前缀由 upToE2eRoot() 算.
 const FIXTURES_IMPORT_PATH = "fixtures-authed";
 const MOCK_IM_IMPORT_PATH = "_kit/mock-im-runtime";
 const SANITY_IMPORT_PATH = "_lib/sanity";
@@ -128,16 +128,35 @@ if (!/^[a-z][a-z0-9-]*$/.test(slug)) {
 
 const moduleName = args.flags.module || null;
 const subModule = args.flags.submodule || null;
+if (args.flags.tags === true) {
+  console.error("--tags 需要值, 例如 --tags '@p1 @summary'");
+  process.exit(1);
+}
 const inputTags = String(args.flags.tags || "").trim();
 const inputTagList = inputTags.split(/\s+/).filter(Boolean);
 
+function isValidTag(tag) {
+  return /^@[A-Za-z0-9][A-Za-z0-9-]*$/.test(tag);
+}
+
 function isModuleLikeTag(tag, caseId) {
   return (
-    tag.startsWith("@") &&
+    isValidTag(tag) &&
     tag !== `@${caseId}` &&
     !["@p0", "@p1", "@p2", "@visual"].includes(tag) &&
     !/^@p[0-2]-/.test(tag)
   );
+}
+
+const invalidTags = inputTagList.filter((t) => !isValidTag(t));
+if (invalidTags.length > 0) {
+  console.error(`非法 tag: ${invalidTags.join(" ")}. tag 必须形如 @summary / @summary-list / @p1`);
+  process.exit(1);
+}
+const priorityTags = inputTagList.filter((t) => ["@p0", "@p1", "@p2"].includes(t));
+if (new Set(priorityTags).size > 1) {
+  console.error(`优先级 tag 只能有一个, 收到: ${[...new Set(priorityTags)].join(" ")}`);
+  process.exit(1);
 }
 
 // lint-spec-format 会强制 Tags 里有 module tag. 这里提前 fail-fast,

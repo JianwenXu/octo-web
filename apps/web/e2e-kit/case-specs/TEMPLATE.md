@@ -1,8 +1,8 @@
 # <CaseId> <Short Name>
 
 <!-- 复制此模板起草新 case-spec:
-     cp e2e/case-specs/TEMPLATE.md e2e/case-specs/C7-my-feature.md
-     然后按 7 段填. 不写 spec 版本/commit hash, 修改历史用 e2e/_lib/spec-history.sh <CaseId> 查. -->
+     cp e2e-kit/case-specs/TEMPLATE.md e2e-kit/case-specs/C7-my-feature.md
+     然后按 7 段填. 不写 spec 版本/commit hash, 修改历史用 e2e-kit/_lib/spec-history.sh <CaseId> 查. -->
 
 ## Metadata
 
@@ -21,7 +21,7 @@
 
 - fixture: `fixtures-authed` (E2E_TARGET=local, mock 默认装)
 - 需要覆盖的 baseline handler (auth guard 依赖的, 不装踢登录页): 通常 kit `_baseline/` 已装, 有额外需要在此列
-- Per-case MSW handler: `e2e/msw-handlers/<caseId-lowercase>-<name>.ts`
+- Per-case MSW handler: `e2e-kit/msw-handlers/<caseId-lowercase>-<name>.ts`
   - `GET/POST /path/to/endpoint` — 返回什么数据 / cursor 分页规则 / 边界返回
   - 用**实际**后端 shape (从 src/ grep 出的字段名, 别猜)
 - (可选) mock-im-runtime seed (`installMockImRuntime`):

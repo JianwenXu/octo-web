@@ -9,7 +9,8 @@ import { registerS3SummaryListSearch } from "../../../msw-handlers/s3-summary-li
 import { startRequestMonitor, sanityCheck } from "../../../_lib/sanity";
 
 const sanityConfig = {
-  realHosts: ["mock.e2e.local"],
+  // CI leak target plus legacy mock host marker; workflow proxy-error grep remains the fail-closed guard.
+  realHosts: ["127.0.0.1:9", "mock.e2e.local"],
   apiPrefixRe: /^\/(api|summary\/api)(\/|$)/,
   loginPathRe: /\/login(\?|$)/,
 };

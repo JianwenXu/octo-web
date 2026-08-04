@@ -87,7 +87,8 @@ export async function registerS1SummaryListDetail(page: Page): Promise<void> {
         can_edit_team: true,
         can_edit_personal: false,
         can_view_schedule: true,
-        can_manage_members: true,
+        can_add_member: true,
+        can_remove_member: true,
       },
       result: {
         content:

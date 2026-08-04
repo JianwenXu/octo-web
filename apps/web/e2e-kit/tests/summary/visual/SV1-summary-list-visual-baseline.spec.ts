@@ -9,7 +9,8 @@ import { registerSV1SummaryListBaseline } from "../../../msw-handlers/sv1-summar
 import { startRequestMonitor, sanityCheck } from "../../../_lib/sanity";
 
 const sanityConfig = {
-  realHosts: ["mock.e2e.local"],
+  // CI leak target plus legacy mock host marker; workflow proxy-error grep remains the fail-closed guard.
+  realHosts: ["127.0.0.1:9", "mock.e2e.local"],
   apiPrefixRe: /^\/(api|summary\/api)(\/|$)/,
   loginPathRe: /\/login(\?|$)/,
 };
@@ -18,6 +19,7 @@ test.describe("@SV1 @p1 @summary @summary-list @visual SV1 — Summary 列表视
   test("已完成总结卡片列表 UI baseline", async ({ authedPage }) => {
     await registerSV1SummaryListBaseline(authedPage);
     const ctx = startRequestMonitor(authedPage, sanityConfig);
+    await authedPage.clock.setFixedTime(new Date("2026-08-04T08:35:00Z"));
 
     await authedPage.getByRole("button", { name: "智能总结" }).click();
 

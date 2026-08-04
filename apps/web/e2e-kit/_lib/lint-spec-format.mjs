@@ -48,9 +48,9 @@ const REQUIRED_SECTIONS = [
 
 // Metadata 段内必需字段
 const REQUIRED_METADATA_FIELDS = [
-  { name: "Case 类型", pattern: /^-\s*Case\s*类型\s*[::]/im },
-  { name: "目标模式", pattern: /^-\s*目标模式\s*[::]/im },
-  { name: "优先级", pattern: /^-\s*优先级\s*[::]/im },
+  { name: "Case 类型", pattern: /^-\s*Case\s*类型\s*[：:]/im },
+  { name: "目标模式", pattern: /^-\s*目标模式\s*[：:]/im },
+  { name: "优先级", pattern: /^-\s*优先级\s*[：:]/im },
 ];
 
 // ---------- helpers ----------
@@ -91,23 +91,28 @@ function caseIdFromFilename(filePath) {
   return base.replace(/\.md$/, "").split("-")[0];
 }
 
-function parseTags(metadata) {
+function parseTagList(metadata) {
   const line = metadata
     .split("\n")
-    .find((l) => /^-\s*Tags?\s*:/i.test(l));
+    .find((l) => /^-\s*Tags?\s*[：:]/i.test(l));
   if (!line) return null;
-  const raw = line.replace(/^-\s*Tags?\s*:/i, "").replace(/`/g, "").trim();
-  return new Set(raw.split(/\s+/).filter((t) => t.startsWith("@")));
+  const raw = line.replace(/^-\s*Tags?\s*[：:]/i, "").replace(/`/g, "").trim();
+  return raw.split(/\s+/).filter(Boolean);
+}
+
+function isValidTag(tag) {
+  return /^@[A-Za-z0-9][A-Za-z0-9-]*$/.test(tag);
 }
 
 function isModuleLikeTag(tag, caseId) {
   return (
-    tag.startsWith("@") &&
+    isValidTag(tag) &&
     tag !== `@${caseId}` &&
     !["@p0", "@p1", "@p2", "@visual"].includes(tag) &&
     !/^@p[0-2]-/.test(tag)
   );
 }
+
 
 // diff-mode: 从 git 拿新加/改的 spec 文件.
 // 用 merge-base 找分歧点跟 main / master 比 (CI 里 MR 有 CI_MERGE_REQUEST_TARGET_BRANCH_NAME).
@@ -203,16 +208,24 @@ for (const f of files) {
       }
     }
 
-    const tags = parseTags(metadata);
+    const tagList = parseTagList(metadata);
     const caseId = caseIdFromFilename(relF);
-    if (!tags) {
+    if (!tagList) {
       errors.push(`${relF}: Metadata 段缺 "Tags" 字段 (需含 @${caseId} @p0|@p1|@p2 @<module>)`);
     } else {
+      const tags = new Set(tagList.filter((t) => t.startsWith("@")));
+      const invalidTags = tagList.filter((t) => !isValidTag(t));
+      if (invalidTags.length > 0) {
+        errors.push(`${relF}: Tags 含非法 tag: ${invalidTags.join(" ")}`);
+      }
       if (!tags.has(`@${caseId}`)) {
         errors.push(`${relF}: Tags 缺 @${caseId} (CaseId tag)`);
       }
-      if (!["@p0", "@p1", "@p2"].some((p) => tags.has(p))) {
+      const priorityTags = [...tags].filter((t) => ["@p0", "@p1", "@p2"].includes(t));
+      if (priorityTags.length === 0) {
         errors.push(`${relF}: Tags 缺优先级 tag (@p0 / @p1 / @p2)`);
+      } else if (priorityTags.length > 1) {
+        errors.push(`${relF}: Tags 优先级 tag 只能有一个, 收到 ${priorityTags.join(" ")}`);
       }
       const hasModuleTag = [...tags].some((t) => isModuleLikeTag(t, caseId));
       if (!hasModuleTag) {

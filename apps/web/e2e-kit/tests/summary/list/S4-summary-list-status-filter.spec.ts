@@ -9,7 +9,8 @@ import { registerS4SummaryListStatusFilter } from "../../../msw-handlers/s4-summ
 import { startRequestMonitor, sanityCheck } from "../../../_lib/sanity";
 
 const sanityConfig = {
-  realHosts: ["mock.e2e.local"],
+  // CI leak target plus legacy mock host marker; workflow proxy-error grep remains the fail-closed guard.
+  realHosts: ["127.0.0.1:9", "mock.e2e.local"],
   apiPrefixRe: /^\/(api|summary\/api)(\/|$)/,
   loginPathRe: /\/login(\?|$)/,
 };
@@ -24,7 +25,7 @@ test.describe("@S4 @p1 @summary @list @summary-list @summary-filter S4 — Summa
     await expect(authedPage.getByText("S4 已完成总结")).toBeVisible({ timeout: 15_000 });
     await expect(authedPage.getByText("S4 失败总结")).toBeVisible();
 
-    await authedPage.getByText("全部状态").click();
+    await authedPage.getByText("全部状态", { exact: true }).click();
     await authedPage.getByRole("menuitem", { name: "失败" }).click();
 
     await expect(authedPage.getByText("S4 失败总结")).toBeVisible({ timeout: 15_000 });
