@@ -361,7 +361,7 @@ export async function ${registerFnName}(page: Page): Promise<void> {
     }
     const { worker, http, HttpResponse } = msw;
 
-    // module-scope state 每 install 重置, 避免 --repeat-each=10 相互泄漏.
+    // module-scope state 每 install 重置, 避免 --repeat-each=3 相互泄漏.
     (window as unknown as { ${stateKey}: { calls: number } }).${stateKey} = {
       calls: 0,
     };
@@ -436,4 +436,4 @@ console.log(`\n下一步:`);
 console.log(`  1. 摸清: 按 spec 里 "**待补**" 位置填 endpoint / shape / i18n 文案`);
 console.log(`  2. 实装 handler + test.spec.ts`);
 console.log(`  3. 跑单次: pnpm exec playwright test --grep @${caseId} --workers=1`);
-console.log(`  4. 稳定 10x: 加 --repeat-each=10\n`);
+console.log(`  4. 稳定 3x: 加 --repeat-each=3\n`);

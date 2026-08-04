@@ -24,15 +24,15 @@ kit 强制的**跨项目通用铁律**。接入方 e2e case 必须遵守。
 
 **例外**: 反例段验"未发生某请求"是允许的（如 debounce 期间不该发请求, 用同步 `count() === 0`）。
 
-## 稳定性铁律: 10x 才算稳
+## 稳定性铁律: 3x 才算稳
 
-**规则**: 每个新增 / 修改的 case 必须 `--repeat-each=10` 跑 10 次全绿才算稳定, 才能 commit。
+**规则**: 每个新增 / 修改的 case 必须 `--repeat-each=3` 跑 3 次全绿才算稳定, 才能 commit。
 
-**为什么**: 单次 pass 只证明"能过", 不证明"稳定过"。踩过多次单次 pass → CI 挂的坑。
+**为什么**: 单次 pass 只证明"能过", 不证明"稳定过"；3 次能覆盖基础 flake 信号, 同时避免 10x 对开发迭代过慢。
 
 **执行**:
 ```bash
-pnpm exec playwright test --grep "@C7" --repeat-each=10 --workers=1
+pnpm exec playwright test --grep "@C7" --repeat-each=3 --workers=1
 ```
 
 ## Real-page seed vs harness route 判定顺序
