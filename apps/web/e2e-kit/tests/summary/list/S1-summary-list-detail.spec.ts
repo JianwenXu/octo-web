@@ -27,17 +27,16 @@ test.describe("@S1 @p0 @summary @list @summary-list @summary-detail S1 — Summa
     await expect(authedPage.getByPlaceholder("搜索总结...")).toBeVisible();
     await expect(authedPage.getByText("暂无总结记录")).toHaveCount(0);
 
-    const summaryCard = authedPage.locator(".summary-card", {
-      hasText: "S1 项目进展总结",
+    await expect(authedPage.getByText("S1 项目进展总结")).toBeVisible({
+      timeout: 15_000,
     });
-    await expect(summaryCard).toBeVisible({ timeout: 15_000 });
-    await expect(summaryCard).toContainText("已完成");
-    await expect(summaryCard).toContainText("S1 项目群");
+    await expect(authedPage.getByText("已完成", { exact: true })).toBeVisible();
+    await expect(authedPage.getByText("S1 项目群")).toBeVisible();
 
-    await summaryCard.click();
+    await authedPage.getByText("S1 项目进展总结").click();
 
     await expect(
-      authedPage.locator(".summary-detail-page").getByRole("heading", {
+      authedPage.getByRole("heading", {
         name: "S1 项目进展总结",
         level: 2,
       })

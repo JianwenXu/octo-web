@@ -39,9 +39,9 @@
  *     --tags "@p1 @matter @matter-list" --http-mock --im-seed
  *
  * 产出 (以默认路径 + 上例参数为例):
- *   e2e/case-specs/matter/list/M5-matter-list-filter.md
- *   e2e/tests/matter/list/M5-matter-list-filter.spec.ts
- *   e2e/msw-handlers/m5-matter-list-filter.ts   (**默认生成**, 传 --no-http-mock 关掉)
+ *   e2e-kit/case-specs/matter/list/M5-matter-list-filter.md
+ *   e2e-kit/tests/matter/list/M5-matter-list-filter.spec.ts
+ *   e2e-kit/msw-handlers/m5-matter-list-filter.ts   (**默认生成**, 传 --no-http-mock 关掉)
  *
  * --no-http-mock → 不出 handler, test 骨架也不 register handler.
  * --no-im-seed → test 骨架不装 mock IM runtime.
@@ -278,14 +278,20 @@ const testTemplate = `/* eslint-disable no-undef -- e2e code runs in Node */
  */
 import { test, expect } from "${sharedRoot}${FIXTURES_IMPORT_PATH}";
 ${withHttpMock ? `import { ${registerFnName} } from "${sharedRoot}${HANDLERS_IMPORT_ROOT}/${caseId.toLowerCase()}-${slug}";\n` : ""}${withImSeed ? `import { installMockImRuntime } from "${sharedRoot}${MOCK_IM_IMPORT_PATH}";\n` : ""}${USE_SANITY ? `import { startRequestMonitor, sanityCheck } from "${sharedRoot}${SANITY_IMPORT_PATH}";\n` : ""}
-
+${USE_SANITY ? `
+const sanityConfig = {
+  realHosts: ["<PROJECT_REAL_HOST>"],
+  apiPrefixRe: /^\\/(api|v1)(\\/|$)/,
+  loginPathRe: /\\/login(\\?|$)/,
+};
+` : ""}
 test.describe("${tags} ${caseId} — **待补** case 描述", () => {
   test("**待补** 一句话操作 + 预期", async ({ authedPage }) => {
     // scaffolder 骨架 fixme 保护: 作者填完真实操作 + 断言后删掉这行.
     // 若忘删, batch 跑 (--grep @p0 等) 会 skip 而不是假绿.
     test.fixme(true, "scaffolder 骨架, 待作者补真实操作步骤 + UI 断言");
 
-${USE_SANITY ? `    const ctx = startRequestMonitor(authedPage);\n` : ""}${withHttpMock ? `\n    await ${registerFnName}(authedPage);\n` : ""}${withImSeed ? `
+${USE_SANITY ? `    const ctx = startRequestMonitor(authedPage, sanityConfig);\n` : ""}${withHttpMock ? `\n    await ${registerFnName}(authedPage);\n` : ""}${withImSeed ? `
     await installMockImRuntime(authedPage, {
       currentUid: "e2e-user-1",
       spaceId: "e2e-space-001",
@@ -322,31 +328,26 @@ import type { Page } from "@playwright/test";
 
 export async function ${registerFnName}(page: Page): Promise<void> {
   await page.evaluate(() => {
-    const w = (window as unknown as { __mswWorker__?: { use: (...h: unknown[]) => void } })
-      .__mswWorker__;
-    const http = (
-      window as unknown as {
-        __mswHttp__?: {
-          get: (path: string, resolver: (info: any) => unknown) => unknown;
-          post: (path: string, resolver: (info: any) => unknown) => unknown;
-        };
-      }
-    ).__mswHttp__;
-    const HttpResponse = (
-      window as unknown as {
-        __mswHttpResponse__?: { json: (body: unknown, init?: unknown) => unknown };
-      }
-    ).__mswHttpResponse__;
-    if (!w || !http || !HttpResponse) {
+    type MSW = {
+      worker: { use: (...h: unknown[]) => void };
+      http: {
+        get: (path: string, resolver: (info: any) => unknown) => unknown;
+        post: (path: string, resolver: (info: any) => unknown) => unknown;
+      };
+      HttpResponse: { json: (body: unknown, init?: unknown) => unknown };
+    };
+    const msw = (window as unknown as { __msw?: MSW }).__msw;
+    if (!msw) {
       throw new Error("[${caseId}] MSW worker 未就绪 (等 __MSW_READY__).");
     }
+    const { worker, http, HttpResponse } = msw;
 
     // module-scope state 每 install 重置, 避免 --repeat-each=10 相互泄漏.
     (window as unknown as { ${stateKey}: { calls: number } }).${stateKey} = {
       calls: 0,
     };
 
-    w.use(
+    worker.use(
       // **待补** 本 case 的 endpoint handler
       // http.post("*​/v1/matter/xxx", async (info: any) => {
       //   const state = (window as unknown as { ${stateKey}: { calls: number } }).${stateKey};

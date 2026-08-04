@@ -28,7 +28,8 @@ test.describe("@S2 @p1 @summary @list @summary-list @summary-create S2 — Summa
     await expect(
       authedPage.getByText("快速生成群聊或个人工作总结，让 AI 帮你梳理重要信息")
     ).toBeVisible();
-    await expect(authedPage.getByText("S2 不应出现的总结卡片")).toHaveCount(0);
+    await expect(authedPage.getByText("已完成", { exact: true })).toHaveCount(0);
+    await expect(authedPage.getByText("失败", { exact: true })).toHaveCount(0);
 
     await authedPage.getByRole("button", { name: "创建第一份总结" }).click();
 

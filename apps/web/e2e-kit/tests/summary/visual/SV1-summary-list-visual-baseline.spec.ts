@@ -21,16 +21,15 @@ test.describe("@SV1 @p1 @summary @summary-list @visual SV1 — Summary 列表视
 
     await authedPage.getByRole("button", { name: "智能总结" }).click();
 
-    const listPage = authedPage.locator(".summary-list-page");
-    await expect(listPage.getByRole("heading", { name: "智能总结" })).toBeVisible({
+    await expect(authedPage.getByRole("heading", { name: "智能总结" })).toBeVisible({
       timeout: 15_000,
     });
-    await expect(listPage.getByPlaceholder("搜索总结...")).toBeVisible();
-    await expect(listPage.getByText("SV1 视觉基线总结")).toBeVisible();
-    await expect(listPage.getByText("SV1 视觉群")).toBeVisible();
-    await expect(listPage.getByText("暂无总结记录")).toHaveCount(0);
+    await expect(authedPage.getByPlaceholder("搜索总结...")).toBeVisible();
+    await expect(authedPage.getByText("SV1 视觉基线总结")).toBeVisible();
+    await expect(authedPage.getByText("SV1 视觉群")).toBeVisible();
+    await expect(authedPage.getByText("暂无总结记录")).toHaveCount(0);
 
-    await expect(listPage).toHaveScreenshot("summary-list-completed.png", {
+    await expect(authedPage).toHaveScreenshot("summary-list-completed.png", {
       animations: "disabled",
       maxDiffPixelRatio: 0.01,
       threshold: 0.2,
