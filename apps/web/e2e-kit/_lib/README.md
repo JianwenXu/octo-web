@@ -15,18 +15,25 @@
 
 ```bash
 # 建议 package.json 加脚本: "e2e:new": "node e2e/_lib/new-case.mjs"
-pnpm e2e:new M5 matter-list-filter --module matter --submodule list \
-  --tags "@p1 @matter @matter-list"
+pnpm e2e:new M5 matter-list-filter --module matter --submodule list
 
 # 完整参数
 pnpm e2e:new <CaseId> <slug> \
-  [--module <name>] [--submodule <name>] \
+  (--module <name> | --tags "@p1 @module") \
+  [--submodule <name>] \
   [--tags "@p0 @matter"] \
   [--covers "GITLAB#215,NANCY-BUG-2026-07-15"] \
   [--http-mock] [--no-http-mock] \
   [--im-seed] [--no-im-seed] \
   [--dry-run]
 ```
+
+Tags 会自动归一化:
+- 补 `@<CaseId>`
+- 缺 `@p0|@p1|@p2` 时默认补 `@p1`
+- 传了 `--module` / `--submodule` 时自动补 `@<module>` / `@<submodule>`
+
+CaseId 前缀只是项目自定义 ID, 不参与模块语义; 筛选靠 `@module` tag.
 
 **默认生成 spec + test + handler 三件套** (对齐 kit v0.4 sync 产物的扁平布局).
 `--no-http-mock` 关掉 handler (只出 spec + test 骨架, test 不 register handler).

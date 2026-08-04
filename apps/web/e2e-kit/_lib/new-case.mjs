@@ -22,8 +22,12 @@
  * 用法:
  *
  *   pnpm e2e:new <CaseId> <slug> \
- *     [--module <name>] [--submodule <name>] \
+ *     (--module <name> | --tags "@p1 @module") \
+ *     [--submodule <name>] \
  *     [--tags "@p0 @matter @matter-create"] \
+ *
+ * Tags 会自动归一化: 补 `@<CaseId>` / `@p1` 默认优先级 / `@<module>` / `@<submodule>`.
+ * CaseId 前缀只是项目自定义 ID, 不参与模块语义; 筛选靠 `@module` tag.
  *     [--covers "GITLAB#215,NANCY-BUG-2026-07-15"] \
  *     [--http-mock] [--no-http-mock] \
  *     [--im-seed] [--no-im-seed] \
@@ -59,9 +63,9 @@ import { spawnSync } from "node:child_process";
 // 若接入方项目采用其他布局 (例如 e2e-research 的 shared/), 改下面常量即可.
 
 const REPO_ROOT = process.cwd();
-const CASE_SPECS_DIR = resolve(REPO_ROOT, "e2e/case-specs");
-const TESTS_DIR = resolve(REPO_ROOT, "e2e/tests");
-const HANDLERS_DIR = resolve(REPO_ROOT, "e2e/msw-handlers");
+const CASE_SPECS_DIR = resolve(REPO_ROOT, "e2e-kit/case-specs");
+const TESTS_DIR = resolve(REPO_ROOT, "e2e-kit/tests");
+const HANDLERS_DIR = resolve(REPO_ROOT, "e2e-kit/msw-handlers");
 
 // import path segments (相对 e2e/ 根). test 到根的相对前缀由 upToE2eRoot() 算.
 const FIXTURES_IMPORT_PATH = "fixtures-authed";
@@ -69,11 +73,13 @@ const MOCK_IM_IMPORT_PATH = "_kit/mock-im-runtime";
 const SANITY_IMPORT_PATH = "_lib/sanity";
 const HANDLERS_IMPORT_ROOT = "msw-handlers";
 
+const E2E_ROOT_BASENAME = "e2e-kit";
+
 const USE_MOCK_IM = false; // 项目装了 mock-im-wksdk optional 后, 改成 true
 const USE_SANITY = true;
 const FMT_CMD = null; // 例: ["pnpm", "exec", "prettier", "--write"]
 
-// test 到 e2e/ 根的相对前缀. tests/[module/[sub/]]<file>.spec.ts → depth 决定 ../ 个数.
+// test 到 e2e-kit/ 根的相对前缀. tests/[module/[sub/]]<file>.spec.ts → depth 决定 ../ 个数.
 function upToE2eRoot(moduleName, subModule) {
   const depth = 1 + (moduleName ? 1 : 0) + (subModule ? 1 : 0);
   return "../".repeat(depth);
@@ -106,7 +112,7 @@ const [caseId, slug] = args.positional;
 
 if (!caseId || !slug) {
   console.error(
-    "usage: e2e:new <CaseId> <slug> [--module m] [--submodule sm] [--tags '@p0 @m'] [--http-mock] [--no-im-seed] [--dry-run]",
+    "usage: e2e:new <CaseId> <slug> (--module m | --tags '@p1 @module') [--submodule sm] [--tags '@p0 @m'] [--http-mock] [--no-im-seed] [--dry-run]",
   );
   process.exit(1);
 }
@@ -122,7 +128,45 @@ if (!/^[a-z][a-z0-9-]*$/.test(slug)) {
 
 const moduleName = args.flags.module || null;
 const subModule = args.flags.submodule || null;
-const tags = (args.flags.tags || "@p1").trim();
+const inputTags = String(args.flags.tags || "").trim();
+const inputTagList = inputTags.split(/\s+/).filter(Boolean);
+
+function isModuleLikeTag(tag, caseId) {
+  return (
+    tag.startsWith("@") &&
+    tag !== `@${caseId}` &&
+    !["@p0", "@p1", "@p2", "@visual"].includes(tag) &&
+    !/^@p[0-2]-/.test(tag)
+  );
+}
+
+// lint-spec-format 会强制 Tags 里有 module tag. 这里提前 fail-fast,
+// 避免 scaffolder 默认合法调用生成一个填完也过不了 lint 的 spec.
+const hasExplicitModuleTag = inputTagList.some((t) => isModuleLikeTag(t, caseId));
+if (!moduleName && !hasExplicitModuleTag) {
+  console.error(
+    "缺 module tag: 请传 --module <name>, 或在 --tags 里显式给一个业务模块 tag (例如 --tags '@p1 @smoke'). CaseId 前缀不是模块.",
+  );
+  process.exit(1);
+}
+
+function normalizeTags(caseId, rawTags, moduleName, subModule) {
+  const input = rawTags.split(/\s+/).filter(Boolean);
+  const set = new Set(input);
+  const priority = ["@p0", "@p1", "@p2"].find((p) => set.has(p)) || "@p1";
+  const canonical = [`@${caseId}`, priority];
+  if (moduleName) canonical.push(`@${moduleName}`);
+  if (subModule) canonical.push(`@${subModule}`);
+
+  // 保留用户额外 tags (e.g. @consumer / @visual / @bug-123), 但 canonical
+  // 四件套永远排在前面, 方便 grep / review 形成肌肉记忆.
+  for (const t of input) {
+    if (!canonical.includes(t)) canonical.push(t);
+  }
+  return canonical.join(" ");
+}
+
+const tags = normalizeTags(caseId, inputTags, moduleName, subModule);
 // tag 匹配用完整词判定, 不用 /@p0\b/ —— JS \b 在 "0" 和 "-" 之间就是词边界,
 // 会让 @p0-follow-up 误匹配 @p0 (MR-14 review round 1 抓到).
 const tagSet = new Set(tags.split(/\s+/).filter(Boolean));
@@ -161,7 +205,8 @@ const testPath = resolve(testDir, testFileName);
 const handlerPath = resolve(HANDLERS_DIR, handlerFileName);
 
 const specRelForHeader = [
-  relative(REPO_ROOT, CASE_SPECS_DIR),
+  E2E_ROOT_BASENAME,
+  "case-specs",
   ...(moduleName ? [moduleName] : []),
   ...(subModule ? [subModule] : []),
   specFileName,
@@ -234,7 +279,7 @@ const testTemplate = `/* eslint-disable no-undef -- e2e code runs in Node */
 import { test, expect } from "${sharedRoot}${FIXTURES_IMPORT_PATH}";
 ${withHttpMock ? `import { ${registerFnName} } from "${sharedRoot}${HANDLERS_IMPORT_ROOT}/${caseId.toLowerCase()}-${slug}";\n` : ""}${withImSeed ? `import { installMockImRuntime } from "${sharedRoot}${MOCK_IM_IMPORT_PATH}";\n` : ""}${USE_SANITY ? `import { startRequestMonitor, sanityCheck } from "${sharedRoot}${SANITY_IMPORT_PATH}";\n` : ""}
 
-test.describe("@${caseId} ${tags} ${caseId} — **待补** case 描述", () => {
+test.describe("${tags} ${caseId} — **待补** case 描述", () => {
   test("**待补** 一句话操作 + 预期", async ({ authedPage }) => {
     // scaffolder 骨架 fixme 保护: 作者填完真实操作 + 断言后删掉这行.
     // 若忘删, batch 跑 (--grep @p0 等) 会 skip 而不是假绿.

@@ -10,8 +10,8 @@
 - 目标模式: real-page seed | harness route
 - 登录状态: authed fixture | anonymous | 其它
 - 优先级: P0 (阻断) | P1 (回归守护) | P2 (nice-to-have)
-- Tag: `@<CaseId> @<p0|p1|p2> @<module> [@<submodule>] [@<consumer>]`
-  (例 `@S1 @p0 @summary @summary-create`; kit `.gitlab-ci.yml.template` 走 `--grep "@p0|@visual"` 命中门禁)
+- Tags: `@<CaseId> @<p0|p1|p2> @<module> [@<submodule>] [@<consumer>]`
+  (例 `@S1 @p0 @summary @summary-create`; kit `.gitlab-ci.yml.template` 走 `--grep "@p0|@visual"` 命中门禁. CaseId 前缀只是项目自定义 ID, 模块筛选靠 `@<module>` tag)
 
 ## 目标
 
@@ -21,7 +21,7 @@
 
 - fixture: `fixtures-authed` (E2E_TARGET=local, mock 默认装)
 - 需要覆盖的 baseline handler (auth guard 依赖的, 不装踢登录页): 通常 kit `_baseline/` 已装, 有额外需要在此列
-- Per-case MSW handler: `e2e/msw-handlers/<CaseId>-<name>.ts`
+- Per-case MSW handler: `e2e/msw-handlers/<caseId-lowercase>-<name>.ts`
   - `GET/POST /path/to/endpoint` — 返回什么数据 / cursor 分页规则 / 边界返回
   - 用**实际**后端 shape (从 src/ grep 出的字段名, 别猜)
 - (可选) mock-im-runtime seed (`installMockImRuntime`):

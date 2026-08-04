@@ -50,6 +50,14 @@ pnpm exec playwright test --grep "@C7" --repeat-each=10 --workers=1
 
 同名元素消歧用 scoping: `page.locator("aside").getByRole(...)` / `dialog.getByRole(...)`, 不用 `.first()` 兜底 (fragile)。
 
+SPA / AI 产品额外遵守:
+- 禁 `waitForLoadState('networkidle')`, 改等 URL / landmark / 业务 ready 信号
+- `contenteditable` 输入框用 click + keyboard, 不默认 `fill()`
+- AI 流式回复用“业务完成信号 + 新实质文本兜底”两阶段等待
+- 截图可见但 click timeout 时先查 overlay / `elementFromPoint` / `pointer-events`, 不用 `force: true` 掩盖
+
+详见 kit repo 的 [docs/methodology/spa-ai-selector-strategy.md](https://codex.mlamp.cn/e2e/e2e-kit/-/blob/main/docs/methodology/spa-ai-selector-strategy.md)。
+
 ## Flake 排查顺序
 
 **禁**一上来加 timeout。顺序:
