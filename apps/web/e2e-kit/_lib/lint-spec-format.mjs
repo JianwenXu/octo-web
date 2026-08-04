@@ -256,5 +256,5 @@ for (const e of errors) console.error(`  - ${e}`);
 console.error("");
 console.error("  必需段: Metadata / 目标 / 前置条件 / 用户操作步骤 / 预期结果 / 反例");
 console.error("  Metadata 字段: Case 类型 / 目标模式 / 优先级 / Tags");
-console.error("  格式规约见 e2e/case-specs/TEMPLATE.md");
+console.error("  格式规约见 e2e-kit/case-specs/TEMPLATE.md");
 process.exit(1);

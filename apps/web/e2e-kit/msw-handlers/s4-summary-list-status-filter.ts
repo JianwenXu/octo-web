@@ -66,7 +66,10 @@ export async function registerS4SummaryListStatusFilter(page: Page): Promise<voi
         const status = new URL(request.url).searchParams.get("status");
         const items = status === "4" ? [failed] : [completed, failed];
         return env({ items, total: items.length });
-      })
+      }),
+      http.get("*/summary/api/v1/summary-templates", () =>
+        env({ templates: [], custom_template_limit: 30 })
+      )
     );
   });
 }

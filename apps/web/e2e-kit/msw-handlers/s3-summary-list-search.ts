@@ -67,7 +67,10 @@ export async function registerS3SummaryListSearch(page: Page): Promise<void> {
         const keyword = new URL(request.url).searchParams.get("keyword") || "";
         const filtered = keyword ? items.filter((item) => item.title.includes(keyword)) : items;
         return env({ items: filtered, total: filtered.length });
-      })
+      }),
+      http.get("*/summary/api/v1/summary-templates", () =>
+        env({ templates: [], custom_template_limit: 30 })
+      )
     );
   });
 }

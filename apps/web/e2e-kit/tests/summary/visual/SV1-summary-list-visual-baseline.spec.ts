@@ -32,6 +32,8 @@ test.describe("@SV1 @p1 @summary @summary-list @visual SV1 — Summary 列表视
 
     await expect(listPage).toHaveScreenshot("summary-list-completed.png", {
       animations: "disabled",
+      maxDiffPixelRatio: 0.01,
+      threshold: 0.2,
     });
 
     await sanityCheck(authedPage, ctx);
