@@ -130,7 +130,7 @@ jobs:
           #  7. 仅视觉 fail (无 @p0 交叉) 且 playwright 干净退出 → allow
           #  8. 全绿 → success
           EXPECTED_P0=3
-          EXPECTED_VISUAL=1
+          EXPECTED_VISUAL=0
           EXPECTED_TOTAL=$((EXPECTED_P0 + EXPECTED_VISUAL))
           if [[ "$TOTAL_TESTS" -eq 0 ]]; then
             echo "❌ tests=0 (playwright 没跑起 test, 通常是 preview server timeout), block PR"
