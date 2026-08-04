@@ -127,6 +127,9 @@ export async function registerS1SummaryListDetail(page: Page): Promise<void> {
       ),
       http.get("*/summary/api/v1/summaries/9101/versions", () =>
         env({ versions: [], keep_limit: 3 })
+      ),
+      http.get("*/summary/api/v1/summary-templates", () =>
+        env({ templates: [], custom_template_limit: 30 })
       )
     );
   });

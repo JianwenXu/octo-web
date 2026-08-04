@@ -51,7 +51,10 @@ export async function registerSV1SummaryListBaseline(page: Page): Promise<void> 
         const state = (window as unknown as { __sv1State__: { listCalls: number } }).__sv1State__;
         state.listCalls += 1;
         return env({ items: [item], total: 1 });
-      })
+      }),
+      http.get("*/summary/api/v1/summary-templates", () =>
+        env({ templates: [], custom_template_limit: 30 })
+      )
     );
   });
 }
