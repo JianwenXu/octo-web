@@ -6,7 +6,7 @@
 - 目标模式: real-page seed
 - 登录状态: authed fixture
 - 优先级: P1
-- Tags: `@S2 @p1 @summary @list @summary-list`
+- Tags: `@S2 @p1 @summary @list @summary-list @summary-create`
 
 ## 目标
 

@@ -14,7 +14,7 @@ const sanityConfig = {
   loginPathRe: /\/login(\?|$)/,
 };
 
-test.describe("@S1 @p0 @summary @list @summary-list S1 — Summary 列表到详情读链路", () => {
+test.describe("@S1 @p0 @summary @list @summary-list @summary-detail S1 — Summary 列表到详情读链路", () => {
   test("从智能总结列表打开已完成总结详情", async ({ authedPage }) => {
     await registerS1SummaryListDetail(authedPage);
     const ctx = startRequestMonitor(authedPage, sanityConfig);

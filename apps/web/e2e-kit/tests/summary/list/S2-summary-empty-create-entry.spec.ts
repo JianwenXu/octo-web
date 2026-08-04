@@ -14,7 +14,7 @@ const sanityConfig = {
   loginPathRe: /\/login(\?|$)/,
 };
 
-test.describe("@S2 @p1 @summary @list @summary-list S2 — Summary 空态创建入口", () => {
+test.describe("@S2 @p1 @summary @list @summary-list @summary-create S2 — Summary 空态创建入口", () => {
   test("从空态进入 Summary 创建页", async ({ authedPage }) => {
     await registerS2SummaryEmptyCreateEntry(authedPage);
     const ctx = startRequestMonitor(authedPage, sanityConfig);
