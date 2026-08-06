@@ -23,8 +23,8 @@ test.describe("@S19 @p1 @summary @list @summary-list @summary-cancel S19 — Sum
     await expect(authedPage.getByText("S19 可取消总结")).toBeVisible({ timeout: 15_000 });
     await expect(authedPage.getByText("AI正在分析聊天记录...")).toBeVisible();
 
-    const card = authedPage.locator(".summary-card", { hasText: "S19 可取消总结" });
-    await card.getByRole("button", { name: "more" }).click();
+    const card = authedPage.getByTestId("summary-card-19019");
+    await card.getByTestId("summary-card-menu-19019").click();
     await authedPage.getByRole("menuitem", { name: "取消任务" }).click();
 
     await expect(authedPage.getByText("已取消总结任务")).toBeVisible({ timeout: 15_000 });

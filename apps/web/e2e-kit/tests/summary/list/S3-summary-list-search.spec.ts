@@ -25,7 +25,7 @@ test.describe("@S3 @p1 @summary @list @summary-list @summary-search S3 — Summa
     await expect(authedPage.getByText("S3 周报总结")).toBeVisible({ timeout: 15_000 });
     await expect(authedPage.getByText("S3 客户反馈总结")).toBeVisible();
 
-    await authedPage.getByPlaceholder("搜索总结...").fill("客户");
+    await authedPage.getByTestId("summary-list-search").fill("客户");
 
     await expect(authedPage.getByText("S3 客户反馈总结")).toBeVisible({ timeout: 15_000 });
     await expect(authedPage.getByText("S3 周报总结")).toHaveCount(0);

@@ -25,7 +25,7 @@ test.describe("@S4 @p1 @summary @list @summary-list @summary-filter S4 — Summa
     await expect(authedPage.getByText("S4 已完成总结")).toBeVisible({ timeout: 15_000 });
     await expect(authedPage.getByText("S4 失败总结")).toBeVisible();
 
-    await authedPage.getByText("全部状态", { exact: true }).click();
+    await authedPage.getByTestId("summary-list-status-filter").click();
     await authedPage.getByRole("menuitem", { name: "失败" }).click();
 
     await expect(authedPage.getByText("S4 失败总结")).toBeVisible({ timeout: 15_000 });

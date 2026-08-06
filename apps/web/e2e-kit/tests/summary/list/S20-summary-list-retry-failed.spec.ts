@@ -23,8 +23,8 @@ test.describe("@S20 @p1 @summary @list @summary-list @summary-retry S20 — Summ
     await expect(authedPage.getByText("S20 失败可重试总结")).toBeVisible({ timeout: 15_000 });
     await expect(authedPage.getByText("失败", { exact: true })).toBeVisible();
 
-    const card = authedPage.locator(".summary-card", { hasText: "S20 失败可重试总结" });
-    await card.getByRole("button", { name: "more" }).click();
+    const card = authedPage.getByTestId("summary-card-20020");
+    await card.getByTestId("summary-card-menu-20020").click();
     await authedPage.getByRole("menuitem", { name: "重试" }).click();
 
     await expect(authedPage.getByText("已重新提交总结任务")).toBeVisible({ timeout: 15_000 });

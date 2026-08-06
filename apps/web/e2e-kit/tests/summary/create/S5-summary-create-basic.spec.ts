@@ -22,13 +22,13 @@ test.describe("@S5 @p1 @summary @create @summary-create S5 — Summary 创建主
 
     await authedPage.getByRole("button", { name: "智能总结" }).click();
     await expect(authedPage.getByText("暂无总结记录")).toBeVisible({ timeout: 15_000 });
-    await authedPage.getByRole("button", { name: "创建第一份总结" }).click();
+    await authedPage.getByTestId("summary-create").click();
 
     await expect(authedPage.getByText("邀请同事一起总结信息")).toBeVisible({ timeout: 15_000 });
-    const startButton = authedPage.getByRole("button", { name: "开始总结" }).nth(1);
+    const startButton = authedPage.getByTestId("summary-create-submit");
     await expect(startButton).toBeDisabled();
 
-    await authedPage.getByRole("button", { name: "选择聊天" }).click();
+    await authedPage.getByTestId("summary-create-select-chat").click();
     await expect(authedPage.getByText("选择聊天").last()).toBeVisible({ timeout: 15_000 });
     await authedPage.getByRole("button", { name: "全部群聊" }).click();
     await authedPage.getByText("S5 项目群", { exact: true }).click();
@@ -37,7 +37,7 @@ test.describe("@S5 @p1 @summary @create @summary-create S5 — Summary 创建主
 
     await expect(authedPage.getByText("S5 项目群", { exact: true })).toBeVisible();
     await authedPage
-      .getByPlaceholder("请输入你想总结的主题，例如：总结本周项目进展、整理客户反馈要点")
+      .getByTestId("summary-create-topic")
       .fill("S5 项目复盘总结");
     await expect(startButton).toBeEnabled();
     await startButton.click();

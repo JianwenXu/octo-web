@@ -25,7 +25,7 @@ test.describe("@S1 @p0 @summary @list @summary-list @summary-detail S1 — Summa
     await expect(
       authedPage.getByRole("heading", { name: "智能总结" })
     ).toBeVisible({ timeout: 15_000 });
-    await expect(authedPage.getByPlaceholder("搜索总结...")).toBeVisible();
+    await expect(authedPage.getByTestId("summary-list-search")).toBeVisible();
     await expect(authedPage.getByText("暂无总结记录")).toHaveCount(0);
 
     await expect(authedPage.getByText("S1 项目进展总结")).toBeVisible({
