@@ -26,6 +26,8 @@ test.describe("@S25 @p2 @summary @list @summary-list @summary-invite S25 — Sum
 
     await expect(acceptCard).toBeVisible({ timeout: 15_000 });
     await expect(rejectCard).toBeVisible();
+    await expect(acceptCard).toContainText("S25 同意邀请总结");
+    await expect(rejectCard).toContainText("S25 拒绝邀请总结");
     await expect(acceptCard.getByTestId(T.cardAcceptBtn(250251))).toBeVisible();
     await expect(rejectCard.getByTestId(T.cardRejectBtn(250252))).toBeVisible();
 

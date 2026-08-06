@@ -4,7 +4,7 @@ export const summaryTestIds = {
     listContent: "summary-list-content",
     listSearch: "summary-list-search",
     listStatusFilter: "summary-list-status-filter",
-    listCreate: "summary-create",
+    listCreate: "summary-list-create",
     createEntry: "summary-create-entry",
 
     // ── Card (per-task) ──

@@ -52,6 +52,7 @@ test.describe("@S9 @p0 @summary @agent @summary-agent @summary-create @summary-d
     await expect(
       authedPage.getByTestId(T.detailTitle)
     ).toBeVisible({ timeout: 15_000 });
+    await expect(authedPage.getByTestId(T.detailTitle)).toContainText("S9 Agent 风险总结");
     await expect(authedPage.getByText("AI 摘要")).toBeVisible();
     await expect(authedPage.getByText("S9 Agent 总结已保存")).toBeVisible();
     await expect(authedPage.getByText("风险项需要提前暴露")).toBeVisible();

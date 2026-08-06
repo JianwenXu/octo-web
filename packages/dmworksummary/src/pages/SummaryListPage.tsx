@@ -587,7 +587,7 @@ export default class SummaryListPage extends Component<SummaryListPageProps, Sum
                         ) : (
                             <Tooltip content={translate("summary.list.createTooltip")} position="bottom">
                                 <Button
-                                    data-testid={summaryTestIds.create}
+                                    data-testid={summaryTestIds.listCreate}
                                     className="summary-list-create-icon-btn"
                                     icon={<IconPlus />}
                                     theme="borderless"

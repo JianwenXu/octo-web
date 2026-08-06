@@ -28,6 +28,7 @@ test.describe("@S18 @p1 @summary @list @summary-list @summary-poll S18 — Summa
     await authedPage.getByText("S18 轮询总结").click();
 
     await expect(authedPage.getByTestId(T.detailTitle)).toBeVisible({ timeout: 15_000 });
+    await expect(authedPage.getByTestId(T.detailTitle)).toContainText("S18 轮询总结");
     await expect(authedPage.getByText("AI 摘要")).toBeVisible();
     await expect(authedPage.getByText("S18 轮询后已完成", { exact: true })).toBeVisible();
     await expect(authedPage.getByText("加载失败")).toHaveCount(0);

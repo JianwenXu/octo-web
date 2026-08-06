@@ -36,9 +36,9 @@ test.describe("@S14 @p1 @summary @detail @summary-detail @summary-version S14 �
     const versionPanel = authedPage.getByTestId(T.versionPanel);
     await expect(versionPanel.getByRole("heading", { name: "版本记录" })).toBeVisible();
     await expect(versionPanel.getByText("保留最近 3 个版本")).toBeVisible();
-    await expect(versionPanel.getByText("V2")).toBeVisible();
-    await expect(versionPanel.getByTestId(T.versionCard(2)).getByText("当前版本").first()).toBeVisible();
-    await expect(versionPanel.getByText("V1")).toBeVisible();
+    await expect(versionPanel.getByTestId(T.versionCard(2))).toContainText("V2");
+    await expect(versionPanel.getByTestId(T.versionCard(2))).toContainText("当前版本");
+    await expect(versionPanel.getByTestId(T.versionCard(1))).toContainText("V1");
 
     await versionPanel.getByTestId(T.versionCard(1)).click();
     await expect(authedPage.getByText("正在查看 V1 历史版本")).toBeVisible({ timeout: 15_000 });

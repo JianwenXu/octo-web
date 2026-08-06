@@ -47,6 +47,9 @@ test.describe("@S10 @p1 @summary @agent @summary-agent @summary-reference S10 �
     await expect(
       authedPage.getByTestId(T.agentRefSidePanel).getByTestId(T.agentRefSideTitle)
     ).toBeVisible({ timeout: 15_000 });
+    await expect(
+      authedPage.getByTestId(T.agentRefSidePanel).getByTestId(T.agentRefSideTitle)
+    ).toContainText("S10 已有客户总结");
     await expect(authedPage.getByText(/以下内容为该总结的最新版本/)).toBeVisible();
     await expect(authedPage.getByText("历史风险需要继续跟进")).toBeVisible();
 

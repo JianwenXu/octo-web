@@ -8,6 +8,7 @@ export const T = {
     listContent: "summary-list-content",
     listSearch: "summary-list-search",
     listStatusFilter: "summary-list-status-filter",
+    listCreate: "summary-list-create",
     createEntry: "summary-create-entry",
 
     // Card (per-task)

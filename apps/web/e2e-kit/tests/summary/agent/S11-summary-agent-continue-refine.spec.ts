@@ -43,6 +43,9 @@ test.describe("@S11 @p0 @summary @agent @summary-agent @summary-detail @summary-
       authedPage.getByTestId(T.agentRefSidePanel).getByTestId(T.agentRefSideTitle)
     ).toBeVisible({ timeout: 15_000 });
     await expect(
+      authedPage.getByTestId(T.agentRefSidePanel).getByTestId(T.agentRefSideTitle)
+    ).toContainText("S11 Agent 原总结");
+    await expect(
       authedPage.getByTestId(T.agentRefSideBody).getByText("S11 原总结风险清单")
     ).toBeVisible();
     await expect(authedPage.getByText("加载失败")).toHaveCount(0);

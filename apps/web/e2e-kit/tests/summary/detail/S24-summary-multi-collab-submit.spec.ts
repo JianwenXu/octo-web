@@ -31,7 +31,7 @@ test.describe("@S24 @p2 @summary @detail @summary-detail @multi-collab S24 — �
 
     await authedPage.getByTestId(T.detailMyPendingRow).getByTestId(T.detailSubmitMyBtn).click();
 
-    await expect(authedPage.getByTestId(T.detailMembersSection).getByText("已提交", { exact: true }).first()).toBeVisible({ timeout: 15_000 });
+    await expect(authedPage.getByTestId(T.detailMembersSection).filter({ hasText: "E2E Tester" }).getByText("已提交", { exact: true })).toBeVisible({ timeout: 15_000 });
     await expect(authedPage.getByText("S24 团队汇总已刷新", { exact: true })).toBeVisible({ timeout: 15_000 });
     await expect(authedPage.getByText("我（待提交）")).toHaveCount(0);
     await expect(authedPage.getByText("加载失败")).toHaveCount(0);

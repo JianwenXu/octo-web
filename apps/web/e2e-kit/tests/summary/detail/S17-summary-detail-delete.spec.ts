@@ -25,6 +25,7 @@ test.describe("@S17 @p1 @summary @detail @summary-detail @summary-delete S17 —
     await authedPage.getByText("S17 待删除总结").click();
 
     await expect(authedPage.getByTestId(T.detailTitle)).toBeVisible({ timeout: 15_000 });
+    await expect(authedPage.getByTestId(T.detailTitle)).toContainText("S17 待删除总结");
     await expect(authedPage.getByText("S17 删除前正文内容")).toBeVisible();
 
     await authedPage.getByTestId(T.detailDeleteBtn).click();

@@ -25,6 +25,7 @@ test.describe("@S15 @p1 @summary @detail @summary-detail @summary-edit S15 — S
     await authedPage.getByText("S15 可编辑总结").click();
 
     await expect(authedPage.getByTestId(T.detailTitle)).toBeVisible({ timeout: 15_000 });
+    await expect(authedPage.getByTestId(T.detailTitle)).toContainText("S15 可编辑总结");
     await expect(authedPage.getByText("S15 原始正文内容")).toBeVisible();
 
     await authedPage.getByTestId(T.detailEditBtn).click();
