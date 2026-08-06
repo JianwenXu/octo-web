@@ -570,6 +570,7 @@ export default class SummaryListPage extends Component<SummaryListPageProps, Sum
                         {isPanel && (
                             <Tooltip content={translate("summary.chatSummary.createNew")} position="bottom">
                                 <Button
+                                    className="summary-list-create-icon-btn"
                                     icon={<IconPlus />}
                                     theme="borderless"
                                     onClick={this.handleCreate}
@@ -587,6 +588,7 @@ export default class SummaryListPage extends Component<SummaryListPageProps, Sum
                             <Tooltip content={translate("summary.list.createTooltip")} position="bottom">
                                 <Button
                                     data-testid={summaryTestIds.create}
+                                    className="summary-list-create-icon-btn"
                                     icon={<IconPlus />}
                                     theme="borderless"
                                     onClick={this.handleCreate}
