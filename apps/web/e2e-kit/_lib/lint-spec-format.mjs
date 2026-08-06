@@ -48,9 +48,9 @@ const REQUIRED_SECTIONS = [
 
 // Metadata 段内必需字段
 const REQUIRED_METADATA_FIELDS = [
-  { name: "Case 类型", pattern: /^-\s*Case\s*类型\s*[::]/im },
-  { name: "目标模式", pattern: /^-\s*目标模式\s*[::]/im },
-  { name: "优先级", pattern: /^-\s*优先级\s*[::]/im },
+  { name: "Case 类型", pattern: /^-\s*Case\s*类型\s*[：:]/im },
+  { name: "目标模式", pattern: /^-\s*目标模式\s*[：:]/im },
+  { name: "优先级", pattern: /^-\s*优先级\s*[：:]/im },
 ];
 
 // ---------- helpers ----------
@@ -94,9 +94,9 @@ function caseIdFromFilename(filePath) {
 function parseTags(metadata) {
   const line = metadata
     .split("\n")
-    .find((l) => /^-\s*Tags?\s*:/i.test(l));
+    .find((l) => /^-\s*Tags?\s*[：:]/i.test(l));
   if (!line) return null;
-  const raw = line.replace(/^-\s*Tags?\s*:/i, "").replace(/`/g, "").trim();
+  const raw = line.replace(/^-\s*Tags?\s*[：:]/i, "").replace(/`/g, "").trim();
   return new Set(raw.split(/\s+/).filter((t) => t.startsWith("@")));
 }
 

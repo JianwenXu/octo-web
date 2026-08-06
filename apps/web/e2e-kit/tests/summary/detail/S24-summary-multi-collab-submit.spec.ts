@@ -5,7 +5,7 @@
  * S24: 多人 BY_PERSON 个人报告提交.
  */
 import { test, expect } from "../../../fixtures-authed";
-import { registerS24SummaryMultiPersonalSubmit } from "../../../msw-handlers/s24-summary-multi-personal-submit";
+import { registerS24SummaryMultiCollabSubmit } from "../../../msw-handlers/s24-summary-multi-collab-submit";
 import { startRequestMonitor, sanityCheck } from "../../../_lib/sanity";
 
 const sanityConfig = {
@@ -16,7 +16,7 @@ const sanityConfig = {
 
 test.describe("@S24 @p2 @summary @detail @summary-detail @multi-collab S24 — 多人个人报告提交", () => {
   test("提交我的总结后成员状态和团队汇总刷新", async ({ authedPage }) => {
-    await registerS24SummaryMultiPersonalSubmit(authedPage);
+    await registerS24SummaryMultiCollabSubmit(authedPage);
     const ctx = startRequestMonitor(authedPage, sanityConfig);
 
     await authedPage.getByRole("button", { name: "智能总结" }).click();
@@ -30,7 +30,7 @@ test.describe("@S24 @p2 @summary @detail @summary-detail @multi-collab S24 — �
 
     await authedPage.locator(".summary-detail-my-pending-row").getByRole("button", { name: "提交我的总结" }).click();
 
-    await expect(authedPage.getByText("已提交", { exact: true })).toBeVisible({ timeout: 15_000 });
+    await expect(authedPage.locator(".summary-detail-members").getByText("已提交", { exact: true })).toBeVisible({ timeout: 15_000 });
     await expect(authedPage.getByText("S24 团队汇总已刷新", { exact: true })).toBeVisible({ timeout: 15_000 });
     await expect(authedPage.getByText("我（待提交）")).toHaveCount(0);
     await expect(authedPage.getByText("加载失败")).toHaveCount(0);

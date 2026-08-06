@@ -15,7 +15,7 @@
 ## 前置条件
 
 - fixture: `fixtures-authed`，本地 mock 模式已预置登录态、Space `e2e-space-001` 和中文 locale。
-- Per-case MSW handler: `e2e-kit/msw-handlers/s24-summary-multi-personal-submit.ts`
+- Per-case MSW handler: `e2e-kit/msw-handlers/s24-summary-multi-collab-submit.ts`
   - `GET */summary/api/v1/summaries` — 返回一条 BY_PERSON 多人总结 `S24 多人协作总结`。
   - `GET */summary/api/v1/summaries/24024` — 提交前返回无团队汇总，提交后返回团队汇总正文 `S24 团队汇总已刷新`。
   - `GET */summary/api/v1/summaries/24024/personal` — 提交前返回当前用户个人报告，`submitted_at=null`；提交后返回 `submitted_at`。

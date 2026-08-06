@@ -3,7 +3,7 @@
 import type { Page } from "@playwright/test";
 
 /** S24: 多人 BY_PERSON 个人报告提交. */
-export async function registerS24SummaryMultiPersonalSubmit(page: Page): Promise<void> {
+export async function registerS24SummaryMultiCollabSubmit(page: Page): Promise<void> {
   await page.evaluate(() => {
     type MSW = {
       worker: { use: (...h: unknown[]) => void };
