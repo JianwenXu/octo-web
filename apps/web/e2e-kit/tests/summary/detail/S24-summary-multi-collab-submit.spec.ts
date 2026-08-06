@@ -1,6 +1,6 @@
 /* eslint-disable no-undef -- e2e code runs in Node */
 /**
- * spec: e2e-kit/case-specs/summary/detail/S24-summary-multi-personal-submit.md
+ * spec: e2e-kit/case-specs/summary/detail/S24-summary-multi-collab-submit.md
  *
  * S24: 多人 BY_PERSON 个人报告提交.
  */
