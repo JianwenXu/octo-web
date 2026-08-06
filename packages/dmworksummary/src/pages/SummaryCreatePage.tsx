@@ -849,6 +849,7 @@ export default class SummaryCreatePage extends Component<SummaryCreatePageProps,
         if (referencedTask) {
             return (
                 <div
+                    data-testid={summaryTestIds.agentRefCard}
                     className="summary-workbench-ref-card"
                     onClick={() => this.setState((prev) => ({ sidePanelOpen: !prev.sidePanelOpen }))}
                     style={{ cursor: 'pointer' }}
@@ -861,6 +862,7 @@ export default class SummaryCreatePage extends Component<SummaryCreatePageProps,
                         {referencedTask.title || `task_id=${referencedTask.task_id}`}
                     </span>
                     <span
+                        data-testid={summaryTestIds.agentRefRemoveBtn}
                         className="summary-workbench-ref-card-remove"
                         onClick={(e) => {
                             // 阻止事件冒泡触发卡片 onClick (toggle SidePanel)
@@ -879,6 +881,7 @@ export default class SummaryCreatePage extends Component<SummaryCreatePageProps,
         }
         return (
             <span
+                data-testid={summaryTestIds.agentRefEntry}
                 className="summary-workbench-ref-btn"
                 onClick={() => this.setState({ showReferencePicker: true })}
                 title={translate('summary.chatReference.buttonTip')}
@@ -1031,6 +1034,7 @@ export default class SummaryCreatePage extends Component<SummaryCreatePageProps,
                     <div className="summary-workbench-mode-switch">
                         <button
                             type="button"
+                            data-testid={summaryTestIds.createNormalTab}
                             className={`summary-workbench-mode-btn${mode === 'normal' ? ' summary-workbench-mode-btn--active' : ''}`}
                             onClick={() => this.handleSelectMode('normal')}
                         >
@@ -1038,6 +1042,7 @@ export default class SummaryCreatePage extends Component<SummaryCreatePageProps,
                         </button>
                         <button
                             type="button"
+                            data-testid={summaryTestIds.createAgentTab}
                             className={`summary-workbench-mode-btn${mode === 'agent' ? ' summary-workbench-mode-btn--active' : ''}`}
                             onClick={() => this.handleSelectMode('agent')}
                         >

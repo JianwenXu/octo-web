@@ -256,12 +256,14 @@ const SummaryCard: React.FC<SummaryCardProps> = ({ task, active, onClick, onDele
                     onClick={(e) => e.stopPropagation()}
                 >
                     <button
+                        data-testid={summaryTestIds.cardAcceptBtn(task.task_id)}
                         className="summary-card-respond-btn summary-card-respond-btn--accept"
                         onClick={() => onRespond(task.task_id, "accept")}
                     >
                         {t("summary.action.accept")}
                     </button>
                     <button
+                        data-testid={summaryTestIds.cardRejectBtn(task.task_id)}
                         className="summary-card-respond-btn summary-card-respond-btn--reject"
                         onClick={() => onRespond(task.task_id, "reject")}
                     >

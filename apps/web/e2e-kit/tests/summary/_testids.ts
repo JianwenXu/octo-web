@@ -1,38 +1,39 @@
-export const summaryTestIds = {
-    // ── List page ──
+/**
+ * Stable data-testid constants for Summary e2e tests.
+ * Mirrors packages/dmworksummary/src/utils/testIds.ts — keep in sync.
+ */
+export const T = {
+    // List page
     list: "summary-list",
     listContent: "summary-list-content",
     listSearch: "summary-list-search",
     listStatusFilter: "summary-list-status-filter",
-    listCreate: "summary-create",
     createEntry: "summary-create-entry",
 
-    // ── Card (per-task) ──
+    // Card (per-task)
     card: (taskId: number) => `summary-card-${taskId}`,
     cardMenu: (taskId: number) => `summary-card-menu-${taskId}`,
     cardAcceptBtn: (taskId: number) => `summary-card-accept-${taskId}`,
     cardRejectBtn: (taskId: number) => `summary-card-reject-${taskId}`,
 
-    // ── Create page ──
+    // Create page
     create: "summary-create",
     createTopic: "summary-create-topic",
     createSelectChat: "summary-create-select-chat",
     createSelectMembers: "summary-create-select-members",
     createSubmit: "summary-create-submit",
-    // Agent mode buttons on create page
     createAgentTab: "summary-create-agent-tab",
     createNormalTab: "summary-create-normal-tab",
     createPanelStartBtn: "summary-create-panel-start-btn",
 
-    // ── Chat selector modal ──
+    // Chat/member selector modal
     chatSelectorModal: "summary-chat-selector-modal",
     chatSelectorAllGroupsTab: "summary-chat-selector-all-groups-tab",
     chatSelectorConfirmBtn: "summary-chat-selector-confirm-btn",
     chatSelectorSearchInput: "summary-chat-selector-search-input",
     memberSelectorConfirmBtn: "summary-member-selector-confirm-btn",
 
-    // ── Detail page ──
-    detail: (taskId: number) => `summary-detail-${taskId}`,
+    // Detail page
     detailPage: "summary-detail-page",
     detailTitle: "summary-detail-title",
     detailRegenerateBtn: "summary-detail-regenerate-btn",
@@ -46,27 +47,27 @@ export const summaryTestIds = {
     detailSubmitMyBtn: "summary-detail-submit-my-btn",
     detailMyDraftEditBtn: "summary-detail-my-draft-edit-btn",
 
-    // ── Editor footer (inline edit save/cancel) ──
+    // Inline editor footer
     editorSaveBtn: "summary-editor-save-btn",
     editorCancelBtn: "summary-editor-cancel-btn",
     editorTextarea: "summary-editor-textarea",
 
-    // ── Regenerate modal ──
+    // Regenerate modal
     regenerateInput: "summary-regenerate-input",
     regenerateSubmitBtn: "summary-regenerate-submit-btn",
     regenerateCancelBtn: "summary-regenerate-cancel-btn",
     regenerateModal: "summary-regenerate-modal",
 
-    // ── Delete confirmation ──
+    // Delete confirmation
     deleteConfirmOkBtn: "summary-delete-confirm-ok-btn",
     deleteConfirmDialog: "summary-delete-confirm-dialog",
 
-    // ── Version panel ──
+    // Version panel
     versionPanel: "summary-version-panel",
-    versionCard: (versionNum: number | string) => `summary-version-card-${versionNum}`,
+    versionCard: (v: number | string) => `summary-version-card-${v}`,
     versionRestoreBtn: "summary-version-restore-btn",
 
-    // ── Agent chat panel (in create page / continue-refine) ──
+    // Agent chat panel
     agentPanel: "summary-agent-panel",
     agentInput: "summary-agent-input",
     agentSendBtn: "summary-agent-send-btn",
@@ -75,7 +76,6 @@ export const summaryTestIds = {
     agentSaveDialog: "summary-agent-save-dialog",
     agentSaveTitleInput: "summary-agent-save-title-input",
     agentSaveConfirmBtn: "summary-agent-save-confirm-btn",
-    // Reference picker entry + card (agent mode)
     agentRefEntry: "summary-agent-ref-entry",
     agentRefSearchInput: "summary-agent-ref-search-input",
     agentRefCard: "summary-agent-ref-card",
@@ -85,7 +85,7 @@ export const summaryTestIds = {
     agentRefSideBody: "summary-agent-ref-side-body",
     agentRefSideCloseBtn: "summary-agent-ref-side-close-btn",
 
-    // ── Chat summary panel (in-chat panel) ──
+    // In-chat summary panel
     chatPanel: "summary-chat-panel",
     chatPanelHeaderBtn: "summary-chat-panel-header-btn",
     chatPanelDetailInPanel: "summary-chat-panel-detail",

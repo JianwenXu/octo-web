@@ -7,6 +7,7 @@
 import { test, expect } from "../../../fixtures-authed";
 import { registerS24SummaryMultiCollabSubmit } from "../../../msw-handlers/s24-summary-multi-collab-submit";
 import { startRequestMonitor, sanityCheck } from "../../../_lib/sanity";
+import { T } from "../_testids";
 
 const sanityConfig = {
   realHosts: ["127.0.0.1:9", "mock.e2e.local"],
@@ -23,14 +24,14 @@ test.describe("@S24 @p2 @summary @detail @summary-detail @multi-collab S24 — �
     await expect(authedPage.getByText("S24 多人协作总结")).toBeVisible({ timeout: 15_000 });
     await authedPage.getByText("S24 多人协作总结").click();
 
-    await expect(authedPage.locator(".summary-detail-title", { hasText: "S24 多人协作总结" })).toBeVisible({ timeout: 15_000 });
+    await expect(authedPage.getByTestId(T.detailTitle)).toBeVisible({ timeout: 15_000 });
     await expect(authedPage.getByText("你的个人总结已生成，提交后才会汇入团队总结。")).toBeVisible({ timeout: 15_000 });
     await expect(authedPage.getByText("我（待提交）")).toBeVisible();
     await expect(authedPage.getByText("S24 我的个人报告内容")).toBeVisible();
 
-    await authedPage.locator(".summary-detail-my-pending-row").getByRole("button", { name: "提交我的总结" }).click();
+    await authedPage.getByTestId(T.detailMyPendingRow).getByTestId(T.detailSubmitMyBtn).click();
 
-    await expect(authedPage.locator(".summary-detail-members").getByText("已提交", { exact: true })).toBeVisible({ timeout: 15_000 });
+    await expect(authedPage.getByTestId(T.detailMembersSection).getByText("已提交", { exact: true }).first()).toBeVisible({ timeout: 15_000 });
     await expect(authedPage.getByText("S24 团队汇总已刷新", { exact: true })).toBeVisible({ timeout: 15_000 });
     await expect(authedPage.getByText("我（待提交）")).toHaveCount(0);
     await expect(authedPage.getByText("加载失败")).toHaveCount(0);

@@ -8,6 +8,7 @@ import { test, expect } from "../../../fixtures-authed";
 import { installMockImRuntime } from "../../../_kit/mock-im-runtime";
 import { registerS8SummaryCreateParticipants } from "../../../msw-handlers/s8-summary-create-participants";
 import { startRequestMonitor, sanityCheck } from "../../../_lib/sanity";
+import { T } from "../_testids";
 
 const sanityConfig = {
   // CI leak target plus legacy mock host marker; workflow proxy-error grep remains the fail-closed guard.
@@ -39,28 +40,28 @@ test.describe("@S8 @p1 @summary @create @summary-create @member-select S8 — Su
 
     await authedPage.getByRole("button", { name: "智能总结" }).click();
     await expect(authedPage.getByText("暂无总结记录")).toBeVisible({ timeout: 15_000 });
-    await authedPage.getByTestId("summary-create-entry").click();
+    await authedPage.getByTestId(T.createEntry).click();
 
     await expect(authedPage.getByText("邀请同事一起总结信息")).toBeVisible({ timeout: 15_000 });
-    const startButton = authedPage.getByTestId("summary-create-submit");
+    const startButton = authedPage.getByTestId(T.createSubmit);
     await expect(startButton).toBeDisabled();
 
-    await authedPage.getByTestId("summary-create-select-chat").click();
-    await authedPage.getByRole("button", { name: "全部群聊" }).click();
+    await authedPage.getByTestId(T.createSelectChat).click();
+    await authedPage.getByTestId(T.chatSelectorAllGroupsTab).click();
     await authedPage.getByText("S8 项目群", { exact: true }).click();
     await expect(authedPage.getByText("已选 1 / 30")).toBeVisible();
-    await authedPage.getByRole("button", { name: "确定" }).click();
+    await authedPage.getByTestId(T.chatSelectorConfirmBtn).click();
     await expect(authedPage.getByText("S8 项目群", { exact: true })).toBeVisible();
 
-    await authedPage.getByTestId("summary-create-select-members").click();
+    await authedPage.getByTestId(T.createSelectMembers).click();
     await expect(authedPage.getByText("选择参与者").last()).toBeVisible({ timeout: 15_000 });
     await authedPage.getByText("S8 Alice", { exact: true }).click();
     await expect(authedPage.getByText("已选 1 / 30")).toBeVisible();
-    await authedPage.getByRole("button", { name: "确定" }).click();
+    await authedPage.getByTestId(T.memberSelectorConfirmBtn).click();
     await expect(authedPage.getByText("S8 Alice", { exact: true })).toBeVisible();
 
     await authedPage
-      .getByTestId("summary-create-topic")
+      .getByTestId(T.createTopic)
       .fill("S8 多人协作总结");
     await expect(startButton).toBeEnabled();
     await startButton.click();

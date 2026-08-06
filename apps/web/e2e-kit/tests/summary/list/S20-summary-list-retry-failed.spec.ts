@@ -7,6 +7,7 @@
 import { test, expect } from "../../../fixtures-authed";
 import { registerS20SummaryListRetryFailed } from "../../../msw-handlers/s20-summary-list-retry-failed";
 import { startRequestMonitor, sanityCheck } from "../../../_lib/sanity";
+import { T } from "../_testids";
 
 const sanityConfig = {
   realHosts: ["127.0.0.1:9", "mock.e2e.local"],
@@ -23,8 +24,8 @@ test.describe("@S20 @p1 @summary @list @summary-list @summary-retry S20 — Summ
     await expect(authedPage.getByText("S20 失败可重试总结")).toBeVisible({ timeout: 15_000 });
     await expect(authedPage.getByText("失败", { exact: true })).toBeVisible();
 
-    const card = authedPage.getByTestId("summary-card-20020");
-    await card.getByTestId("summary-card-menu-20020").click();
+    const card = authedPage.getByTestId(T.card(20020));
+    await card.getByTestId(T.cardMenu(20020)).click();
     await authedPage.getByRole("menuitem", { name: "重试" }).click();
 
     await expect(authedPage.getByText("已重新提交总结任务")).toBeVisible({ timeout: 15_000 });

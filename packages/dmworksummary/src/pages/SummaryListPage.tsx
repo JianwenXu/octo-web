@@ -678,7 +678,7 @@ export default class SummaryListPage extends Component<SummaryListPageProps, Sum
                 )}
 
                 {!loading && items.length > 0 && (
-                    <div className="summary-list-content" onScroll={this.handleScroll}>
+                    <div data-testid={summaryTestIds.listContent} className="summary-list-content" onScroll={this.handleScroll}>
                         {items.map((item) => (
                             <SummaryCard
                                 key={item.task_id}
