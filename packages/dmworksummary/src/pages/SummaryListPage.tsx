@@ -658,7 +658,7 @@ export default class SummaryListPage extends Component<SummaryListPageProps, Sum
                             <>
                                 <div className="summary-list-empty-title">{translate("summary.list.emptyTitle")}</div>
                                 <div className="summary-list-empty-desc">{translate("summary.chatSummary.emptyDescription")}</div>
-                                <Button data-testid={summaryTestIds.create} theme="solid" onClick={this.handleCreate} style={{ marginTop: 16 }}>
+                                <Button data-testid={summaryTestIds.createEntry} theme="solid" onClick={this.handleCreate} style={{ marginTop: 16 }}>
                                     {translate("summary.chatSummary.createNew")}
                                 </Button>
                             </>
@@ -669,7 +669,7 @@ export default class SummaryListPage extends Component<SummaryListPageProps, Sum
                                 <div className="summary-list-empty-desc">
                                     {translate("summary.list.emptyDesc")}
                                 </div>
-                                <Button data-testid={summaryTestIds.create} theme="solid" onClick={this.handleCreate} style={{ marginTop: 16 }}>
+                                <Button data-testid={summaryTestIds.createEntry} theme="solid" onClick={this.handleCreate} style={{ marginTop: 16 }}>
                                     {translate("summary.list.createFirst")}
                                 </Button>
                             </>

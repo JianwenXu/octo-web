@@ -39,7 +39,7 @@ test.describe("@S8 @p1 @summary @create @summary-create @member-select S8 — Su
 
     await authedPage.getByRole("button", { name: "智能总结" }).click();
     await expect(authedPage.getByText("暂无总结记录")).toBeVisible({ timeout: 15_000 });
-    await authedPage.getByTestId("summary-create").click();
+    await authedPage.getByTestId("summary-create-entry").click();
 
     await expect(authedPage.getByText("邀请同事一起总结信息")).toBeVisible({ timeout: 15_000 });
     const startButton = authedPage.getByTestId("summary-create-submit");
