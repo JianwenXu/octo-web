@@ -18,6 +18,7 @@ import type {
 } from "../types/summary";
 import { TaskStatus } from "../types/summary";
 import { getStatusLabel, isTerminalStatus } from "../utils/summaryHelpers";
+import { summaryTestIds } from "../utils/testIds";
 import SummaryCard from "../components/SummaryCard";
 import SummaryCreatePage from "./SummaryCreatePage";
 import SummaryDetailPage from "./SummaryDetailPage";
@@ -560,7 +561,7 @@ export default class SummaryListPage extends Component<SummaryListPageProps, Sum
         const isPanel = Boolean(channelId);
 
         return (
-            <div className={`summary-list-page${isPanel ? " summary-list-page--panel" : ""}`}>
+            <div data-testid={summaryTestIds.list} className={`summary-list-page${isPanel ? " summary-list-page--panel" : ""}`}>
                 <div className="summary-list-header">
                     <h2 className="summary-list-title">
                         {isPanel ? translate("summary.chatSummary.panelTitle") : translate("summary.list.title")}
@@ -585,6 +586,7 @@ export default class SummaryListPage extends Component<SummaryListPageProps, Sum
                         ) : (
                             <Tooltip content={translate("summary.list.createTooltip")} position="bottom">
                                 <Button
+                                    data-testid={summaryTestIds.create}
                                     icon={<IconPlus />}
                                     theme="borderless"
                                     onClick={this.handleCreate}
@@ -598,6 +600,7 @@ export default class SummaryListPage extends Component<SummaryListPageProps, Sum
                     <div className="summary-list-search-wrap">
                         <IconSearch className="summary-list-search-icon" />
                         <input
+                            data-testid={summaryTestIds.listSearch}
                             className="summary-list-search-input"
                             placeholder={translate("summary.list.searchPlaceholder")}
                             value={keyword}
@@ -621,7 +624,7 @@ export default class SummaryListPage extends Component<SummaryListPageProps, Sum
                             </Dropdown.Menu>
                         }
                     >
-                        <div className="summary-list-status-trigger">
+                        <div data-testid={summaryTestIds.listStatusFilter} className="summary-list-status-trigger">
                             <span>{statusOptions.find((o) => o.value === (statusFilter ?? ""))?.label ?? statusOptions[0]?.label}</span>
                             <ChevronDown size={14} />
                         </div>

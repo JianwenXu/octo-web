@@ -44,6 +44,7 @@ import { SummaryMode, SourceType } from "../types/summary";
 import { Channel, WKSDK } from "wukongimjssdk";
 import { describeSchedule, scheduleToParams, genSessionId, readAgentChatSession, writeAgentChatSession, clearAgentChatSession, readAgentChatReferenced, writeAgentChatReferenced, clearAgentChatReferenced } from "../utils/summaryHelpers";
 import { resolveTemplate, computeTemplateSelection, getTemplateEditableFields, deriveSummaryTitle, limitTemplateSummaryContent, type ResolvableTemplate } from "../utils/templateResolver";
+import { summaryTestIds } from "../utils/testIds";
 
 const { Text } = Typography;
 
@@ -1022,7 +1023,7 @@ export default class SummaryCreatePage extends Component<SummaryCreatePageProps,
         const templateEditorVisible = creatingCustomTemplate || !!editingTemplate;
 
         return (
-            <div className={`summary-workbench${this.props.embedded ? " summary-workbench--panel" : ""}`}>
+            <div data-testid={summaryTestIds.create} className={`summary-workbench${this.props.embedded ? " summary-workbench--panel" : ""}`}>
                 {/* Header */}
                 <div className="summary-workbench-header">
                     <span className="summary-workbench-header-emoji">🚀</span>
@@ -1116,6 +1117,7 @@ export default class SummaryCreatePage extends Component<SummaryCreatePageProps,
                         <>
                     <div className="summary-workbench-input-wrap">
                         <textarea
+                            data-testid={summaryTestIds.createTopic}
                             ref={this.textareaRef}
                             className="summary-workbench-textarea"
                             value={topic}
@@ -1293,6 +1295,7 @@ export default class SummaryCreatePage extends Component<SummaryCreatePageProps,
                                 </div>
                             ) : (
                                 <button
+                                    data-testid={summaryTestIds.createSelectChat}
                                     type="button"
                                     className="summary-workbench-add-chat"
                                     onClick={() => this.setState({ showChatSelector: true })}
@@ -1339,6 +1342,7 @@ export default class SummaryCreatePage extends Component<SummaryCreatePageProps,
                                     </div>
                                 )}
                                 <button
+                                    data-testid={summaryTestIds.createSelectMembers}
                                     type="button"
                                     className="summary-workbench-add-chat"
                                     onClick={this.handleOpenMemberSelector}
@@ -1349,6 +1353,7 @@ export default class SummaryCreatePage extends Component<SummaryCreatePageProps,
                             </div>
                         </div>
                         <Button
+                            data-testid={summaryTestIds.createSubmit}
                             theme="solid"
                             className="summary-workbench-start-btn"
                             loading={submitting}
