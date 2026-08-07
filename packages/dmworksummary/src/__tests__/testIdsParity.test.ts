@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest';
+// Dynamic import of e2e T is not possible (TS outside project), but we load its
+// source as text and eval dynamic-call results for actual sample invocations.
 import { summaryTestIds } from '../utils/testIds';
 
 /**
@@ -10,7 +12,9 @@ import { summaryTestIds } from '../utils/testIds';
  * template body.
  *
  * Dynamic function params differ between files (e.g. versionNum vs v); we only
- * compare the produced template string, not parameter names.
+ * compare the produced template string, not parameter names. We additionally
+ * evaluate a representative sample of dynamic calls against both prod and e2e
+ * sources to catch template-body drift that regex normalization alone could miss.
  */
 
 // Use vitest's vi to avoid requiring @types/node; fs/path/url are available in
@@ -67,6 +71,47 @@ const prodFns = extractFunctionEntries(prodSrc);
 const e2eStrings = extractStringEntries(e2eSrc);
 const e2eFns = extractFunctionEntries(e2eSrc);
 
+// Extract the object literal body from a source file (strip `export const X =`
+// prefix and `as const;` suffix) so we can eval dynamic-call samples without
+// involving the full TS toolchain.
+function extractObjectBody(src: string, constName: string): string {
+  const marker = `export const ${constName}`;
+  const startIdx = src.indexOf(marker);
+  if (startIdx < 0) throw new Error(`parity: cannot find const "${constName}" in source`);
+  const eqIdx = src.indexOf('=', startIdx);
+  // Find first '{' after =
+  const braceStart = src.indexOf('{', eqIdx);
+  // Walk braces to find matching close.
+  let depth = 0;
+  let i = braceStart;
+  for (; i < src.length; i++) {
+    const ch = src[i];
+    if (ch === '{') depth++;
+    else if (ch === '}') {
+      depth--;
+      if (depth === 0) break;
+    }
+  }
+  return src.slice(braceStart, i + 1);
+}
+
+// Build in-memory T objects from the source object bodies (JS-only, no TS
+// types/as const/export). Used only to assert actual-call output parity for
+// representative dynamic testids.
+function evalTestIdsObject(src: string): Record<string, unknown> {
+  // Strip TypeScript type annotations on arrow-function parameters to make the
+  // object literal eval-able as plain JS. e.g. `(taskId: number) =>` → `(taskId) =>`
+  // and `(v: number | string) =>` → `(v) =>`.
+  const cleaned = src
+    .replace(/\((\w+)\s*:\s*[^)]*\)/g, '($1)')
+    .replace(/as const/g, '');
+  // eslint-disable-next-line no-new-func
+  return new Function(`return ${cleaned};`)() as Record<string, unknown>;
+}
+
+const _prodEval = evalTestIdsObject(extractObjectBody(prodSrc, 'summaryTestIds'));
+const _e2eEval  = evalTestIdsObject(extractObjectBody(e2eSrc, 'T'));
+
 describe('testIds parity guard (prod <-> e2e)', () => {
   it('all production string testids exist in e2e _testids.ts', () => {
     for (const [key, val] of Object.entries(prodStrings)) {
@@ -101,4 +146,32 @@ describe('testIds parity guard (prod <-> e2e)', () => {
     expect(typeof summaryTestIds.detailMemberRow).toBe('function');
     expect(summaryTestIds.detailMemberRow('user-1')).toBe('summary-detail-member-row-user-1');
   });
+
+  // Dynamic-call parity: for representative dynamic testids, evaluate the
+  // object literal extracted from each source and assert concrete sample
+  // invocations produce identical strings. This catches cases where the
+  // template-shape regex (${...}→%s) would mask a drift in literal prefix/suffix.
+  const dynamicSamples: Array<{ key: string; args: unknown[]; expected: string }> = [
+    { key: 'detail',        args: [123],            expected: 'summary-detail-123' },
+    { key: 'card',          args: [250251],         expected: 'summary-card-250251' },
+    { key: 'cardAcceptBtn', args: [250251],         expected: 'summary-card-accept-250251' },
+    { key: 'cardRejectBtn', args: [250252],         expected: 'summary-card-reject-250252' },
+    { key: 'detailMemberRow', args: ['e2e-user-1'], expected: 'summary-detail-member-row-e2e-user-1' },
+    { key: 'versionCard',   args: [2],              expected: 'summary-version-card-2' },
+  ];
+
+  for (const { key, args, expected } of dynamicSamples) {
+    it(`dynamic testid ${key}(${args.map(a => JSON.stringify(a)).join(', ')}) matches between prod and e2e`, () => {
+      const prodFn = _prodEval[key];
+      const e2eFn  = _e2eEval[key];
+      expect(typeof prodFn, `prod missing dynamic key "${key}"`).toBe('function');
+      expect(typeof e2eFn,  `e2e  missing dynamic key "${key}"`).toBe('function');
+      // eslint-disable-next-line @typescript-eslint/ban-types
+      const prodVal = (prodFn as Function)(...args);
+      // eslint-disable-next-line @typescript-eslint/ban-types
+      const e2eVal  = (e2eFn  as Function)(...args);
+      expect(prodVal, `prod ${key} sample`).toBe(expected);
+      expect(e2eVal,  `e2e ${key} sample diverges from prod`).toBe(prodVal);
+    });
+  }
 });

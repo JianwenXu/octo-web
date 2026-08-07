@@ -5,7 +5,7 @@
  * S24: 多人 BY_PERSON 个人报告提交.
  */
 import { test, expect } from "../../../fixtures-authed";
-import { registerS24SummaryMultiCollabSubmit, S24_MY_USER_ID, S24_TASK_ID } from "../../../msw-handlers/s24-summary-multi-collab-submit";
+import { registerS24SummaryMultiCollabSubmit, S24_MY_USER_ID } from "../../../msw-handlers/s24-summary-multi-collab-submit";
 import { startRequestMonitor, sanityCheck } from "../../../_lib/sanity";
 import { T } from "../_testids";
 

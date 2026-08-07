@@ -33,7 +33,13 @@ test.describe("@S12 @p1 @summary @agent @summary-agent @summary-create @error-st
     await expect(authedPage.getByText("S12 Agent 已生成可保存内容")).toBeVisible({ timeout: 15_000 });
 
     await authedPage.getByTestId(T.agentSaveBtn).click();
-    await expect(authedPage.getByTestId(T.agentSaveDialog)).toBeVisible();
+    const saveDialog = authedPage.getByTestId(T.agentSaveDialog);
+    await expect(saveDialog).toBeVisible();
+    await expect(saveDialog.getByRole("heading", { name: "保存为总结" })).toBeVisible();
+    await expect(authedPage.getByTestId(T.agentSaveTitleInput)).toHaveAttribute(
+      "placeholder",
+      "为这份总结起个标题"
+    );
     await authedPage.getByTestId(T.agentSaveTitleInput).fill("S12 保存失败总结");
     await authedPage.getByTestId(T.agentSaveConfirmBtn).click();
 

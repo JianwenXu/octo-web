@@ -29,7 +29,9 @@ test.describe("@S25 @p2 @summary @list @summary-list @summary-invite S25 — Sum
     await expect(acceptCard).toContainText("S25 同意邀请总结");
     await expect(rejectCard).toContainText("S25 拒绝邀请总结");
     await expect(acceptCard.getByTestId(T.cardAcceptBtn(S25_ACCEPT_TASK_ID))).toBeVisible();
+    await expect(acceptCard.getByTestId(T.cardAcceptBtn(S25_ACCEPT_TASK_ID))).toContainText("同意");
     await expect(rejectCard.getByTestId(T.cardRejectBtn(S25_REJECT_TASK_ID))).toBeVisible();
+    await expect(rejectCard.getByTestId(T.cardRejectBtn(S25_REJECT_TASK_ID))).toContainText("拒绝");
 
     await acceptCard.getByTestId(T.cardAcceptBtn(S25_ACCEPT_TASK_ID)).click();
     await expect(authedPage.getByText("已同意")).toBeVisible({ timeout: 15_000 });

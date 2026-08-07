@@ -57,6 +57,7 @@ test.describe("@S22 @p1 @summary @chat @summary-panel @summary-detail S22 — �
 
     await panel.getByText("S22 聊天内总结", { exact: true }).click();
     await expect(panel.getByTestId(T.chatPanelBackBtn)).toBeVisible({ timeout: 15_000 });
+    await expect(panel.getByTestId(T.chatPanelBackBtn)).toContainText("返回");
     await expect(panel.getByTestId(T.detailPage)).toBeVisible();
     await expect(panel.getByText("AI 摘要")).toBeVisible();
     await expect(panel.getByText("S22 聊天内详情正文")).toBeVisible();
