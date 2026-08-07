@@ -41,9 +41,9 @@
  *     --tags "@p1 @matter @matter-list" --http-mock --im-seed
  *
  * 产出 (以默认路径 + 上例参数为例):
- *   e2e/case-specs/matter/list/M5-matter-list-filter.md
- *   e2e/tests/matter/list/M5-matter-list-filter.spec.ts
- *   e2e/msw-handlers/m5-matter-list-filter.ts   (**默认生成**, 传 --no-http-mock 关掉)
+ *   e2e-kit/case-specs/matter/list/M5-matter-list-filter.md
+ *   e2e-kit/tests/matter/list/M5-matter-list-filter.spec.ts
+ *   e2e-kit/msw-handlers/m5-matter-list-filter.ts   (**默认生成**, 传 --no-http-mock 关掉)
  *
  * --no-http-mock → 不出 handler, test 骨架也不 register handler.
  * --no-im-seed → test 骨架不装 mock IM runtime.
@@ -56,20 +56,20 @@ import { spawnSync } from "node:child_process";
 
 // ---------- config (接入方按需改) ----------
 //
-// **默认值对齐 kit v0.4 sync 产物的扁平布局**:
-//   e2e/fixtures-authed.ts        (template 落根)
-//   e2e/_kit/mock-im-runtime/     (overwrite 落 _kit/)
-//   e2e/_lib/sanity.ts            (overwrite 落 _lib/)
-//   e2e/msw-handlers/             (hands_off 目录, kit 首次落 README 占位)
+// **octo-web 当前布局**:
+//   e2e-kit/fixtures-authed.ts        (template 落根)
+//   e2e-kit/_kit/mock-im-runtime/     (overwrite 落 _kit/)
+//   e2e-kit/_lib/sanity.ts            (overwrite 落 _lib/)
+//   e2e-kit/msw-handlers/             (hands_off 目录, kit 首次落 README 占位)
 //
-// 若接入方项目采用其他布局 (例如 e2e-research 的 shared/), 改下面常量即可.
+// 其他接入方可按自身布局修改下面常量.
 
 const REPO_ROOT = process.cwd();
-const CASE_SPECS_DIR = resolve(REPO_ROOT, "e2e/case-specs");
-const TESTS_DIR = resolve(REPO_ROOT, "e2e/tests");
-const HANDLERS_DIR = resolve(REPO_ROOT, "e2e/msw-handlers");
+const CASE_SPECS_DIR = resolve(REPO_ROOT, "e2e-kit/case-specs");
+const TESTS_DIR = resolve(REPO_ROOT, "e2e-kit/tests");
+const HANDLERS_DIR = resolve(REPO_ROOT, "e2e-kit/msw-handlers");
 
-// import path segments (相对 e2e/ 根). test 到根的相对前缀由 upToE2eRoot() 算.
+// import path segments (相对 e2e-kit/ 根). test 到根的相对前缀由 upToE2eRoot() 算.
 const FIXTURES_IMPORT_PATH = "fixtures-authed";
 const MOCK_IM_IMPORT_PATH = "_kit/mock-im-runtime";
 const SANITY_IMPORT_PATH = "_lib/sanity";
@@ -79,7 +79,7 @@ const USE_MOCK_IM = false; // 项目装了 mock-im-wksdk optional 后, 改成 tr
 const USE_SANITY = true;
 const FMT_CMD = null; // 例: ["pnpm", "exec", "prettier", "--write"]
 
-// test 到 e2e/ 根的相对前缀. tests/[module/[sub/]]<file>.spec.ts → depth 决定 ../ 个数.
+// test 到 e2e-kit/ 根的相对前缀. tests/[module/[sub/]]<file>.spec.ts → depth 决定 ../ 个数.
 function upToE2eRoot(moduleName, subModule) {
   const depth = 1 + (moduleName ? 1 : 0) + (subModule ? 1 : 0);
   return "../".repeat(depth);
@@ -276,7 +276,7 @@ const testTemplate = `/* eslint-disable no-undef -- e2e code runs in Node */
  * ${caseId}: **待补** 一句话主线 + 反例守护点.
  */
 import { test, expect } from "${sharedRoot}${FIXTURES_IMPORT_PATH}";
-${withHttpMock ? `import { ${registerFnName} } from "${sharedRoot}${HANDLERS_IMPORT_ROOT}/${caseId.toLowerCase()}-${slug}";\n` : ""}${withImSeed ? `import { installMockImRuntime } from "${sharedRoot}${MOCK_IM_IMPORT_PATH}";\n` : ""}${USE_SANITY ? `import { startRequestMonitor, sanityCheck } from "${sharedRoot}${SANITY_IMPORT_PATH}";\n` : ""}
+${withHttpMock ? `import { ${registerFnName} } from "${sharedRoot}${HANDLERS_IMPORT_ROOT}/${caseId.toLowerCase()}-${slug}";\n` : ""}${withImSeed ? `import { installMockImRuntime } from "${sharedRoot}${MOCK_IM_IMPORT_PATH}";\n` : ""}${USE_SANITY ? `import { startRequestMonitor, sanityCheck, type SanityConfig } from "${sharedRoot}${SANITY_IMPORT_PATH}";\n` : ""}
 
 test.describe("${tags} ${caseId} — **待补** case 描述", () => {
   test("**待补** 一句话操作 + 预期", async ({ authedPage }) => {
@@ -284,7 +284,13 @@ test.describe("${tags} ${caseId} — **待补** case 描述", () => {
     // 若忘删, batch 跑 (--grep @p0 等) 会 skip 而不是假绿.
     test.fixme(true, "scaffolder 骨架, 待作者补真实操作步骤 + UI 断言");
 
-${USE_SANITY ? `    const ctx = startRequestMonitor(authedPage);\n` : ""}${withHttpMock ? `\n    await ${registerFnName}(authedPage);\n` : ""}${withImSeed ? `
+${USE_SANITY ? `
+    const sanityConfig: SanityConfig = {
+      realHosts: ["<PROJECT_REAL_HOST>"],
+      apiPrefixRe: /^\\/(api|v1)(\\/|$)/,
+      loginPathRe: /\\/login(\\?|$)/,
+    };
+` : ""}${USE_SANITY ? `    const ctx = startRequestMonitor(authedPage, sanityConfig);\n` : ""}${withHttpMock ? `\n    await ${registerFnName}(authedPage);\n` : ""}${withImSeed ? `
     await installMockImRuntime(authedPage, {
       currentUid: "e2e-user-1",
       spaceId: "e2e-space-001",
@@ -326,24 +332,20 @@ export async function ${registerFnName}(page: Page): Promise<void> {
     ({ exampleId }) => {
       // 这里只使用参数和浏览器全局变量, 不引用 Node 模块变量.
       void exampleId;
-      const w = (window as unknown as { __mswWorker__?: { use: (...h: unknown[]) => void } })
-      .__mswWorker__;
-    const http = (
-      window as unknown as {
-        __mswHttp__?: {
-          get: (path: string, resolver: (info: any) => unknown) => unknown;
-          post: (path: string, resolver: (info: any) => unknown) => unknown;
+      const msw = (window as unknown as {
+        __msw?: {
+          worker: { use: (...h: unknown[]) => void };
+          http: {
+            get: (path: string, resolver: (info: any) => unknown) => unknown;
+            post: (path: string, resolver: (info: any) => unknown) => unknown;
+          };
+          HttpResponse: { json: (body: unknown, init?: unknown) => unknown };
         };
+      }).__msw;
+      if (!msw) {
+        throw new Error("[${caseId}] MSW worker 未就绪 (等 __MSW_READY__).");
       }
-    ).__mswHttp__;
-    const HttpResponse = (
-      window as unknown as {
-        __mswHttpResponse__?: { json: (body: unknown, init?: unknown) => unknown };
-      }
-    ).__mswHttpResponse__;
-    if (!w || !http || !HttpResponse) {
-      throw new Error("[${caseId}] MSW worker 未就绪 (等 __MSW_READY__).");
-    }
+      const { worker: w, http, HttpResponse } = msw;
 
     // module-scope state 每 install 重置, 避免 --repeat-each=3 相互泄漏.
     (window as unknown as { ${stateKey}: { calls: number } }).${stateKey} = {

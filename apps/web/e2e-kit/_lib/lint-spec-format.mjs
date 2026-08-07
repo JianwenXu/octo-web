@@ -33,7 +33,7 @@ import { execSync } from "node:child_process";
 // ---------- config (接入方按需改) ----------
 
 const REPO_ROOT = process.cwd();
-const SPECS_DIR = join(REPO_ROOT, "e2e/case-specs");
+const SPECS_DIR = join(REPO_ROOT, "e2e-kit/case-specs");
 const EXCLUDE_FILENAMES = new Set(["README.md", "COVERAGE.md", "BACKLOG.md", "TEMPLATE.md"]);
 
 // 必需段落. 允许小变体 (中英文冒号 / 前后空格 / heading 级别 2 或 3).
@@ -48,9 +48,9 @@ const REQUIRED_SECTIONS = [
 
 // Metadata 段内必需字段
 const REQUIRED_METADATA_FIELDS = [
-  { name: "Case 类型", pattern: /^-\s*Case\s*类型\s*[::]/im },
-  { name: "目标模式", pattern: /^-\s*目标模式\s*[::]/im },
-  { name: "优先级", pattern: /^-\s*优先级\s*[::]/im },
+  { name: "Case 类型", pattern: /^-\s*Case\s*类型\s*[：:]/im },
+  { name: "目标模式", pattern: /^-\s*目标模式\s*[：:]/im },
+  { name: "优先级", pattern: /^-\s*优先级\s*[：:]/im },
 ];
 
 // ---------- helpers ----------
