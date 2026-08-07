@@ -47,9 +47,9 @@ CaseId 前缀只是项目自定义 ID, 不参与模块语义; 筛选靠 `@module
 
 **产出布局** (默认):
 ```
-e2e/case-specs/[module/[sub/]]<CaseId>-<slug>.md    (spec)
-e2e/tests/[module/[sub/]]<CaseId>-<slug>.spec.ts    (test)
-e2e/msw-handlers/<caseidLower>-<slug>.ts             (handler, --no-http-mock 关掉)
+e2e-kit/case-specs/[module/[sub/]]<CaseId>-<slug>.md    (spec)
+e2e-kit/tests/[module/[sub/]]<CaseId>-<slug>.spec.ts    (test)
+e2e-kit/msw-handlers/<caseidLower>-<slug>.ts             (handler, --no-http-mock 关掉)
 ```
 
 Handler 不追加 index.ts (case-specific 由 test 显式 register, 避免污染 baseline).

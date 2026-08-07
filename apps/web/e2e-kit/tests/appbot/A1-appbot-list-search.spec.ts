@@ -13,7 +13,7 @@ const sanityConfig: SanityConfig = {
 test.describe("@A1 @p1 @appbot", () => {
   test("应用列表搜索", async ({ authedPage }) => {
     const ctx = startRequestMonitor(authedPage, sanityConfig);
-  await authedPage.addInitScript(() => {
+    await authedPage.addInitScript(() => {
     const install = () => {
       const w = window as unknown as {
         __a1Installed__?: boolean;
@@ -51,14 +51,18 @@ test.describe("@A1 @p1 @appbot", () => {
     window.setTimeout(() => window.clearInterval(timer), 30_000);
   });
 
-  await authedPage.goto("/appbot");
-    await expect(authedPage.locator(".appbot-page-title")).toHaveText("应用");
+    await authedPage.goto("/appbot");
+    await expect(authedPage.getByText("平台应用", { exact: true })).toBeVisible();
+    await expect(authedPage.getByText(/空间应用/)).toBeVisible();
   await expect(authedPage.getByText("文档助手", { exact: true })).toBeVisible();
   await expect(authedPage.getByText("周报助手", { exact: true })).toBeVisible();
 
     await authedPage.getByPlaceholder("搜索").fill("文档");
     await expect(authedPage.getByText("文档助手", { exact: true })).toBeVisible();
     await expect(authedPage.getByText("周报助手", { exact: true })).toBeHidden();
+
+    await authedPage.getByPlaceholder("搜索").fill("不存在的应用");
+    await expect(authedPage.getByText("未找到匹配的应用", { exact: true })).toBeVisible();
     await sanityCheck(authedPage, ctx);
   });
 });
