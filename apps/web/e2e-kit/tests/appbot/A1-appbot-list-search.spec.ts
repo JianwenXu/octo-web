@@ -1,9 +1,18 @@
 /* eslint-disable no-undef -- e2e code runs in Node */
 /* eslint-disable @typescript-eslint/no-explicit-any -- msw resolver types */
 import { test, expect } from "../../fixtures-authed";
+import { startRequestMonitor, sanityCheck, type SanityConfig } from "../../_lib/sanity";
+
+const sanityConfig: SanityConfig = {
+  realHosts: ["127.0.0.1:9", "mock.e2e.local"],
+  apiPrefixRe: /^\/(api|summary\/api)(\/|$)/,
+  loginPathRe: /\/login(\?|$)/,
+};
 
 // A1: 应用模块加载应用列表，并支持关键词筛选。
-test("@A1 @p1 @appbot 应用列表搜索", async ({ authedPage }) => {
+test.describe("@A1 @p1 @appbot", () => {
+  test("应用列表搜索", async ({ authedPage }) => {
+    const ctx = startRequestMonitor(authedPage, sanityConfig);
   await authedPage.addInitScript(() => {
     const install = () => {
       const w = window as unknown as {
@@ -43,11 +52,13 @@ test("@A1 @p1 @appbot 应用列表搜索", async ({ authedPage }) => {
   });
 
   await authedPage.goto("/appbot");
-  await expect(authedPage.getByText("应用", { exact: true }).first()).toBeVisible();
+    await expect(authedPage.locator(".appbot-page-title")).toHaveText("应用");
   await expect(authedPage.getByText("文档助手", { exact: true })).toBeVisible();
   await expect(authedPage.getByText("周报助手", { exact: true })).toBeVisible();
 
-  await authedPage.getByPlaceholder("搜索").fill("文档");
-  await expect(authedPage.getByText("文档助手", { exact: true })).toBeVisible();
-  await expect(authedPage.getByText("周报助手", { exact: true })).toBeHidden();
+    await authedPage.getByPlaceholder("搜索").fill("文档");
+    await expect(authedPage.getByText("文档助手", { exact: true })).toBeVisible();
+    await expect(authedPage.getByText("周报助手", { exact: true })).toBeHidden();
+    await sanityCheck(authedPage, ctx);
+  });
 });

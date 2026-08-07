@@ -2,7 +2,7 @@
 /**
  * _lib/lint-spec-format.mjs — spec 格式 lint (kit-provided).
  *
- * 校验 e2e/case-specs/**​/*.md 合规:
+ * 校验 e2e-kit/case-specs/**​/*.md 合规:
  *   - 必需段: Metadata / 目标 / 前置条件 / 用户操作步骤 / 预期结果 / 反例
  *     (视觉基准 / 摸清依据可选)
  *   - Metadata 段有 "Case 类型" / "目标模式" / "优先级" / "Tags"
@@ -11,20 +11,20 @@
  *   - 无残留 "**待补**" marker (scaffolder 骨架填完应删)
  *
  * **接入方需改的占位** (脚本顶部 config):
- *   - SPECS_DIR    — case-spec md 目录 (默认 "e2e/case-specs")
+ *   - SPECS_DIR    — case-spec md 目录 (默认 "e2e-kit/case-specs")
  *
  * 用法:
- *   node e2e/_lib/lint-spec-format.mjs                 # 全部 spec, 不合规 exit 1
- *   node e2e/_lib/lint-spec-format.mjs --files a.md b.md   # 指定文件 (pre-commit)
- *   node e2e/_lib/lint-spec-format.mjs --diff-mode     # 只校验 git 里新加/改的 spec
+ *   node e2e-kit/_lib/lint-spec-format.mjs                 # 全部 spec, 不合规 exit 1
+ *   node e2e-kit/_lib/lint-spec-format.mjs --files a.md b.md   # 指定文件 (pre-commit)
+ *   node e2e-kit/_lib/lint-spec-format.mjs --diff-mode     # 只校验 git 里新加/改的 spec
  *                                                     # (存量老格式豁免, 只挡漂移)
  *
  * 建议 package.json 加脚本:
- *   "check:spec-format": "node e2e/_lib/lint-spec-format.mjs"
- *   "check:spec-format:diff": "node e2e/_lib/lint-spec-format.mjs --diff-mode"
+ *   "check:spec-format": "node e2e-kit/_lib/lint-spec-format.mjs"
+ *   "check:spec-format:diff": "node e2e-kit/_lib/lint-spec-format.mjs --diff-mode"
  *
- * CI: quality stage, MR 里 case-specs/ 有变更时触发 --diff-mode
- * pre-commit: .husky/pre-commit 里 staged 涉及 case-specs/ 时跑一次 --files
+ * CI: quality stage, MR 里 e2e-kit/case-specs/ 有变更时触发 --diff-mode
+ * pre-commit: .husky/pre-commit 里 staged 涉及 e2e-kit/case-specs/ 时跑一次 --files
  */
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
@@ -94,9 +94,9 @@ function caseIdFromFilename(filePath) {
 function parseTags(metadata) {
   const line = metadata
     .split("\n")
-    .find((l) => /^-\s*Tags?\s*:/i.test(l));
+    .find((l) => /^-\s*Tags?\s*[：:]/i.test(l));
   if (!line) return null;
-  const raw = line.replace(/^-\s*Tags?\s*:/i, "").replace(/`/g, "").trim();
+  const raw = line.replace(/^-\s*Tags?\s*[：:]/i, "").replace(/`/g, "").trim();
   return new Set(raw.split(/\s+/).filter((t) => t.startsWith("@")));
 }
 
@@ -140,7 +140,7 @@ function diffModeFiles() {
   }).toString();
   return out
     .split("\n")
-    .filter((f) => f && f.endsWith(".md") && f.includes("case-specs/"))
+    .filter((f) => f && f.endsWith(".md") && f.includes("e2e-kit/case-specs/"))
     .filter((f) => !EXCLUDE_FILENAMES.has(f.split("/").pop() || f))
     .map((f) => join(REPO_ROOT, f));
 }
@@ -172,9 +172,9 @@ if (args.includes("--diff-mode")) {
     files = args
       .slice(filesIdx + 1)
       .filter((f) => f.endsWith(".md") && !EXCLUDE_FILENAMES.has(f.split("/").pop() || f))
-      .filter((f) => f.includes("case-specs/"));
+      .filter((f) => f.includes("e2e-kit/case-specs/"));
     if (files.length === 0) {
-      console.log("[lint-spec-format] ✔ 无 case-specs/ 下的 spec 文件, skip");
+      console.log("[lint-spec-format] ✔ 无 e2e-kit/case-specs/ 下的 spec 文件, skip");
       process.exit(0);
     }
   } else {
@@ -256,5 +256,5 @@ for (const e of errors) console.error(`  - ${e}`);
 console.error("");
 console.error("  必需段: Metadata / 目标 / 前置条件 / 用户操作步骤 / 预期结果 / 反例");
 console.error("  Metadata 字段: Case 类型 / 目标模式 / 优先级 / Tags");
-console.error("  格式规约见 e2e/case-specs/TEMPLATE.md");
+console.error("  格式规约见 e2e-kit/case-specs/TEMPLATE.md");
 process.exit(1);

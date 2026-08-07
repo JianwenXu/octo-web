@@ -286,8 +286,8 @@ test.describe("${tags} ${caseId} — **待补** case 描述", () => {
 
 ${USE_SANITY ? `
     const sanityConfig: SanityConfig = {
-      realHosts: ["<PROJECT_REAL_HOST>"],
-      apiPrefixRe: /^\\/(api|v1)(\\/|$)/,
+      realHosts: ["127.0.0.1:9", "mock.e2e.local"],
+      apiPrefixRe: /^\\/(api|summary\\/api)(\\/|$)/,
       loginPathRe: /\\/login(\\?|$)/,
     };
 ` : ""}${USE_SANITY ? `    const ctx = startRequestMonitor(authedPage, sanityConfig);\n` : ""}${withHttpMock ? `\n    await ${registerFnName}(authedPage);\n` : ""}${withImSeed ? `
