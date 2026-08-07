@@ -47,6 +47,7 @@ test.describe("@S14 @p1 @summary @detail @summary-detail @summary-version S14 �
     await expect(authedPage.getByText("正在查看 V1 历史版本")).toBeVisible({ timeout: 15_000 });
     await expect(authedPage.getByText("S14 历史版本内容")).toBeVisible();
     await expect(versionPanel.getByTestId(T.versionRestoreBtn)).toBeVisible();
+    await expect(versionPanel.getByTestId(T.versionRestoreBtn)).toContainText("恢复此版本");
 
     await versionPanel.getByTestId(T.versionRestoreBtn).click();
     await expect(authedPage.getByText("已恢复到所选版本")).toBeVisible({ timeout: 15_000 });

@@ -32,6 +32,7 @@ test.describe("@S9 @p0 @summary @agent @summary-agent @summary-create @summary-d
       authedPage.getByText("你好，我是总结助手，想总结什么尽管告诉我。")
     ).toBeVisible({ timeout: 15_000 });
     await expect(authedPage.getByTestId(T.agentNewSessionBtn)).toBeVisible();
+    await expect(authedPage.getByTestId(T.agentNewSessionBtn)).toContainText("新会话");
     await expect(authedPage.getByTestId(T.agentSaveBtn)).toHaveCount(0);
 
     await authedPage.getByTestId(T.agentInput).fill("S9 总结项目风险和下周计划");

@@ -29,6 +29,7 @@ test.describe("@S11 @p0 @summary @agent @summary-agent @summary-detail @summary-
     });
     await expect(authedPage.getByTestId(T.detailTitle)).toContainText("S11 Agent 原总结");
     await expect(authedPage.getByTestId(T.detailContinueRefineBtn)).toBeVisible();
+    await expect(authedPage.getByTestId(T.detailContinueRefineBtn)).toContainText("继续优化");
     await authedPage.getByTestId(T.detailContinueRefineBtn).click();
 
     await expect(

@@ -30,8 +30,10 @@ test.describe("@S24 @p2 @summary @detail @summary-detail @multi-collab S24 — �
     await expect(authedPage.getByText("我（待提交）")).toBeVisible();
     await expect(authedPage.getByText("S24 我的个人报告内容")).toBeVisible();
 
+    await expect(authedPage.getByTestId(T.detailMyPendingRow).getByTestId(T.detailSubmitMyBtn)).toContainText("提交我的总结");
     await authedPage.getByTestId(T.detailMyPendingRow).getByTestId(T.detailSubmitMyBtn).click();
 
+    await expect(authedPage.getByText("已提交", { exact: true })).toBeVisible({ timeout: 15_000 });
     await expect(authedPage.getByTestId(T.detailMemberRow(S24_MY_USER_ID)).getByText("已提交", { exact: true })).toBeVisible({ timeout: 15_000 });
     await expect(authedPage.getByText("S24 团队汇总已刷新", { exact: true })).toBeVisible({ timeout: 15_000 });
     await expect(authedPage.getByText("我（待提交）")).toHaveCount(0);

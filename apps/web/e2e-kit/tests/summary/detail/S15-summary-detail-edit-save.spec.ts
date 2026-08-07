@@ -31,6 +31,7 @@ test.describe("@S15 @p1 @summary @detail @summary-detail @summary-edit S15 — S
     await authedPage.getByTestId(T.detailEditBtn).click();
     const editor = authedPage.getByTestId(T.editorTextarea);
     await expect(editor).toBeVisible();
+    await expect(editor).toHaveAttribute("placeholder", "编辑总结内容...");
     await editor.fill("## S15 可编辑总结\n\n- S15 草稿取消内容\n");
     await authedPage.getByTestId(T.editorCancelBtn).click();
 

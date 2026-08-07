@@ -154,6 +154,7 @@ describe('testIds parity guard (prod <-> e2e)', () => {
   const dynamicSamples: Array<{ key: string; args: unknown[]; expected: string }> = [
     { key: 'detail',        args: [123],            expected: 'summary-detail-123' },
     { key: 'card',          args: [250251],         expected: 'summary-card-250251' },
+    { key: 'cardMenu',       args: [19019],          expected: 'summary-card-menu-19019' },
     { key: 'cardAcceptBtn', args: [250251],         expected: 'summary-card-accept-250251' },
     { key: 'cardRejectBtn', args: [250252],         expected: 'summary-card-reject-250252' },
     { key: 'detailMemberRow', args: ['e2e-user-1'], expected: 'summary-detail-member-row-e2e-user-1' },
