@@ -2,6 +2,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- msw resolver types */
 import type { Page } from "@playwright/test";
 
+/** S25 accept-invite task ID. */
+export const S25_ACCEPT_TASK_ID = 250251;
+/** S25 reject-invite task ID. */
+export const S25_REJECT_TASK_ID = 250252;
+
 /** S25: Summary 列表待确认邀请同意 / 拒绝. */
 export async function registerS25SummaryInviteRespond(page: Page): Promise<void> {
   await page.evaluate(() => {

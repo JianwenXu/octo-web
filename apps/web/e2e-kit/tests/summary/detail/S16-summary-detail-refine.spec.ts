@@ -25,6 +25,7 @@ test.describe("@S16 @p2 @summary @detail @summary-detail @summary-refine S16 —
     await authedPage.getByText("S16 可调整总结").click();
 
     await expect(authedPage.getByTestId(T.detailTitle)).toBeVisible({ timeout: 15_000 });
+    await expect(authedPage.getByTestId(T.detailTitle)).toContainText("S16 可调整总结");
     await expect(authedPage.getByText("S16 原始正文内容", { exact: true })).toBeVisible();
 
     await authedPage.getByTestId(T.detailRegenerateBtn).click();

@@ -27,10 +27,13 @@ test.describe("@S14 @p1 @summary @detail @summary-detail @summary-version S14 �
     await expect(authedPage.getByTestId(T.detailTitle)).toBeVisible({
       timeout: 15_000,
     });
+    await expect(authedPage.getByTestId(T.detailTitle)).toContainText("S14 版本总结");
     await expect(authedPage.getByText("S14 当前版本内容")).toBeVisible();
     await expect(authedPage.getByTestId(T.detailVersionTrigger)).toBeVisible({
       timeout: 15_000,
     });
+    await expect(authedPage.getByTestId(T.detailVersionTrigger)).toContainText("版本记录");
+    await expect(authedPage.getByTestId(T.detailVersionTrigger)).toContainText("2");
 
     await authedPage.getByTestId(T.detailVersionTrigger).click();
     const versionPanel = authedPage.getByTestId(T.versionPanel);

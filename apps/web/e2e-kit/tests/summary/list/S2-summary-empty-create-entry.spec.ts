@@ -39,6 +39,10 @@ test.describe("@S2 @p1 @summary @list @summary-list @summary-create S2 — Summa
       timeout: 15_000,
     });
     await expect(authedPage.getByTestId(T.createTopic)).toBeVisible();
+    await expect(authedPage.getByTestId(T.createTopic)).toHaveAttribute(
+      "placeholder",
+      "请输入你想总结的主题，例如：总结本周项目进展、整理客户反馈要点"
+    );
 
     await sanityCheck(authedPage, ctx);
   });

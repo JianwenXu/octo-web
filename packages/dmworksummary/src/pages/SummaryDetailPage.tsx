@@ -3229,7 +3229,7 @@ export default class SummaryDetailPage extends Component<SummaryDetailPageProps,
                             !isMe &&
                             m.user_id !== detail?.creator_id;
                         return (
-                            <div key={m.user_id} className="summary-detail-member-item">
+                            <div key={m.user_id} data-testid={summaryTestIds.detailMemberRow(m.user_id)} className="summary-detail-member-item">
                                 <span className="summary-detail-member-name">{m.user_name}</span>
                                 <Tag color={st.type} prefixIcon={st.icon} size="small">
                                     {st.label}

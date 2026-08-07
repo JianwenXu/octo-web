@@ -44,7 +44,13 @@ test.describe("@S9 @p0 @summary @agent @summary-agent @summary-create @summary-d
     await expect(authedPage.getByTestId(T.agentSaveBtn)).toBeVisible();
 
     await authedPage.getByTestId(T.agentSaveBtn).click();
-    await expect(authedPage.getByTestId(T.agentSaveDialog)).toBeVisible();
+    const saveDialog = authedPage.getByTestId(T.agentSaveDialog);
+    await expect(saveDialog).toBeVisible();
+    await expect(saveDialog.getByRole("heading", { name: "保存为总结" })).toBeVisible();
+    await expect(authedPage.getByTestId(T.agentSaveTitleInput)).toHaveAttribute(
+      "placeholder",
+      "为这份总结起个标题"
+    );
     await authedPage.getByTestId(T.agentSaveTitleInput).fill("S9 Agent 风险总结");
     await authedPage.getByTestId(T.agentSaveConfirmBtn).click();
 

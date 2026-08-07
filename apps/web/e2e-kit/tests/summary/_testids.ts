@@ -35,6 +35,7 @@ export const T = {
     memberSelectorConfirmBtn: "summary-member-selector-confirm-btn",
 
     // Detail page
+    detail: (taskId: number) => `summary-detail-${taskId}`,
     detailPage: "summary-detail-page",
     detailTitle: "summary-detail-title",
     detailRegenerateBtn: "summary-detail-regenerate-btn",
@@ -44,6 +45,7 @@ export const T = {
     detailContinueRefineBtn: "summary-detail-continue-refine-btn",
     detailEditBtn: "summary-detail-edit-btn",
     detailMembersSection: "summary-detail-members",
+    detailMemberRow: (userId: string) => `summary-detail-member-row-${userId}`,
     detailMyPendingRow: "summary-detail-my-pending-row",
     detailSubmitMyBtn: "summary-detail-submit-my-btn",
     detailMyDraftEditBtn: "summary-detail-my-draft-edit-btn",

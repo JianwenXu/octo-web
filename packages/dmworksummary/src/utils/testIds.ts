@@ -42,6 +42,7 @@ export const summaryTestIds = {
     detailContinueRefineBtn: "summary-detail-continue-refine-btn",
     detailEditBtn: "summary-detail-edit-btn",
     detailMembersSection: "summary-detail-members",
+    detailMemberRow: (userId: string) => `summary-detail-member-row-${userId}`,
     detailMyPendingRow: "summary-detail-my-pending-row",
     detailSubmitMyBtn: "summary-detail-submit-my-btn",
     detailMyDraftEditBtn: "summary-detail-my-draft-edit-btn",
