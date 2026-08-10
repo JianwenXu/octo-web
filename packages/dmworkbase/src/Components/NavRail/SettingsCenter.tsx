@@ -16,6 +16,7 @@ export interface SettingsCenterProps {
   onLogout?: () => void;
   onSecrets?: () => void;
   onVoice?: () => void;
+  onAbout?: () => void;
 }
 type SettingsItem = { id: string; label: string; capabilities?: SettingsCenterCapability[] };
 type SettingsGroup = { title: string; items: SettingsItem[] };
@@ -31,6 +32,9 @@ function SettingsPage({ item, onLanguageChange, onSecrets, onVoice }: { item?: S
   if (item?.id === "account") return <SettingsPageFrame title="账号与安全" description="查看账号资料和安全设置"><SettingsRow title="姓名" description={WKApp.loginInfo.name || "未设置"} /><SettingsRow title="Octo 号" description={WKApp.loginInfo.shortNo || "未设置"} /><SettingsRow title="密钥管理" description="列表不显示密钥明文" trailing={<button type="button" className="wk-settings-center__link" onClick={onSecrets}>管理</button>} /></SettingsPageFrame>;
   if (item?.id === "notifications") return <SettingsPageFrame title="通知与声音" description="管理通知状态和系统权限"><SettingsRow title="桌面通知" description={WKApp.shared.notificationIsClose ? "已关闭" : "已开启"} trailing={<Switch checked={!WKApp.shared.notificationIsClose} onChange={() => { WKApp.shared.notificationIsClose = !WKApp.shared.notificationIsClose; }} aria-label="桌面通知" />} /><SettingsRow title="系统通知权限" description={typeof Notification === "undefined" ? "当前环境不支持" : Notification.permission === "granted" ? "已允许" : "未授权"} trailing={typeof Notification !== "undefined" && Notification.permission !== "granted" ? <button type="button" className="wk-settings-center__link" onClick={() => { void NotificationUtil.getInstance().requestPermission(); }}>授权</button> : undefined} /></SettingsPageFrame>;
   if (item?.id === "voice") return <SettingsPageFrame title="语音输入" description="复用现有语音输入设置"><SettingsRow title="语音输入设置" description="沿用当前 Space 语音配置和保存逻辑" trailing={<button type="button" className="wk-settings-center__link" onClick={onVoice}>打开</button>} /></SettingsPageFrame>;
+  if (item?.id === "shortcuts") return <SettingsPageFrame title="键盘快捷键" description="查看当前客户端快捷键"><SettingsRow title="搜索" description="Ctrl / Cmd + K" /><SettingsRow title="设置" description="Ctrl / Cmd + ," /></SettingsPageFrame>;
+  if (item?.id === "devices") return <SettingsPageFrame title="在其他设备上使用 Octo" description="已确认的 Octo 开源资源"><SettingsRow title="Octo Android" description="Android 最新版本" trailing={<a className="wk-settings-center__link" href="https://github.com/Mininglamp-OSS/octo-android/releases/latest" target="_blank" rel="noreferrer">打开</a>} /><SettingsRow title="OctoASR" description="语音识别开源项目" trailing={<a className="wk-settings-center__link" href="https://github.com/Mininglamp-AI/OctoASR" target="_blank" rel="noreferrer">打开</a>} /></SettingsPageFrame>;
+  if (item?.id === "about") return <SettingsPageFrame title="帮助与关于" description={`当前版本 ${WKApp.config.appVersion}`}><SettingsRow title="更新检查" description="复用现有版本检查和更新日志能力" trailing={<button type="button" className="wk-settings-center__link" onClick={() => { void onVoice?.(); }}>检查</button>} /><SettingsRow title="更新日志" description="查看当前版本更新内容" /></SettingsPageFrame>;
   return <SettingsPageFrame title={item?.label || "设置"} description="管理你的 Octo 使用偏好"><SettingsRow title="设置项" description="更多设置将在后续阶段接入。" /></SettingsPageFrame>;
 }
 function SettingsPageFrame({ title, description, children }: { title: string; description: string; children: React.ReactNode }) { return <div className="wk-settings-center__page"><header className="wk-settings-center__page-header"><h2>{title}</h2><p>{description}</p></header><section className="wk-settings-center__section-content">{children}</section></div>; }
