@@ -30,12 +30,17 @@ test("@TES10 settings center shell interaction", async ({ authedPage }, testInfo
   await expect(authedPage.getByTestId("settings-center-content")).toContainText("新聊天");
   await expect(authedPage.getByTestId("settings-center-content")).toContainText("聊天");
   await expect(authedPage.getByTestId("settings-center-content")).toContainText("语音输入");
-  await expect(authedPage.locator("kbd")).toHaveCount(8);
+  await expect(authedPage.locator(".wk-settings-center__shortcut-row")).toHaveCount(8);
+  await expect(authedPage.locator("kbd")).toHaveCount(18);
   await authedPage.screenshot({ path: frame("05-settings-center-shortcuts"), fullPage: true });
 
   await authedPage.getByTestId("settings-center-nav-devices").click();
-  await expect(authedPage.getByTestId("settings-center-content")).toContainText("Octo Android");
+  await expect(authedPage.getByTestId("settings-center-content")).toContainText("Android");
   await expect(authedPage.getByTestId("settings-center-content")).toContainText("OctoASR");
+  await expect(authedPage.getByTestId("settings-center-content")).toContainText("移动端");
+  await expect(authedPage.getByTestId("settings-center-content")).toContainText("开源项目");
+  await expect(authedPage.getByTestId("settings-center-content")).toContainText("下载入口暂未确认");
+  await expect(authedPage.locator(".wk-settings-center__resource-card")).toHaveCount(4);
   await expect(authedPage.getByRole("link", { name: "从 GitHub 下载" })).toHaveAttribute("href", "https://github.com/Mininglamp-OSS/octo-android/releases/latest");
   await expect(authedPage.getByRole("link", { name: "查看项目" })).toHaveAttribute("href", "https://github.com/Mininglamp-AI/OctoASR");
   await authedPage.screenshot({ path: frame("06-settings-center-resources"), fullPage: true });
