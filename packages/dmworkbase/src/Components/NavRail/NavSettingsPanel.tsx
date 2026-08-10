@@ -9,6 +9,7 @@ import ChangelogMarkdown from "./ChangelogMarkdown";
 import { i18n, t } from "../../i18n";
 import { apiFetchJson } from "../../Service/apiFetch";
 import NavFlyout, { NavFlyoutMenuItem } from "./NavFlyout";
+import SettingsCenter from "./SettingsCenter";
 
 export interface NavSettingsPanelProps {
     settingSelected: boolean;
@@ -34,6 +35,7 @@ interface NavSettingsPanelState {
     changelog: { notes: string; version: string; pub_date: string } | null;
     changelogLoading: boolean;
     hasNewVersionLocal: boolean;
+    settingsCenterOpen: boolean;
 }
 
 export default class NavSettingsPanel extends Component<NavSettingsPanelProps, NavSettingsPanelState> {
@@ -43,6 +45,7 @@ export default class NavSettingsPanel extends Component<NavSettingsPanelProps, N
         changelog: null,
         changelogLoading: false,
         hasNewVersionLocal: false,
+        settingsCenterOpen: false,
     };
 
     componentDidUpdate(prevProps: NavSettingsPanelProps) {
@@ -130,7 +133,13 @@ export default class NavSettingsPanel extends Component<NavSettingsPanelProps, N
                     ariaLabel={t("base.navRail.settings")}
                     className="wk-navrail__settings-list"
                 >
-                    {/* 版本更新提示（面板打开时自检，有新版本时展示） */}
+                    <NavFlyoutMenuItem onSelect={() => {
+                        this.setState({ settingsCenterOpen: true });
+                        onToggleSetting();
+                    }}>
+                        设置中心
+                    </NavFlyoutMenuItem>
+
                     {hasNewVersionLocal && (
                         <div className="wk-navrail__settings-version-update" role="none">
                             <span>{t("base.navRail.settingsPanel.versionAvailable")}</span>
@@ -201,6 +210,15 @@ export default class NavSettingsPanel extends Component<NavSettingsPanelProps, N
                         {t("base.navRail.settingsPanel.logout")}
                     </NavFlyoutMenuItem>
                 </NavFlyout>
+
+                <SettingsCenter
+                    visible={this.state.settingsCenterOpen}
+                    isDesktop={Boolean((WKApp.config as unknown as { isDesktop?: boolean } | undefined)?.isDesktop)}
+                    hasAccountCenter={showAccountCenter}
+                    onClose={() => this.setState({ settingsCenterOpen: false })}
+                    onSpaceManagement={canManageSpace ? () => { window.location.href = "/space"; } : undefined}
+                    onLogout={() => { this.setState({ settingsCenterOpen: false }); void WKApp.shared.logoutUserInitiated(); }}
+                />
 
                 {/* 更新日志 Modal */}
                 <WKModal
