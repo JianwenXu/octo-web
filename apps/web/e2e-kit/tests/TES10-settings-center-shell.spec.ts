@@ -14,6 +14,12 @@ test("@TES10 settings center shell interaction", async ({ authedPage }, testInfo
   await expect(center).toBeVisible();
   await expect(authedPage.getByTestId("settings-center-nav-general")).toHaveAttribute("aria-current", "page");
   await expect(authedPage.getByText("桌面应用")).toBeHidden();
+  const languageSelect = authedPage.getByRole("combobox", { name: "selected" });
+  await expect(languageSelect).toBeVisible();
+  await languageSelect.click();
+  await authedPage.getByText("English", { exact: true }).last().click();
+  await expect(authedPage.locator("html")).toHaveAttribute("lang", "en-US");
+  await expect(authedPage.getByText("即将上线", { exact: true })).toBeVisible();
   await authedPage.screenshot({ path: frame("03-settings-center-general"), fullPage: true });
   await authedPage.getByTestId("settings-center-nav-notifications").click();
   await expect(authedPage.getByTestId("settings-center-content")).toContainText("通知与声音");
