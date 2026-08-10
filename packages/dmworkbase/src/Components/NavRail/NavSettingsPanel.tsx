@@ -218,6 +218,10 @@ export default class NavSettingsPanel extends Component<NavSettingsPanelProps, N
                     onClose={() => this.setState({ settingsCenterOpen: false })}
                     onSpaceManagement={canManageSpace ? () => { window.location.href = "/space"; } : undefined}
                     onLogout={() => { this.setState({ settingsCenterOpen: false }); void WKApp.shared.logoutUserInitiated(); }}
+                    onSecrets={() => {
+                        this.setState({ settingsCenterOpen: false });
+                        WKApp.mittBus.emit("wk:open-secrets", {});
+                    }}
                 />
 
                 {/* 更新日志 Modal */}

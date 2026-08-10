@@ -28,4 +28,4 @@
 .wk-settings-center__row-main { display: grid; min-width: 0; gap: 4px; }
 .wk-settings-center__row-title { font-size: 14px; font-weight: 500; }
 .wk-settings-center__row-description { color: var(--wk-text-tertiary); font-size: 13px; }
-.wk-settings-center__chevron { color: var(--wk-text-tertiary); font-size: 24px; }
+.wk-settings-center__toggle, .wk-settings-center__link { border: 0; border-radius: 8px; padding: 6px 12px; background: var(--wk-brand-tint-08); color: var(--wk-brand); cursor: pointer; }
