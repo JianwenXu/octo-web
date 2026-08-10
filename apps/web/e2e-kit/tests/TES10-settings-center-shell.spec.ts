@@ -27,11 +27,12 @@ test("@TES10 settings center shell interaction", async ({ authedPage }, testInfo
 
   await authedPage.getByTestId("settings-center-nav-shortcuts").click();
   await expect(authedPage.getByTestId("settings-center-content")).toContainText("Ctrl / Cmd + K");
+  await expect(authedPage.locator("kbd")).toHaveCount(5);
   await authedPage.screenshot({ path: frame("05-settings-center-shortcuts"), fullPage: true });
 
   await authedPage.getByTestId("settings-center-nav-devices").click();
   await expect(authedPage.getByTestId("settings-center-content")).toContainText("Octo Android");
-  await expect(authedPage.getByRole("link", { name: "打开" })).toHaveCount(2);
+  expect(await authedPage.locator(".wk-settings-center__qr-card svg").count()).toBe(2);
   await authedPage.screenshot({ path: frame("06-settings-center-resources"), fullPage: true });
 
   await authedPage.getByTestId("settings-center-nav-about").click();

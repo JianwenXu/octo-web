@@ -28,4 +28,10 @@
 .wk-settings-center__row-main { display: grid; min-width: 0; gap: 4px; }
 .wk-settings-center__row-title { font-size: 14px; font-weight: 500; }
 .wk-settings-center__row-description { color: var(--wk-text-tertiary); font-size: 13px; }
-.wk-settings-center__toggle, .wk-settings-center__link { border: 0; border-radius: 8px; padding: 6px 12px; background: var(--wk-brand-tint-08); color: var(--wk-brand); cursor: pointer; }
+.wk-settings-center__shortcut-list { display: grid; grid-template-columns: 1fr auto; gap: 12px 24px; width: 100%; align-items: center; }
+.wk-settings-center__shortcut-list kbd { min-width: 88px; padding: 5px 9px; border: 1px solid var(--wk-border-subtle); border-bottom-width: 2px; border-radius: 6px; background: var(--wk-bg-base); color: var(--wk-text-secondary); font-family: inherit; font-size: 12px; text-align: center; }
+.wk-settings-center__qr-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.wk-settings-center__qr-card { display: flex; min-height: 270px; align-items: center; justify-content: center; gap: 10px; padding: 20px; border: 1px solid var(--wk-border-subtle); border-radius: 12px; background: var(--wk-bg-base); flex-direction: column; text-align: center; }
+.wk-settings-center__qr-card svg { padding: 8px; background: #fff; border-radius: 6px; }
+.wk-settings-center__qr-card strong { font-size: 14px; }
+.wk-settings-center__qr-card span { color: var(--wk-text-tertiary); font-size: 12px; }
