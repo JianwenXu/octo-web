@@ -226,6 +226,10 @@ export default class NavSettingsPanel extends Component<NavSettingsPanelProps, N
                         this.setState({ settingsCenterOpen: false });
                         document.querySelector<HTMLButtonElement>(".wk-navrail__settings-list [role='menuitem']")?.click();
                     }}
+                    onAbout={() => {
+                        this.setState({ settingsCenterOpen: false });
+                        void this.checkVersion();
+                    }}
                 />
 
                 {/* 更新日志 Modal */}

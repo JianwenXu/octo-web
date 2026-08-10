@@ -19,20 +19,25 @@ test("@TES10 settings center shell interaction", async ({ authedPage }, testInfo
   await languageSelect.click();
   await authedPage.getByText("English", { exact: true }).last().click();
   await expect(authedPage.locator("html")).toHaveAttribute("lang", "en-US");
-  await expect(authedPage.getByText("即将上线", { exact: true })).toBeVisible();
+  await expect(authedPage.getByText("深色主题即将上线", { exact: true })).toBeHidden();
+  await expect(authedPage.getByRole("switch", { name: "深色模式" })).toBeVisible();
   await authedPage.screenshot({ path: frame("03-settings-center-general"), fullPage: true });
   await authedPage.getByTestId("settings-center-nav-notifications").click();
   await expect(authedPage.getByTestId("settings-center-content")).toContainText("通知与声音");
   await authedPage.screenshot({ path: frame("04-settings-center-notifications"), fullPage: true });
 
   await authedPage.getByTestId("settings-center-nav-shortcuts").click();
-  await expect(authedPage.getByTestId("settings-center-content")).toContainText("Ctrl / Cmd + K");
-  await expect(authedPage.locator("kbd")).toHaveCount(5);
+  await expect(authedPage.getByTestId("settings-center-content")).toContainText("新聊天");
+  await expect(authedPage.getByTestId("settings-center-content")).toContainText("聊天");
+  await expect(authedPage.getByTestId("settings-center-content")).toContainText("语音输入");
+  await expect(authedPage.locator("kbd")).toHaveCount(8);
   await authedPage.screenshot({ path: frame("05-settings-center-shortcuts"), fullPage: true });
 
   await authedPage.getByTestId("settings-center-nav-devices").click();
   await expect(authedPage.getByTestId("settings-center-content")).toContainText("Octo Android");
-  expect(await authedPage.locator(".wk-settings-center__qr-card svg").count()).toBe(2);
+  await expect(authedPage.getByTestId("settings-center-content")).toContainText("OctoASR");
+  await expect(authedPage.getByRole("link", { name: "从 GitHub 下载" })).toHaveAttribute("href", "https://github.com/Mininglamp-OSS/octo-android/releases/latest");
+  await expect(authedPage.getByRole("link", { name: "查看项目" })).toHaveAttribute("href", "https://github.com/Mininglamp-AI/OctoASR");
   await authedPage.screenshot({ path: frame("06-settings-center-resources"), fullPage: true });
 
   await authedPage.getByTestId("settings-center-nav-about").click();
