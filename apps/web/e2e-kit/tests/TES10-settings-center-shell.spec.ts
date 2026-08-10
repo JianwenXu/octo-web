@@ -24,8 +24,23 @@ test("@TES10 settings center shell interaction", async ({ authedPage }, testInfo
   await authedPage.getByTestId("settings-center-nav-notifications").click();
   await expect(authedPage.getByTestId("settings-center-content")).toContainText("通知与声音");
   await authedPage.screenshot({ path: frame("04-settings-center-notifications"), fullPage: true });
+
+  await authedPage.getByTestId("settings-center-nav-shortcuts").click();
+  await expect(authedPage.getByTestId("settings-center-content")).toContainText("Ctrl / Cmd + K");
+  await authedPage.screenshot({ path: frame("05-settings-center-shortcuts"), fullPage: true });
+
+  await authedPage.getByTestId("settings-center-nav-devices").click();
+  await expect(authedPage.getByTestId("settings-center-content")).toContainText("Octo Android");
+  await expect(authedPage.getByRole("link", { name: "打开" })).toHaveCount(2);
+  await authedPage.screenshot({ path: frame("06-settings-center-resources"), fullPage: true });
+
+  await authedPage.getByTestId("settings-center-nav-about").click();
+  await expect(authedPage.getByTestId("settings-center-content")).toContainText("更新日志");
+  await expect(authedPage.getByTestId("settings-center-content")).toContainText("当前版本");
+  await authedPage.screenshot({ path: frame("07-settings-center-about"), fullPage: true });
+
   await expect(authedPage.getByTestId("settings-center-logout")).toBeVisible();
   await authedPage.getByTestId("settings-center-logout").click();
   await expect(center).toBeHidden();
-  await authedPage.screenshot({ path: frame("05-settings-center-closed"), fullPage: true });
+  await authedPage.screenshot({ path: frame("08-settings-center-closed"), fullPage: true });
 });
