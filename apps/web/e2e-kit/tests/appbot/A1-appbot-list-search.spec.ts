@@ -1,6 +1,7 @@
 /* eslint-disable no-undef -- e2e code runs in Node */
 /* eslint-disable @typescript-eslint/no-explicit-any -- msw resolver types */
-import { test, expect, type Page } from "../../fixtures-authed";
+import { test, expect } from "../../fixtures-authed";
+import type { Page } from "@playwright/test";
 import {
   startRequestMonitor,
   sanityCheck,
@@ -48,7 +49,7 @@ async function installAppbotHandlers(
 }
 
 async function openAppbotPage(page: Page): Promise<void> {
-  await page.getByRole("button", { name: "应用" }).click();
+  await page.getByRole("button", { name: "应用", exact: true }).click();
   await expect(page.getByTestId("appbot-page-title")).toHaveText("应用");
 }
 

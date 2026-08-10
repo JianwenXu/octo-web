@@ -35,6 +35,7 @@ import { execSync } from "node:child_process";
 const REPO_ROOT = process.cwd();
 const SPECS_DIR = join(REPO_ROOT, "e2e-kit/case-specs");
 const EXCLUDE_FILENAMES = new Set(["README.md", "COVERAGE.md", "BACKLOG.md", "TEMPLATE.md"]);
+const CASE_SPECS_PATH = "e2e-kit/case-specs/";
 
 // 必需段落. 允许小变体 (中英文冒号 / 前后空格 / heading 级别 2 或 3).
 const REQUIRED_SECTIONS = [
@@ -145,7 +146,7 @@ function diffModeFiles() {
   }).toString();
   return out
     .split("\n")
-    .filter((f) => f && f.endsWith(".md") && f.includes("apps/web/e2e-kit/case-specs/"))
+    .filter((f) => f && f.endsWith(".md") && f.includes(CASE_SPECS_PATH))
     .filter((f) => !EXCLUDE_FILENAMES.has(f.split("/").pop() || f))
     .map((f) => join(repoRoot, f));
 }
@@ -177,7 +178,7 @@ if (args.includes("--diff-mode")) {
     files = args
       .slice(filesIdx + 1)
       .filter((f) => f.endsWith(".md") && !EXCLUDE_FILENAMES.has(f.split("/").pop() || f))
-      .filter((f) => f.includes("e2e-kit/case-specs/"));
+      .filter((f) => f.includes(CASE_SPECS_PATH));
     if (files.length === 0) {
       console.log("[lint-spec-format] ✔ 无 e2e-kit/case-specs/ 下的 spec 文件, skip");
       process.exit(0);

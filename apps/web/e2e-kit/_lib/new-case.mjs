@@ -9,7 +9,7 @@
  * **接入方需改的占位** (脚本顶部 config 常量):
  *   - CASE_SPECS_DIR / TESTS_DIR / HANDLERS_DIR  — 项目路径 (默认对齐 kit v0.4 扁平布局)
  *   - FIXTURES_IMPORT_PATH / MOCK_IM_IMPORT_PATH / SANITY_IMPORT_PATH / HANDLERS_IMPORT_ROOT
- *                       — import 路径 (相对 e2e/ 根)
+ *                       — import 路径 (相对 e2e-kit/ 根)
  *   - USE_MOCK_IM      — 是否装 mock-im-runtime (默认 **false**; 项目装了 mock-im-wksdk optional 后改成 true)
  *   - USE_SANITY       — 是否装 sanity helper (默认 true, 无 sanity 关掉)
  *   - FMT_CMD          — 生成后自动 fmt 命令 (默认 null, 项目要用 prettier 之类改这里)
@@ -277,6 +277,12 @@ const testTemplate = `/* eslint-disable no-undef -- e2e code runs in Node */
  */
 import { test, expect } from "${sharedRoot}${FIXTURES_IMPORT_PATH}";
 ${withHttpMock ? `import { ${registerFnName} } from "${sharedRoot}${HANDLERS_IMPORT_ROOT}/${caseId.toLowerCase()}-${slug}";\n` : ""}${withImSeed ? `import { installMockImRuntime } from "${sharedRoot}${MOCK_IM_IMPORT_PATH}";\n` : ""}${USE_SANITY ? `import { startRequestMonitor, sanityCheck, type SanityConfig } from "${sharedRoot}${SANITY_IMPORT_PATH}";\n` : ""}
+${USE_SANITY ? `const sanityConfig: SanityConfig = {
+  realHosts: ["127.0.0.1:9", "mock.e2e.local"],
+  apiPrefixRe: /^\\/(api|summary\\/api)(\\/|$)/,
+  loginPathRe: /\\/login(\\?|$)/,
+};
+` : ""}
 
 test.describe("${tags} ${caseId} — **待补** case 描述", () => {
   test("**待补** 一句话操作 + 预期", async ({ authedPage }) => {
@@ -284,13 +290,8 @@ test.describe("${tags} ${caseId} — **待补** case 描述", () => {
     // 若忘删, batch 跑 (--grep @p0 等) 会 skip 而不是假绿.
     test.fixme(true, "scaffolder 骨架, 待作者补真实操作步骤 + UI 断言");
 
-${USE_SANITY ? `
-    const sanityConfig: SanityConfig = {
-      realHosts: ["127.0.0.1:9", "mock.e2e.local"],
-      apiPrefixRe: /^\\/(api|summary\\/api)(\\/|$)/,
-      loginPathRe: /\\/login(\\?|$)/,
-    };
-` : ""}${USE_SANITY ? `    const ctx = startRequestMonitor(authedPage, sanityConfig);\n` : ""}${withHttpMock ? `\n    await ${registerFnName}(authedPage);\n` : ""}${withImSeed ? `
+${USE_SANITY ? `    const ctx = startRequestMonitor(authedPage, sanityConfig);
+` : ""}${withHttpMock ? `\n    await ${registerFnName}(authedPage);\n` : ""}${withImSeed ? `
     await installMockImRuntime(authedPage, {
       currentUid: "e2e-user-1",
       spaceId: "e2e-space-001",
@@ -326,12 +327,10 @@ import type { Page } from "@playwright/test";
  */
 
 export async function ${registerFnName}(page: Page): Promise<void> {
-  // 示例：把 spec/业务源码确认的外部值通过 evaluate 第二参数传入。
-  const exampleId = "**待补**";
+  // Browser context boundary: only explicit data and window globals cross evaluate.
   await page.evaluate(
-    ({ exampleId }) => {
-      // 这里只使用参数和浏览器全局变量, 不引用 Node 模块变量.
-      void exampleId;
+    () => {
+      // 这里只使用显式传入参数和浏览器全局变量, 不引用 Node 模块变量.
       const msw = (window as unknown as {
         __msw?: {
           worker: { use: (...h: unknown[]) => void };
@@ -347,21 +346,22 @@ export async function ${registerFnName}(page: Page): Promise<void> {
       }
       const { worker: w, http, HttpResponse } = msw;
 
-    // module-scope state 每 install 重置, 避免 --repeat-each=3 相互泄漏.
-    (window as unknown as { ${stateKey}: { calls: number } }).${stateKey} = {
-      calls: 0,
-    };
+      // module-scope state 每 install 重置, 避免 --repeat-each=3 相互泄漏.
+      (window as unknown as { ${stateKey}: { calls: number } }).${stateKey} = {
+        calls: 0,
+      };
 
-    w.use(
-      // **待补** 本 case 的 endpoint handler
-      // http.post("*​/v1/matter/xxx", async (info: any) => {
-      //   const state = (window as unknown as { ${stateKey}: { calls: number } }).${stateKey};
-      //   state.calls += 1;
-      //   const body = await info.request.json();
-      //   return HttpResponse.json({ code: 0, message: "ok", data: {} });
-      // }),
-    );
-  }, { exampleId });
+      w.use(
+        // **待补** 本 case 的 endpoint handler
+        // http.post("*​/v1/matter/xxx", async (info: any) => {
+        //   const state = (window as unknown as { ${stateKey}: { calls: number } }).${stateKey};
+        //   state.calls += 1;
+        //   const body = await info.request.json();
+        //   return HttpResponse.json({ code: 0, message: "ok", data: {} });
+        // }),
+      );
+    }
+  );
 }
 `;
 
