@@ -4,36 +4,15 @@ import { t } from "../../i18n";
 import "./SettingsCenter.css";
 
 export type SettingsCenterCapability = "desktop" | "account";
-export interface SettingsCenterProps {
-  visible: boolean;
-  isDesktop?: boolean;
-  hasAccountCenter?: boolean;
-  onClose: () => void;
-  onSpaceManagement?: () => void;
-  onLogout?: () => void;
-}
-type SettingsSection = { title: string; items: { id: string; label: string; capabilities?: SettingsCenterCapability[] }[] };
-const sections: SettingsSection[] = [
+export interface SettingsCenterProps { visible: boolean; isDesktop?: boolean; hasAccountCenter?: boolean; onClose: () => void; onSpaceManagement?: () => void; onLogout?: () => void; }
+type SettingsItem = { id: string; label: string; capabilities?: SettingsCenterCapability[] };
+type SettingsGroup = { title: string; items: SettingsItem[] };
+const groups: SettingsGroup[] = [
   { title: "设置", items: [{ id: "general", label: "通用" }, { id: "account", label: "账号与安全", capabilities: ["account"] }, { id: "notifications", label: "通知与声音" }, { id: "voice", label: "语音输入" }] },
   { title: "桌面应用", items: [{ id: "desktop-behavior", label: "应用行为", capabilities: ["desktop"] }, { id: "downloads", label: "文件与下载", capabilities: ["desktop"] }] },
   { title: "工具与资源", items: [{ id: "shortcuts", label: "键盘快捷键" }, { id: "devices", label: "在其他设备上使用 Octo" }, { id: "about", label: "帮助与关于" }] },
 ];
-
-export default function SettingsCenter({ visible, isDesktop = false, hasAccountCenter = false, onClose, onSpaceManagement, onLogout }: SettingsCenterProps) {
-  const availableSections = useMemo(() => sections.map((section) => ({ ...section, items: section.items.filter((item) => (item.capabilities ?? []).every((capability) => capability === "desktop" ? isDesktop : hasAccountCenter)) })).filter((section) => section.items.length > 0), [hasAccountCenter, isDesktop]);
-  const [selectedId, setSelectedId] = useState("general");
-  const selected = availableSections.flatMap((section) => section.items).find((item) => item.id === selectedId) ?? availableSections[0]?.items[0];
-  return (
-    <WKModal visible={visible} onCancel={onClose} title={t("base.navRail.settingsCenter.title")} width="min(960px, calc(100vw - 48px))" className="wk-settings-center-modal" bodyStyle={{ padding: 0 }} options={{ maskClosable: true }}>
-      <div className="wk-settings-center" data-testid="settings-center">
-        <aside className="wk-settings-center__sidebar" aria-label={t("base.navRail.settingsCenter.navigation")}>
-          {availableSections.map((section) => <div className="wk-settings-center__section" key={section.title}><div className="wk-settings-center__section-title">{section.title}</div>{section.items.map((item) => <button type="button" key={item.id} data-testid={`settings-center-nav-${item.id}`} className={`wk-settings-center__nav-item${selected?.id === item.id ? " is-active" : ""}`} aria-current={selected?.id === item.id ? "page" : undefined} onClick={() => setSelectedId(item.id)}>{item.label}</button>)}</div>)}
-          <div className="wk-settings-center__sidebar-spacer" />
-          {onSpaceManagement && <button type="button" className="wk-settings-center__footer-action" data-testid="settings-center-space-management" onClick={onSpaceManagement}>{t("base.navRail.settingsPanel.spaceManagement")}</button>}
-          {onLogout && <button type="button" className="wk-settings-center__footer-action" data-testid="settings-center-logout" onClick={onLogout}>{t("base.navRail.settingsPanel.logout")}</button>}
-        </aside>
-        <main className="wk-settings-center__content" data-testid="settings-center-content"><h2>{selected?.label}</h2><p>{t("base.navRail.settingsCenter.placeholder")}</p></main>
-      </div>
-    </WKModal>
-  );
-}
+function SettingsIcon({ name }: { name: string }) { const paths: Record<string, string> = { general: "M12 3v2m0 14v2M3 12h2m14 0h2M5.6 5.6l1.4 1.4m10 10 1.4 1.4M18.4 5.6 17 7M7 17l-1.4 1.4M15.5 12a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0Z", account: "M12 12a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm-6 8a6 6 0 0 1 12 0", notifications: "M18 9a6 6 0 0 0-12 0c0 7-3 7-3 8h18c0-1-3-1-3-8ZM10 21h4", voice: "M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Zm-7 9a7 7 0 0 0 14 0M12 19v3", "desktop-behavior": "M4 5h16v11H4zM9 20h6M12 16v4", downloads: "M12 3v11m0 0 4-4m-4 4-4-4M5 19h14", shortcuts: "M4 5h16v14H4zM8 9h2m2 0h2m2 0h2M8 13h2m2 0h2", devices: "M5 5h14v10H5zM8 19h8M9 15v4m6-4v4", about: "M12 18h.01M9.5 9a2.5 2.5 0 1 1 4.7 1.2c-.7 1-2.2 1.1-2.2 2.8" }; return <svg viewBox="0 0 24 24" aria-hidden="true"><path d={paths[name] ?? paths.general} /></svg>; }
+export function SettingsRow({ title, description, trailing }: { title: string; description?: string; trailing?: React.ReactNode }) { return <div className="wk-settings-center__row"><div className="wk-settings-center__row-main"><div className="wk-settings-center__row-title">{title}</div>{description && <div className="wk-settings-center__row-description">{description}</div>}</div>{trailing}</div>; }
+function SettingsPage({ item }: { item?: SettingsItem }) { return <div className="wk-settings-center__page"><header className="wk-settings-center__page-header"><h2>{item?.label}</h2><p>管理你的 Octo 使用偏好</p></header><section className="wk-settings-center__section-content"><h3>{item?.id === "general" ? "基本设置" : item?.label}</h3><SettingsRow title={item?.id === "general" ? "界面偏好" : "设置项"} description="更多设置将在后续阶段接入。" trailing={<span className="wk-settings-center__chevron">›</span>} /></section></div>; }
+export default function SettingsCenter({ visible, isDesktop = false, hasAccountCenter = false, onClose, onSpaceManagement, onLogout }: SettingsCenterProps) { const availableGroups = useMemo(() => groups.map((group) => ({ ...group, items: group.items.filter((item) => (item.capabilities ?? []).every((capability) => capability === "desktop" ? isDesktop : hasAccountCenter)) })).filter((group) => group.items.length > 0), [hasAccountCenter, isDesktop]); const [selectedId, setSelectedId] = useState("general"); const selected = availableGroups.flatMap((group) => group.items).find((item) => item.id === selectedId) ?? availableGroups[0]?.items[0]; return <WKModal visible={visible} onCancel={onClose} title={null} width="min(1080px, calc(100vw - 48px))" className="wk-settings-center-modal" bodyStyle={{ padding: 0 }} options={{ maskClosable: true }}><div className="wk-settings-center" data-testid="settings-center"><aside className="wk-settings-center__sidebar" aria-label={t("base.navRail.settingsCenter.navigation")}><h1>设置</h1><nav className="wk-settings-center__navigation">{availableGroups.map((group) => <section className="wk-settings-center__group" key={group.title}><h2>{group.title}</h2><div className="wk-settings-center__nav-list">{group.items.map((item) => <button type="button" key={item.id} data-testid={`settings-center-nav-${item.id}`} className={`wk-settings-center__nav-item${selected?.id === item.id ? " is-active" : ""}`} aria-current={selected?.id === item.id ? "page" : undefined} onClick={() => setSelectedId(item.id)}><SettingsIcon name={item.id} /><span>{item.label}</span></button>)}</div></section>)}</nav><div className="wk-settings-center__footer">{onSpaceManagement && <button type="button" data-testid="settings-center-space-management" onClick={onSpaceManagement}><span>⌘</span>{t("base.navRail.settingsPanel.spaceManagement")}</button>}{onLogout && <button type="button" className="is-danger" data-testid="settings-center-logout" onClick={onLogout}><span>↪</span>{t("base.navRail.settingsPanel.logout")}</button>}</div></aside><main className="wk-settings-center__content" data-testid="settings-center-content"><button type="button" className="wk-settings-center__close" aria-label={t("base.common.close")} onClick={onClose}>×</button><SettingsPage item={selected} /></main></div></WKModal>; }
