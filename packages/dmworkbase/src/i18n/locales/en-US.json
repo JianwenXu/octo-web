@@ -1501,5 +1501,7 @@
   "navRail.settingsCenter.page.fallback.title": "Settings",
   "navRail.settingsCenter.page.fallback.description": "Manage your Octo preferences",
   "navRail.settingsCenter.row.placeholder": "Setting",
-  "navRail.settingsCenter.value.unsupported": "Not supported in this environment"
+  "navRail.settingsCenter.value.unsupported": "Not supported in this environment",
+  "navRail.settingsCenter.value.granted": "Allowed",
+  "navRail.settingsCenter.value.denied": "Denied"
 }
