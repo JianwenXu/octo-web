@@ -65,3 +65,15 @@
 .wk-settings-center__resource-action { color: var(--wk-color-primary, #3370ff); font-size: 13px; text-decoration: none; }
 .wk-settings-center__status { color: var(--wk-text-tertiary); font-size: 12px; }
 .wk-settings-center__resource-action:hover { text-decoration: underline; }
+.wk-quick-mute { margin-bottom: 40px; }
+.wk-quick-mute__status { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: -4px 0 12px; padding: 12px 0; }
+.wk-quick-mute__status > div { display: grid; gap: 4px; }
+.wk-quick-mute__status span { color: var(--wk-text-tertiary); font-size: 13px; }
+.wk-quick-mute__actions, .wk-quick-mute__custom { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.wk-quick-mute__actions button, .wk-quick-mute__custom button { min-height: 32px; padding: 0 12px; border: 1px solid var(--wk-border-default); border-radius: 6px; background: var(--wk-bg-surface); color: var(--wk-text-primary); cursor: pointer; font-size: 13px; }
+.wk-quick-mute__actions button:hover, .wk-quick-mute__custom button:hover { background: var(--wk-bg-base); }
+.wk-quick-mute__actions button:disabled, .wk-quick-mute__custom button:disabled { cursor: not-allowed; opacity: .45; }
+.wk-quick-mute__custom input { min-height: 32px; padding: 0 8px; border: 1px solid var(--wk-border-default); border-radius: 6px; background: var(--wk-bg-surface); color: var(--wk-text-primary); font: inherit; }
+.wk-quick-mute__feedback, .wk-quick-mute__error { display: block; margin-top: 10px; color: var(--wk-text-tertiary); font-size: 13px; }
+.wk-quick-mute__error { color: var(--wk-color-danger, #d14343); }
+.wk-quick-mute__error button { margin-left: 6px; border: 0; background: transparent; color: inherit; cursor: pointer; text-decoration: underline; }
