@@ -28,6 +28,14 @@ class NativeNotificationAdapter extends WebNotificationAdapter {
   isSupported(): boolean {
     return NotificationUtil.getInstance().isNotificationSupported();
   }
+
+  getPermission(): NotificationPermissionState {
+    return this.isSupported() ? "granted" : "unsupported";
+  }
+
+  async requestPermission(): Promise<NotificationPermissionState> {
+    return this.isSupported() ? "granted" : "unsupported";
+  }
 }
 
 export function createNotificationAdapter(environment: RuntimeEnvironment): NotificationAdapter {
