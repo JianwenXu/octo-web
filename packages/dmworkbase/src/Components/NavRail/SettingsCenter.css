@@ -19,6 +19,10 @@
 .wk-settings-center__content { position: relative; min-width: 0; overflow: auto; background: var(--wk-bg-surface); }
 .wk-settings-center__close { position: absolute; top: 16px; right: 16px; z-index: 1; display: inline-flex; width: 32px; height: 32px; align-items: center; justify-content: center; padding: 0; border: 0; border-radius: 8px; background: transparent; color: var(--wk-text-tertiary); cursor: pointer; font-size: 24px; line-height: 1; }
 .wk-settings-center__close:hover { background: var(--wk-bg-item-hover); color: var(--wk-text-primary); }
+.wk-settings-center__secondary-page { min-height: 100%; padding: 24px 32px 48px; }
+.wk-settings-center__back { display: inline-flex; align-items: center; gap: 6px; margin: 0 0 16px; padding: 4px 8px; border: 0; border-radius: 6px; background: transparent; color: var(--wk-text-secondary); cursor: pointer; font-size: 13px; }
+.wk-settings-center__back:hover { background: var(--wk-bg-item-hover); color: var(--wk-text-primary); }
+.wk-settings-center__secondary-page .wk-secrets { max-width: 760px; margin: 0 auto; }
 .wk-settings-center__page { width: min(100%, 760px); margin: 0 auto; padding: 48px 32px; }
 .wk-settings-center__page-header { margin-bottom: 32px; padding-right: 32px; }
 .wk-settings-center__page-header h2 { margin: 0 0 8px; font-size: 22px; font-weight: 700; line-height: 1.3; }
