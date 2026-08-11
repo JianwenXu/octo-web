@@ -7,11 +7,13 @@ import { Locale } from "../../i18n/types";
 import { NotificationUtil } from "../../Utils/NotificationUtil";
 import WKModal from "../WKModal";
 import "./SettingsCenter.css";
+import { detectRuntimeEnvironment, type RuntimeEnvironment } from "../../Runtime";
 
 export type SettingsCenterCapability = "desktop" | "account";
 export interface SettingsCenterProps {
   visible: boolean;
   isDesktop?: boolean;
+  environment?: RuntimeEnvironment;
   hasAccountCenter?: boolean;
   onClose: () => void;
   onSpaceManagement?: () => void;
@@ -56,8 +58,10 @@ function SettingsPageFrame({ title, description, children }: { title: string; de
 function ShortcutRow({ label, keys }: { label: string; keys: string[] }) { return <div className="wk-settings-center__shortcut-row"><span>{label}</span><span className="wk-settings-center__shortcut-keys">{keys.map((key) => <kbd key={key}>{key}</kbd>)}</span></div>; }
 function ResourceSection({ title, children }: { title: string; children: React.ReactNode }) { return <section className="wk-settings-center__resource-section"><h3>{title}</h3><div className="wk-settings-center__resource-grid">{children}</div></section>; }
 function ResourceCard({ title, description, status, action }: { title: string; description: string; status: string; action?: React.ReactNode }) { return <article className="wk-settings-center__resource-card"><div><h4>{title}</h4><p>{description}</p></div><span className="wk-settings-center__resource-status">{status}</span>{action && <div>{action}</div>}</article>; }
-export default function SettingsCenter({ visible, isDesktop = false, hasAccountCenter = false, onClose, onSpaceManagement, onLogout, onSecrets, onVoice, onAbout }: SettingsCenterProps) {
-  const availableGroups = useMemo(() => groups.map((group) => ({ ...group, items: group.items.filter((item) => (item.capabilities ?? []).every((capability) => capability === "desktop" ? isDesktop : hasAccountCenter)) })).filter((group) => group.items.length > 0), [hasAccountCenter, isDesktop]);
+export default function SettingsCenter({ visible, isDesktop = false, environment, hasAccountCenter = false, onClose, onSpaceManagement, onLogout, onSecrets, onVoice, onAbout }: SettingsCenterProps) {
+  const runtimeEnvironment = environment ?? detectRuntimeEnvironment(isDesktop);
+  const desktopAvailable = runtimeEnvironment.target === "desktop";
+  const availableGroups = useMemo(() => groups.map((group) => ({ ...group, items: group.items.filter((item) => (item.capabilities ?? []).every((capability) => capability === "desktop" ? desktopAvailable : hasAccountCenter)) })).filter((group) => group.items.length > 0), [desktopAvailable, hasAccountCenter]);
   const [selectedId, setSelectedId] = useState("general");
   const selected = availableGroups.flatMap((group) => group.items).find((item) => item.id === selectedId) ?? availableGroups[0]?.items[0];
   return <WKModal visible={visible} onCancel={onClose} title={null} width="min(1080px, calc(100vw - 48px))" className="wk-settings-center-modal" bodyStyle={{ padding: 0 }} options={{ maskClosable: true }}><div className="wk-settings-center" data-testid="settings-center"><aside className="wk-settings-center__sidebar" aria-label={t("base.navRail.settingsCenter.navigation")}><h1>设置</h1><nav className="wk-settings-center__navigation">{availableGroups.map((group) => <section className="wk-settings-center__group" key={group.title}><h2>{group.title}</h2><div className="wk-settings-center__nav-list">{group.items.map((item) => <button type="button" key={item.id} data-testid={`settings-center-nav-${item.id}`} className={`wk-settings-center__nav-item${selected?.id === item.id ? " is-active" : ""}`} aria-current={selected?.id === item.id ? "page" : undefined} onClick={() => setSelectedId(item.id)}><SettingsIcon name={item.id} /><span>{item.label}</span></button>)}</div></section>)}</nav><div className="wk-settings-center__footer">{onSpaceManagement && <button type="button" data-testid="settings-center-space-management" onClick={onSpaceManagement}>⌘ {t("base.navRail.settingsPanel.spaceManagement")}</button>}{onLogout && <button type="button" className="is-danger" data-testid="settings-center-logout" onClick={onLogout}>↪ {t("base.navRail.settingsPanel.logout")}</button>}</div></aside><main className="wk-settings-center__content" data-testid="settings-center-content"><button type="button" className="wk-settings-center__close" aria-label={t("base.common.close")} onClick={onClose}>×</button><SettingsPage item={selected} onSecrets={onSecrets} onVoice={onVoice} onAbout={onAbout} /></main></div></WKModal>;
