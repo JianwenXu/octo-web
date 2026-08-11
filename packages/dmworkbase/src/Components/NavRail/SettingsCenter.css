@@ -35,8 +35,7 @@
 .wk-meinfo--settings-embedded .wk-meinfo { margin: 0; }
 .wk-meinfo--settings-embedded .wk-meinfo-header { display: none; }
 .wk-meinfo--settings-embedded .wk-meinfo-section { margin: 0; }
-.wk-meinfo--settings-embedded .wk-meinfo-section-title { display: block; margin: 0 0 16px; color: var(--wk-text-primary); font-size: 16px; font-weight: 600; line-height: 1.35; }
-.wk-meinfo--settings-embedded .wk-meinfo-section:first-child .wk-meinfo-section-title { display: none; }
+.wk-meinfo--settings-embedded .wk-meinfo-section-title { display: none; }
 .wk-meinfo--settings-embedded .wk-meinfo-section + .wk-meinfo-section { margin-top: 40px; }
 .wk-meinfo--settings-embedded .wk-meinfo-row { min-height: 56px; padding: 12px 0; border-bottom: 1px solid var(--wk-border-subtle); }
 .wk-meinfo--settings-embedded .wk-meinfo-section-rows { border: 0; border-radius: 0; background: transparent; }
@@ -46,6 +45,8 @@
 .wk-settings-center__row-description { color: var(--wk-text-tertiary); font-size: 13px; }
 .wk-settings-center__row-actions { display: inline-flex; align-items: center; gap: 12px; }
 .wk-settings-center__row-value { display: inline-flex; align-items: center; gap: 8px; color: var(--wk-text-secondary); font-size: 13px; }
+.wk-settings-center__manage-button { min-width: 56px; height: 32px; padding: 0 12px; border: 1px solid var(--wk-border-default); border-radius: 6px; background: var(--wk-bg-surface); color: var(--wk-text-primary); cursor: pointer; font-size: 13px; }
+.wk-settings-center__manage-button:hover { border-color: var(--wk-border-strong, var(--wk-border-default)); background: var(--wk-bg-base); }
 .wk-settings-center__shortcut-list { display: grid; grid-template-columns: 1fr auto; gap: 12px 24px; width: 100%; align-items: center; }
 .wk-settings-center__shortcut-list kbd { min-width: 88px; padding: 5px 9px; border: 1px solid var(--wk-border-subtle); border-bottom-width: 2px; border-radius: 6px; background: var(--wk-bg-base); color: var(--wk-text-secondary); font-family: inherit; font-size: 12px; text-align: center; }
 .wk-settings-center__shortcut-catalog { display: grid; gap: 28px; }
