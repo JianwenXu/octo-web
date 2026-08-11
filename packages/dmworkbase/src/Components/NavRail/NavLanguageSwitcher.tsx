@@ -90,7 +90,7 @@ export default function NavLanguageSwitcher() {
               className="wk-navrail__language-menu-item"
               onSelect={() => handleSelect(item.locale)}
             >
-              {item.label}
+              {item.locale === "zh-CN" ? "简体中文" : item.label}
             </NavFlyoutMenuItem>
           );
         })}
