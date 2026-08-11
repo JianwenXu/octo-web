@@ -149,4 +149,27 @@ describe("NavSettingsPanel", () => {
         expect(onToggleSetting).toHaveBeenCalledTimes(1);
         expect(baseProps.onSetShowNewVersion).toHaveBeenCalledWith(true);
     });
+
+    it("only shows Space management to owners and admins", () => {
+        const memberPanel = renderPanel();
+        expect(Array.from(document.body.querySelectorAll("button[role='menuitem']"))
+            .some((button) => button.textContent?.includes("空间管理"))).toBe(false);
+        expect(memberPanel).not.toHaveBeenCalled();
+
+        act(() => {
+            ReactDOM.unmountComponentAtNode(container);
+            ReactDOM.render(
+                <NavSettingsPanel
+                    {...baseProps}
+                    canManageSpace
+                    triggerRef={{ current: trigger }}
+                    onToggleSetting={vi.fn()}
+                />,
+                container,
+            );
+        });
+
+        expect(Array.from(document.body.querySelectorAll("button[role='menuitem']"))
+            .some((button) => button.textContent?.includes("空间管理"))).toBe(true);
+    });
 });
