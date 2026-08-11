@@ -20,34 +20,35 @@ test("@TES10 settings center shell interaction", async ({ authedPage }, testInfo
   await authedPage.getByText("English", { exact: true }).last().click();
   await expect(authedPage.locator("html")).toHaveAttribute("lang", "en-US");
   await expect(authedPage.getByText("深色主题即将上线", { exact: true })).toBeHidden();
-  await expect(authedPage.getByRole("switch", { name: "深色模式" })).toBeVisible();
+  await expect(authedPage.getByRole("switch", { name: "Dark mode" })).toBeVisible();
   await authedPage.screenshot({ path: frame("03-settings-center-general"), fullPage: true });
   await authedPage.getByTestId("settings-center-nav-notifications").click();
-  await expect(authedPage.getByTestId("settings-center-content")).toContainText("通知与声音");
+  await expect(authedPage.getByTestId("settings-center-content")).toContainText("Notifications and sound");
   await authedPage.screenshot({ path: frame("04-settings-center-notifications"), fullPage: true });
 
   await authedPage.getByTestId("settings-center-nav-shortcuts").click();
-  await expect(authedPage.getByTestId("settings-center-content")).toContainText("新聊天");
-  await expect(authedPage.getByTestId("settings-center-content")).toContainText("聊天");
-  await expect(authedPage.getByTestId("settings-center-content")).toContainText("语音输入");
+  await expect(authedPage.getByTestId("settings-center-content")).toContainText("New chat");
+  await expect(authedPage.getByTestId("settings-center-content")).toContainText("Chat");
+  await expect(authedPage.getByTestId("settings-center-content")).toContainText("Voice input");
   await expect(authedPage.locator(".wk-settings-center__shortcut-row")).toHaveCount(8);
   await expect(authedPage.locator("kbd")).toHaveCount(18);
   await authedPage.screenshot({ path: frame("05-settings-center-shortcuts"), fullPage: true });
 
   await authedPage.getByTestId("settings-center-nav-devices").click();
+  await expect(authedPage.getByTestId("settings-center-content")).toContainText("Use Octo on other devices");
   await expect(authedPage.getByTestId("settings-center-content")).toContainText("Android");
   await expect(authedPage.getByTestId("settings-center-content")).toContainText("OctoASR");
-  await expect(authedPage.getByTestId("settings-center-content")).toContainText("移动端");
-  await expect(authedPage.getByTestId("settings-center-content")).toContainText("开源项目");
-  await expect(authedPage.getByTestId("settings-center-content")).toContainText("下载入口暂未确认");
+  await expect(authedPage.getByTestId("settings-center-content")).toContainText("Mobile");
+  await expect(authedPage.getByTestId("settings-center-content")).toContainText("Open-source projects");
+  await expect(authedPage.getByTestId("settings-center-content")).toContainText("Download link not confirmed");
   await expect(authedPage.locator(".wk-settings-center__resource-card")).toHaveCount(4);
-  await expect(authedPage.getByRole("link", { name: "从 GitHub 下载" })).toHaveAttribute("href", "https://github.com/Mininglamp-OSS/octo-android/releases/latest");
-  await expect(authedPage.getByRole("link", { name: "查看项目" })).toHaveAttribute("href", "https://github.com/Mininglamp-AI/OctoASR");
+  await expect(authedPage.getByRole("link", { name: "Download from GitHub" })).toHaveAttribute("href", "https://github.com/Mininglamp-OSS/octo-android/releases/latest");
+  await expect(authedPage.getByRole("link", { name: "View project" })).toHaveAttribute("href", "https://github.com/Mininglamp-AI/OctoASR");
   await authedPage.screenshot({ path: frame("06-settings-center-resources"), fullPage: true });
 
   await authedPage.getByTestId("settings-center-nav-about").click();
-  await expect(authedPage.getByTestId("settings-center-content")).toContainText("更新日志");
-  await expect(authedPage.getByTestId("settings-center-content")).toContainText("当前版本");
+  await expect(authedPage.getByTestId("settings-center-content")).toContainText("Help and about");
+  await expect(authedPage.getByTestId("settings-center-content")).toContainText("Current version");
   await authedPage.screenshot({ path: frame("07-settings-center-about"), fullPage: true });
 
   await expect(authedPage.getByTestId("settings-center-logout")).toBeVisible();
