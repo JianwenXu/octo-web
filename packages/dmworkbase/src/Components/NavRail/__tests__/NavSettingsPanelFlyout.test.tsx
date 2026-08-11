@@ -6,6 +6,7 @@ import React from "react";
 import ReactDOM from "react-dom";
 import { act } from "react-dom/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { i18n } from "../../../i18n";
 
 const hoisted = vi.hoisted(() => ({
     checkVersionOnce: vi.fn(),
@@ -73,6 +74,7 @@ const baseProps = {
 };
 
 beforeEach(() => {
+    i18n.setLocale("zh-CN", { notify: false, persist: false });
     hoisted.checkVersionOnce.mockReset().mockResolvedValue(null);
     hoisted.logoutUserInitiated.mockReset().mockResolvedValue(undefined);
     hoisted.notificationIsClose = false;
@@ -90,6 +92,7 @@ afterEach(() => {
     trigger.remove();
     container.remove();
     document.querySelectorAll(".wk-navrail__flyout, .wk-navrail__flyout-mask").forEach((node) => node.remove());
+    i18n.setLocale("en-US", { notify: false, persist: false });
     vi.clearAllMocks();
 });
 

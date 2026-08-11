@@ -212,6 +212,10 @@ export default class NavSettingsPanel extends Component<NavSettingsPanelProps, N
                         this.setState({ settingsCenterOpen: false });
                         void this.checkVersion();
                     }}
+                    onOpenOnboarding={() => {
+                        this.setState({ settingsCenterOpen: false });
+                        onOpenOnboarding?.();
+                    }}
                 />
 
                 {/* 更新日志 Modal */}
