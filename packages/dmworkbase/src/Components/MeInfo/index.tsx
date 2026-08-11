@@ -18,6 +18,7 @@ import "./index.css"
 
 export interface MeInfoProps {
     onClose: () => void
+    embedded?: boolean
 }
 
 interface MeInfoState {
@@ -229,7 +230,7 @@ export class MeInfo extends Component<MeInfoProps, MeInfoState> {
         )
     }
 
-    renderPanel(vm: MeInfoVM, context: RouteContext<any>) {
+    renderPanel(vm: MeInfoVM, context?: RouteContext<any>) {
         const { t } = this.context
         const {
             editingName,
@@ -286,7 +287,7 @@ export class MeInfo extends Component<MeInfoProps, MeInfoState> {
                     nameDraft={nameDraft}
                     genderValue={vm.sexLabel()}
                     realnameValue={verified ? vm.formatVerifiedAtLabel() : t("base.me.realname.verifyNow")}
-                    showExperimentalFeatures={vm.isLabModeEnabled()}
+                    showExperimentalFeatures={!this.props.embedded && vm.isLabModeEnabled()}
                     editingName={editingName}
                     savingName={savingName}
                     uploadingAvatar={uploadingAvatar}
@@ -299,7 +300,7 @@ export class MeInfo extends Component<MeInfoProps, MeInfoState> {
                     onShowQrCode={() => this.setState({ showQrCode: true })}
                     onShowGender={() => this.setState({ showSexSelect: true })}
                     onRealnameClick={() => vm.startRealnameVerify()}
-                    onShowExperimentalFeatures={() => this.showExperimentalFeatures(context)}
+                    onShowExperimentalFeatures={() => context && this.showExperimentalFeatures(context)}
                 />
             </div>
 
@@ -409,6 +410,9 @@ export class MeInfo extends Component<MeInfoProps, MeInfoState> {
         return <Provider create={function (): IProviderListener {
             return new MeInfoVM()
         }} render={(vm: MeInfoVM): ReactNode => {
+            if (this.props.embedded) {
+                return this.renderPanel(vm)
+            }
             return <RoutePage title={title} onClose={this.handleClose} className="wk-meinfo-route" render={(context: RouteContext<any>): ReactNode => {
                 return this.renderPanel(vm, context)
             }}></RoutePage>
