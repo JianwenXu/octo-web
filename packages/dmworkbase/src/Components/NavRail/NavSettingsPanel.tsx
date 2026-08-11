@@ -137,7 +137,7 @@ export default class NavSettingsPanel extends Component<NavSettingsPanelProps, N
                         this.setState({ settingsCenterOpen: true });
                         onToggleSetting();
                     }}>
-                        设置中心
+                        {t("base.navRail.settingsCenter.title")}
                     </NavFlyoutMenuItem>
 
                     {hasNewVersionLocal && (

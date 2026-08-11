@@ -84,6 +84,18 @@ function clickLanguageMenuItem(label: string) {
 }
 
 describe("NavLanguageSwitcher", () => {
+  it("keeps language option labels fixed in English locale", () => {
+    i18n.setLocale("en-US", { notify: false, persist: false });
+    renderSwitcher();
+
+    act(() => {
+      (container.querySelector(".wk-navrail__language") as HTMLButtonElement).click();
+    });
+
+    expect(document.body.textContent).toContain("简体中文");
+    expect(document.body.textContent).toContain("English");
+  });
+
   it("syncs signed-in language changes to backend after local switch", () => {
     renderSwitcher();
 

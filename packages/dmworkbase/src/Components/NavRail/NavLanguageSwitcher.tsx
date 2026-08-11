@@ -29,9 +29,9 @@ export default function NavLanguageSwitcher() {
     ? "base.navRail.language.switchToEnglish"
     : "base.navRail.language.switchToChinese";
   const title = t(titleKey);
-  const locales: Array<{ locale: Locale; labelKey: string }> = [
-    { locale: "zh-CN", labelKey: "base.navRail.language.name.zh" },
-    { locale: "en-US", labelKey: "base.navRail.language.name.en" },
+  const locales: Array<{ locale: Locale; label: string }> = [
+    { locale: "zh-CN", label: "简体中文" },
+    { locale: "en-US", label: "English" },
   ];
 
   const handleSelect = (next: Locale) => {
@@ -90,7 +90,7 @@ export default function NavLanguageSwitcher() {
               className="wk-navrail__language-menu-item"
               onSelect={() => handleSelect(item.locale)}
             >
-              {t(item.labelKey)}
+              {item.label}
             </NavFlyoutMenuItem>
           );
         })}
