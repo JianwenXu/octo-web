@@ -199,6 +199,7 @@ export default class NavSettingsPanel extends Component<NavSettingsPanelProps, N
                     visible={this.state.settingsCenterOpen}
                     isDesktop={Boolean((WKApp.config as unknown as { isDesktop?: boolean } | undefined)?.isDesktop)}
                     hasAccountCenter={showAccountCenter}
+                    accountCenterUrl={accountCenterUrl}
                     onClose={() => this.setState({ settingsCenterOpen: false })}
                     onSpaceManagement={canManageSpace ? () => { window.location.href = "/space"; } : undefined}
                     onLogout={() => { this.setState({ settingsCenterOpen: false }); void WKApp.shared.logoutUserInitiated(); }}

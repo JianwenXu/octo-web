@@ -411,7 +411,7 @@ export class MeInfo extends Component<MeInfoProps, MeInfoState> {
             return new MeInfoVM()
         }} render={(vm: MeInfoVM): ReactNode => {
             if (this.props.embedded) {
-                return this.renderPanel(vm)
+                return <div className="wk-meinfo--settings-embedded">{this.renderPanel(vm)}</div>
             }
             return <RoutePage title={title} onClose={this.handleClose} className="wk-meinfo-route" render={(context: RouteContext<any>): ReactNode => {
                 return this.renderPanel(vm, context)

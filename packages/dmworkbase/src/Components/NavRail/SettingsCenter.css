@@ -28,8 +28,17 @@
 .wk-settings-center__page-header h2 { margin: 0 0 8px; font-size: 22px; font-weight: 700; line-height: 1.3; }
 .wk-settings-center__page-header p { margin: 0; color: var(--wk-text-tertiary); font-size: 14px; }
 .wk-settings-center__section-content h3 { margin: 0 0 16px; font-size: 16px; font-weight: 600; line-height: 1.35; }
-.wk-settings-center__settings-section + .wk-settings-center__settings-section { margin-top: 32px; }
-.wk-settings-center__settings-section h3 { margin: 0 0 12px; color: var(--wk-text-tertiary); font-size: 13px; font-weight: 600; line-height: 1.35; }
+.wk-settings-center__settings-section + .wk-settings-center__settings-section { margin-top: 40px; }
+.wk-settings-center__settings-section h3 { margin: 0 0 16px; color: var(--wk-text-primary); font-size: 16px; font-weight: 600; line-height: 1.35; }
+.wk-settings-center__external-link { display: inline-flex; width: 28px; height: 28px; align-items: center; justify-content: center; color: var(--wk-text-tertiary); font-size: 20px; text-decoration: none; }
+.wk-settings-center__external-link:hover { color: var(--wk-text-primary); }
+.wk-meinfo--settings-embedded .wk-meinfo { margin: 0; }
+.wk-meinfo--settings-embedded .wk-meinfo-header { display: none; }
+.wk-meinfo--settings-embedded .wk-meinfo-section { margin: 0; }
+.wk-meinfo--settings-embedded .wk-meinfo-section-title { display: none; }
+.wk-meinfo--settings-embedded .wk-meinfo-section + .wk-meinfo-section { margin-top: 0; }
+.wk-meinfo--settings-embedded .wk-meinfo-row { min-height: 56px; padding: 12px 0; border-bottom: 1px solid var(--wk-border-subtle); }
+.wk-meinfo--settings-embedded .wk-meinfo-section-rows { border: 0; border-radius: 0; background: transparent; }
 .wk-settings-center__row { display: flex; width: calc(100% + 24px); min-height: 68px; align-items: center; justify-content: space-between; gap: 16px; margin-inline: -12px; padding: 12px; border-bottom: 1px solid var(--wk-border-subtle); }
 .wk-settings-center__row-main { display: grid; min-width: 0; gap: 4px; }
 .wk-settings-center__row-title { font-size: 14px; font-weight: 500; }
