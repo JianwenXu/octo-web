@@ -183,16 +183,6 @@ export default class NavSettingsPanel extends Component<NavSettingsPanelProps, N
                             {t("base.navRail.settingsPanel.onboarding")}
                         </NavFlyoutMenuItem>
                     )}
-                    {canManageSpace && (
-                        <NavFlyoutMenuItem onSelect={() => {
-                            onToggleSetting();
-                            // /space 是独立打包的 admin SPA（同源），React Router 不识别，必须整页跳转；
-                            // 真实鉴权由 admin 后端负责，此处仅用于 UI 可见性控制。
-                            window.location.href = "/space";
-                        }}>
-                            {t("base.navRail.settingsPanel.spaceManagement")}
-                        </NavFlyoutMenuItem>
-                    )}
                     <NavFlyoutMenuItem onSelect={() => {
                         onToggleSetting();
                         WKApp.shared.notificationIsClose = !WKApp.shared.notificationIsClose;
@@ -203,12 +193,6 @@ export default class NavSettingsPanel extends Component<NavSettingsPanelProps, N
                     </NavFlyoutMenuItem>
                     <NavVoiceSettingsItem />
                     <NavSecretsSettingsItem />
-                    <NavFlyoutMenuItem onSelect={() => {
-                        onToggleSetting();
-                        void WKApp.shared.logoutUserInitiated();
-                    }}>
-                        {t("base.navRail.settingsPanel.logout")}
-                    </NavFlyoutMenuItem>
                 </NavFlyout>
 
                 <SettingsCenter

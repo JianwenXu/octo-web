@@ -1,7 +1,6 @@
 import React, { Component } from "react";
 import { Space } from "wukongimjssdk";
 import NavSpaceSwitcher from "./NavSpaceSwitcher";
-import NavLanguageSwitcher from "./NavLanguageSwitcher";
 import { t } from "../../i18n";
 
 export interface NavBottomProps {
@@ -52,8 +51,6 @@ export default class NavBottom extends Component<NavBottomProps, NavBottomState>
             <div className="wk-navrail__bottom">
                 {/* 设置上方分割线 */}
                 <div className="wk-navrail__sep" />
-
-                <NavLanguageSwitcher />
 
                 {/* 设置按钮 + 气泡 */}
                 <div className="wk-navrail__settings-wrap">
