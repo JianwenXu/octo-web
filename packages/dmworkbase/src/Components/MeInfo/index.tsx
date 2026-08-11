@@ -264,6 +264,7 @@ export class MeInfo extends Component<MeInfoProps, MeInfoState> {
                 <MeInfoPanel
                     avatar={avatar}
                     avatarMini={avatarMini}
+                    embedded={this.props.embedded}
                     displayName={vm.selfDisplayName()}
                     isRealnameVerified={verified}
                     shortNo={vm.shortNo()}
