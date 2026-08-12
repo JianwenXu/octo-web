@@ -573,6 +573,11 @@
     display: none;
 }
 
+/* 快捷静音在收起态也需要保留“提醒开启 / 已静音”状态文字。 */
+.wk-navrail__quick-mute-wrap .wk-navrail__item > .wk-navrail__item-label {
+    display: block;
+}
+
 .wk-layout-tab-expanded .wk-navrail__bottom {
     align-items: stretch;
     gap: var(--wk-sp-2);
