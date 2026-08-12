@@ -704,7 +704,9 @@ export default class BaseModule implements IModule {
     );
   }
 
-  tipsAudio() {
+  async tipsAudio() {
+    const quickMuteState = await quickMuteStore.getState().catch(() => undefined);
+    if (quickMuteState?.active) return;
     Howler.autoUnlock = false;
     if (!this.messageTone) {
       this.messageTone = new Howl({
@@ -775,7 +777,8 @@ export default class BaseModule implements IModule {
       await coordinator.claimOnly(claim);
       return;
     }
-    if (!this.allowNotify(message)) return;
+    const initialDecision = await this.getNotifyDecision(message);
+    if (!initialDecision.showPopup && !initialDecision.playSound) return;
 
     let from = "";
     if (message.channel.channelType === ChannelTypeGroup) {
@@ -799,17 +802,35 @@ export default class BaseModule implements IModule {
       },
       subscribeSuppressionChanges: (listener) =>
         this.subscribeMessageAttentionChanges(listener),
-      isStillEligible: () =>
-        this.isAttentionContextCurrent(context) && this.allowNotify(message),
-      alert: () => {
+      isStillEligible: async () => {
+        if (!this.isAttentionContextCurrent(context)) return false;
+        const decision = await this.getNotifyDecision(message);
+        return decision.showPopup || decision.playSound;
+      },
+      alert: async () => {
         if (!this.isAttentionContextCurrent(context)) return;
-        void this.sendNotification(
-          message,
-          `${from}${message.content.conversationDigest}`
-        );
-        this.tipsAudio();
+        const decision = await this.getNotifyDecision(message);
+        if (decision.showPopup) {
+          await this.sendNotification(
+            message,
+            `${from}${message.content.conversationDigest}`
+          );
+        }
+        if (decision.playSound) await this.tipsAudio();
       },
     });
+  }
+
+  /**
+   * The single notification decision for incoming messages and sound-only
+   * attention. Visibility and single-alert coordination remain separate
+   * concerns; this only combines account/device policy with channel policy.
+   */
+  private async getNotifyDecision(message: Message): Promise<{ playSound: boolean; showPopup: boolean }> {
+    if (!this.allowNotify(message)) return { playSound: false, showPopup: false };
+    const quickMuteState = await quickMuteStore.getState().catch(() => undefined);
+    if (quickMuteState?.active) return { playSound: false, showPopup: false };
+    return { playSound: true, showPopup: true };
   }
 
   private isAttentionContextCurrent(
