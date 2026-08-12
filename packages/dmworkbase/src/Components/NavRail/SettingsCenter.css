@@ -50,6 +50,9 @@
 .wk-settings-center__demo-select { width: 184px; height: 32px; padding: 0 34px 0 12px; border: 1px solid var(--wk-border-default); border-radius: 6px; background-color: var(--wk-bg-surface); background-image: linear-gradient(45deg, transparent 50%, var(--wk-text-tertiary) 50%), linear-gradient(135deg, var(--wk-text-tertiary) 50%, transparent 50%); background-position: calc(100% - 16px) 13px, calc(100% - 11px) 13px; background-repeat: no-repeat; background-size: 5px 5px, 5px 5px; color: var(--wk-text-primary); cursor: pointer; font: inherit; font-size: 13px; appearance: none; }
 .wk-settings-center__demo-select:hover { border-color: var(--wk-border-strong, var(--wk-border-default)); }
 .wk-settings-center__demo-select:focus-visible { border-color: #8b5cf6; outline: none; box-shadow: 0 0 0 2px rgba(139, 92, 246, .16); }
+.wk-settings-center__download-location { display: grid; min-width: 184px; gap: 8px; justify-items: end; }
+.wk-settings-center__download-location code { max-width: 280px; color: var(--wk-text-tertiary); font: 11px/1.4 var(--wk-font-mono, monospace); overflow-wrap: anywhere; text-align: right; }
+.wk-settings-center__manage-button:disabled, .wk-settings-center__demo-select:disabled { cursor: not-allowed; opacity: .55; }
 .wk-settings-center__shortcut-list { display: grid; grid-template-columns: 1fr auto; gap: 12px 24px; width: 100%; align-items: center; }
 .wk-settings-center__shortcut-list kbd { min-width: 88px; padding: 5px 9px; border: 1px solid var(--wk-border-subtle); border-bottom-width: 2px; border-radius: 6px; background: var(--wk-bg-base); color: var(--wk-text-secondary); font-family: inherit; font-size: 12px; text-align: center; }
 .wk-settings-center__shortcut-catalog { display: grid; gap: 28px; }
