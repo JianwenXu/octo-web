@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import { Toast, Spin } from "@douyinfe/semi-ui";
 import {
   IconPlus,
@@ -49,6 +49,7 @@ export default function SecretsSettingsPanel({
   const [items, setItems] = useState<SecretListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const suppressNextFocus = useRef(false);
   // 深链/防手滑预填只用于「打开面板时」自动弹出的那一次新增（一次性）。
   // 之后用户在面板里手动点「+ 新增密钥」走 startCreate()，绝不复用上一次的明文，
   // 避免把粘贴进来的旧 key 误存到一个新名字下（codex review P2）。
@@ -60,6 +61,17 @@ export default function SecretsSettingsPanel({
 
   /** 手动新增：永远是干净的空表单，不带任何预填明文。 */
   const startCreate = useCallback(() => setEditTarget({ mode: "create" }), []);
+  const openCreateOnFocus = useCallback(() => {
+    if (suppressNextFocus.current) {
+      suppressNextFocus.current = false;
+      return;
+    }
+    startCreate();
+  }, [startCreate]);
+  const closeEditor = useCallback(() => {
+    suppressNextFocus.current = true;
+    setEditTarget(null);
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -145,6 +157,8 @@ export default function SecretsSettingsPanel({
             type="button"
             variant="primary"
             icon={<IconPlus />}
+            onMouseUp={(event) => { event.stopPropagation(); startCreate(); }}
+            onFocus={openCreateOnFocus}
             onClick={(event) => { event.stopPropagation(); startCreate(); }}
           >
             {t("base.secrets.addButton")}
@@ -173,6 +187,8 @@ export default function SecretsSettingsPanel({
               type="button"
               variant="primary"
               icon={<IconPlus />}
+              onMouseUp={(event) => { event.stopPropagation(); startCreate(); }}
+              onFocus={openCreateOnFocus}
               onClick={(event) => { event.stopPropagation(); startCreate(); }}
             >
               {t("base.secrets.empty.action")}
@@ -199,9 +215,9 @@ export default function SecretsSettingsPanel({
                   <div className="wk-secrets__card-meta">{renderMeta(secret)}</div>
                 </div>
                 <div className="wk-secrets__card-actions">
-                  <button type="button" className="wk-secrets__icon-btn" onClick={(event) => { event.stopPropagation(); setEditTarget({ mode: "edit", secret }); }} title={t("base.secrets.action.edit")} aria-label={t("base.secrets.action.edit")}><IconEdit /></button>
-                  <button type="button" className="wk-secrets__icon-btn" onClick={(event) => { event.stopPropagation(); setEditTarget({ mode: "edit", secret }); }} title={t("base.secrets.action.updateKey")} aria-label={t("base.secrets.action.updateKey")}><IconRefresh /></button>
-                  <button type="button" className="wk-secrets__icon-btn wk-secrets__icon-btn--danger" onClick={(event) => { event.stopPropagation(); handleDelete(secret); }} title={t("base.secrets.action.delete")} aria-label={t("base.secrets.action.delete")}><IconDelete /></button>
+                  <button type="button" className="wk-secrets__icon-btn" onMouseUp={(event) => { event.stopPropagation(); setEditTarget({ mode: "edit", secret }); }} onFocus={() => { if (!suppressNextFocus.current) setEditTarget({ mode: "edit", secret }); else suppressNextFocus.current = false; }} onClick={(event) => { event.stopPropagation(); setEditTarget({ mode: "edit", secret }); }} title={t("base.secrets.action.edit")} aria-label={t("base.secrets.action.edit")}><IconEdit /></button>
+                  <button type="button" className="wk-secrets__icon-btn" onMouseUp={(event) => { event.stopPropagation(); setEditTarget({ mode: "edit", secret }); }} onFocus={() => { if (!suppressNextFocus.current) setEditTarget({ mode: "edit", secret }); else suppressNextFocus.current = false; }} onClick={(event) => { event.stopPropagation(); setEditTarget({ mode: "edit", secret }); }} title={t("base.secrets.action.updateKey")} aria-label={t("base.secrets.action.updateKey")}><IconRefresh /></button>
+                  <button type="button" className="wk-secrets__icon-btn wk-secrets__icon-btn--danger" onMouseUp={(event) => { event.stopPropagation(); handleDelete(secret); }} onClick={(event) => { event.stopPropagation(); handleDelete(secret); }} title={t("base.secrets.action.delete")} aria-label={t("base.secrets.action.delete")}><IconDelete /></button>
                 </div>
               </li>
             ))}
@@ -214,7 +230,7 @@ export default function SecretsSettingsPanel({
           existing={items}
           prefillName={editTarget.mode === "create" ? editTarget.prefillName : undefined}
           prefillValue={editTarget.mode === "create" ? editTarget.prefillValue : undefined}
-          onClose={() => setEditTarget(null)}
+          onClose={closeEditor}
           onSaved={() => void load()}
         />
       )}
