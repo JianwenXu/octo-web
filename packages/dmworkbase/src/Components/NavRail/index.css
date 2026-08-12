@@ -116,6 +116,23 @@
     flex-shrink: 0;
 }
 
+.wk-navrail__quick-mute-wrap { position: relative; width: 100%; }
+.wk-navrail__quick-mute-trigger svg { width: 20px; height: 20px; flex: 0 0 20px; }
+.wk-navrail__quick-mute-menu { padding: 8px; }
+.wk-navrail__quick-mute-title { padding: 4px 4px 2px; color: var(--wk-text-primary); font-size: 13px; font-weight: 600; }
+.wk-navrail__quick-mute-hint { padding: 0 4px 8px; color: var(--wk-text-tertiary); font-size: 12px; line-height: 1.4; }
+.wk-navrail__quick-mute-option, .wk-navrail__quick-mute-resume { display: flex; width: 100%; min-height: 32px; align-items: center; padding: 6px 8px; border: 0; border-radius: 6px; background: transparent; color: var(--wk-text-primary); cursor: pointer; font: inherit; font-size: 13px; text-align: left; }
+.wk-navrail__quick-mute-option:hover, .wk-navrail__quick-mute-resume:hover { background: var(--wk-bg-hover); }
+.wk-navrail__quick-mute-option:disabled, .wk-navrail__quick-mute-resume:disabled { cursor: not-allowed; opacity: .5; }
+.wk-navrail__quick-mute-resume { margin-top: 4px; border-top: 1px solid var(--wk-border-subtle); border-radius: 0; color: var(--wk-color-primary, #3370ff); }
+.wk-navrail__quick-mute-custom { display: grid; gap: 6px; padding: 6px 4px; }
+.wk-navrail__quick-mute-custom input { width: 100%; min-height: 30px; box-sizing: border-box; padding: 0 6px; border: 1px solid var(--wk-border-default); border-radius: 5px; background: var(--wk-bg-surface); color: var(--wk-text-primary); font: inherit; font-size: 12px; }
+.wk-navrail__quick-mute-custom button { min-height: 30px; border: 1px solid var(--wk-border-default); border-radius: 5px; background: var(--wk-bg-surface); color: var(--wk-text-primary); cursor: pointer; font-size: 12px; }
+.wk-navrail__quick-mute-scope { display: grid; gap: 4px; margin: 6px 4px 2px; padding-top: 8px; border-top: 1px solid var(--wk-border-subtle); color: var(--wk-text-tertiary); font-size: 12px; }
+.wk-navrail__quick-mute-scope select { min-height: 28px; border: 1px solid var(--wk-border-default); border-radius: 5px; background: var(--wk-bg-surface); color: var(--wk-text-primary); font-size: 12px; }
+.wk-navrail__quick-mute-error { padding: 6px 4px 2px; color: var(--wk-color-danger, #d14343); font-size: 12px; }
+.wk-navrail__quick-mute-error button { padding: 0; border: 0; background: transparent; color: inherit; cursor: pointer; text-decoration: underline; }
+
 .wk-layout-tab-expanded .wk-navrail__sep {
     width: auto;
     margin: var(--wk-sp-2, 8px) var(--wk-sp-3, 12px);

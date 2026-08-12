@@ -65,6 +65,14 @@
 .wk-settings-center__resource-action { color: var(--wk-color-primary, #3370ff); font-size: 13px; text-decoration: none; }
 .wk-settings-center__status { color: var(--wk-text-tertiary); font-size: 12px; }
 .wk-settings-center__resource-action:hover { text-decoration: underline; }
+.wk-settings-center__resource-section--clients .wk-settings-center__resource-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.wk-settings-center__resource-section--resources .wk-settings-center__resource-grid { grid-template-columns: 1fr; }
+.wk-settings-center__resource-card--clients { min-height: 134px; }
+.wk-settings-center__resource-card--resources { min-height: 96px; grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
+.wk-settings-center__resource-card--resources .wk-settings-center__resource-status { grid-column: 1; }
+.wk-settings-center__resource-card--resources > div:last-child { grid-column: 2; grid-row: 1 / span 2; }
+.wk-settings-center__resource-identity { display: flex; min-width: 0; align-items: flex-start; gap: 10px; }
+.wk-settings-center__resource-icon { display: inline-flex; width: 28px; height: 28px; flex: 0 0 28px; align-items: center; justify-content: center; border-radius: 8px; background: var(--wk-bg-surface); color: var(--wk-text-secondary); font-size: 17px; }
 .wk-quick-mute { margin-bottom: 40px; }
 .wk-quick-mute__status { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: -4px 0 12px; padding: 12px 0; }
 .wk-quick-mute__status > div { display: grid; gap: 4px; }

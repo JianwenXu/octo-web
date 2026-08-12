@@ -2,6 +2,7 @@ import React, { Component } from "react";
 import { Space } from "wukongimjssdk";
 import NavSpaceSwitcher from "./NavSpaceSwitcher";
 import { t } from "../../i18n";
+import QuickMuteSidebar from "./QuickMuteSidebar";
 
 export interface NavBottomProps {
     settingSelected?: boolean;
@@ -51,6 +52,8 @@ export default class NavBottom extends Component<NavBottomProps, NavBottomState>
             <div className="wk-navrail__bottom">
                 {/* 设置上方分割线 */}
                 <div className="wk-navrail__sep" />
+
+                <QuickMuteSidebar />
 
                 {/* 设置按钮 + 气泡 */}
                 <div className="wk-navrail__settings-wrap">
