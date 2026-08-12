@@ -197,7 +197,7 @@ export default class NavSettingsPanel extends Component<NavSettingsPanelProps, N
 
                 <SettingsCenter
                     visible={this.state.settingsCenterOpen}
-                    isDesktop={Boolean((WKApp.config as unknown as { isDesktop?: boolean } | undefined)?.isDesktop)}
+                    isDesktop={Boolean((WKApp.config as unknown as { isDesktop?: boolean } | undefined)?.isDesktop) || Boolean((window as Window & { __POWERED_ELECTRON__?: boolean; __TAURI_IPC__?: unknown }).__POWERED_ELECTRON__ || (window as Window & { __POWERED_ELECTRON__?: boolean; __TAURI_IPC__?: unknown }).__TAURI_IPC__) || window.location.protocol === "file:"}
                     hasAccountCenter={showAccountCenter}
                     accountCenterUrl={accountCenterUrl}
                     onClose={() => this.setState({ settingsCenterOpen: false })}
