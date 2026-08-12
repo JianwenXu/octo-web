@@ -145,7 +145,7 @@ export default function SecretsSettingsPanel({
             type="button"
             variant="primary"
             icon={<IconPlus />}
-            onClick={() => startCreate()}
+            onClick={(event) => { event.stopPropagation(); startCreate(); }}
           >
             {t("base.secrets.addButton")}
           </WKButton>
@@ -173,7 +173,7 @@ export default function SecretsSettingsPanel({
               type="button"
               variant="primary"
               icon={<IconPlus />}
-              onClick={() => startCreate()}
+              onClick={(event) => { event.stopPropagation(); startCreate(); }}
             >
               {t("base.secrets.empty.action")}
             </WKButton>
@@ -199,9 +199,9 @@ export default function SecretsSettingsPanel({
                   <div className="wk-secrets__card-meta">{renderMeta(secret)}</div>
                 </div>
                 <div className="wk-secrets__card-actions">
-                  <button type="button" className="wk-secrets__icon-btn" onClick={() => setEditTarget({ mode: "edit", secret })} title={t("base.secrets.action.edit")} aria-label={t("base.secrets.action.edit")}><IconEdit /></button>
-                  <button type="button" className="wk-secrets__icon-btn" onClick={() => setEditTarget({ mode: "edit", secret })} title={t("base.secrets.action.updateKey")} aria-label={t("base.secrets.action.updateKey")}><IconRefresh /></button>
-                  <button type="button" className="wk-secrets__icon-btn wk-secrets__icon-btn--danger" onClick={() => handleDelete(secret)} title={t("base.secrets.action.delete")} aria-label={t("base.secrets.action.delete")}><IconDelete /></button>
+                  <button type="button" className="wk-secrets__icon-btn" onClick={(event) => { event.stopPropagation(); setEditTarget({ mode: "edit", secret }); }} title={t("base.secrets.action.edit")} aria-label={t("base.secrets.action.edit")}><IconEdit /></button>
+                  <button type="button" className="wk-secrets__icon-btn" onClick={(event) => { event.stopPropagation(); setEditTarget({ mode: "edit", secret }); }} title={t("base.secrets.action.updateKey")} aria-label={t("base.secrets.action.updateKey")}><IconRefresh /></button>
+                  <button type="button" className="wk-secrets__icon-btn wk-secrets__icon-btn--danger" onClick={(event) => { event.stopPropagation(); handleDelete(secret); }} title={t("base.secrets.action.delete")} aria-label={t("base.secrets.action.delete")}><IconDelete /></button>
                 </div>
               </li>
             ))}
