@@ -82,7 +82,7 @@ function NotificationsSettingsPage({ environment }: { environment: import("../..
   const permissionLabel = permission === "unsupported" ? t("base.navRail.settingsCenter.value.unsupported") : permission === "denied" ? t("base.navRail.settingsCenter.value.denied") : permission === "granted" ? t("base.navRail.settingsCenter.value.granted") : t("base.navRail.settingsCenter.value.unauthorized");
   const permissionTone: "success" | "attention" | "danger" | "neutral" = permission === "granted" ? "success" : permission === "denied" ? "danger" : permission === "default" ? "attention" : "neutral";
   const requestPermission = async () => setPermission(await notificationAdapter.requestPermission());
-  return <SettingsPageFrame title={t("base.navRail.settingsCenter.page.notifications.title")} description={t("base.navRail.settingsCenter.page.notifications.description")}>
+  return <SettingsPageFrame title={t("base.navRail.settingsCenter.page.notifications.title")}>
     <SettingsSection title={t("base.navRail.settingsCenter.section.quickMute")}>
       <SettingsRow title={t("base.navRail.settingsCenter.row.muteScope")} description={t("base.navRail.settingsCenter.row.muteScopeDescription")} trailing={<select className="wk-settings-center__demo-select" aria-label={t("base.navRail.settingsCenter.row.muteScope")} value={muteScope} onChange={(event) => setMuteScope(event.target.value as typeof muteScope)}><option value="sound">{t("base.navRail.settingsCenter.value.soundOnly")}</option><option value="sound-and-popup">{t("base.navRail.settingsCenter.value.soundAndPopup")}</option></select>} />
     </SettingsSection>
