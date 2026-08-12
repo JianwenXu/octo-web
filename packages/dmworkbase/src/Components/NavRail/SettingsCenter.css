@@ -74,10 +74,10 @@
 .wk-settings-center__resource-section > h3 { margin: 0 0 16px; color: var(--wk-text-primary); font-size: 16px; font-weight: 600; line-height: 1.35; }
 .wk-settings-center__resource-section--clients .wk-settings-center__resource-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); border-top: 1px solid var(--wk-border-subtle); border-bottom: 1px solid var(--wk-border-subtle); }
 .wk-settings-center__resource-section--resources .wk-settings-center__resource-grid { grid-template-columns: 1fr; }
-.wk-settings-center__resource-card--clients { display: flex; flex-direction: column; align-items: center; padding: 20px 24px; text-align: center; border: 0; }
+.wk-settings-center__resource-card--clients { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 0; padding: 20px 24px; text-align: center; border: 0; }
 .wk-settings-center__resource-card--clients + .wk-settings-center__resource-card--clients { border-left: 1px solid var(--wk-border-subtle); }
 .wk-settings-center__client-head { display: flex; align-items: center; justify-content: center; gap: 8px; }
-.wk-settings-center__client-head h4 { margin: 0; font-size: 16px; font-weight: 600; }
+.wk-settings-center__client-head h4 { margin: 0; font-size: 16px; font-weight: 600; line-height: 1.35; }
 .wk-settings-center__client-head .wk-settings-center__resource-icon { width: 20px; height: 20px; flex: 0 0 20px; }
 .wk-settings-center__client-head .wk-settings-center__resource-icon svg { width: 20px; height: 20px; }
 .wk-settings-center__client-status { margin-top: 8px; color: var(--wk-text-secondary); font-size: 12px; }
