@@ -142,6 +142,7 @@ export default function SecretsSettingsPanel({
             <p className="wk-secrets__subtitle">{t("base.secrets.subtitle")}</p>
           </div>
           <WKButton
+            type="button"
             variant="primary"
             icon={<IconPlus />}
             onClick={() => startCreate()}
@@ -169,6 +170,7 @@ export default function SecretsSettingsPanel({
             </div>
             <p className="wk-secrets__empty-text">{t("base.secrets.empty")}</p>
             <WKButton
+              type="button"
               variant="primary"
               icon={<IconPlus />}
               onClick={() => startCreate()}
