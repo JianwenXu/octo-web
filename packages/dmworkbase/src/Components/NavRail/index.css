@@ -573,6 +573,11 @@
     display: none;
 }
 
+/* 设置入口在收起态也展示名称，与快捷静音入口保持一致。 */
+.wk-navrail__settings-wrap .wk-navrail__item > .wk-navrail__item-label {
+    display: block;
+}
+
 /* 快捷静音在收起态也需要保留“提醒开启 / 已静音”状态文字。 */
 .wk-navrail__quick-mute-wrap .wk-navrail__item > .wk-navrail__item-label {
     display: block;
