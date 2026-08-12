@@ -1515,7 +1515,6 @@
   "navRail.settingsCenter.value.soundAndPopup": "Sounds and desktop popups",
   "navRail.settingsCenter.action.mute30m": "Mute for 30 minutes",
   "navRail.settingsCenter.action.mute1h": "Mute for 1 hour",
-  "navRail.settingsCenter.action.muteManual": "Until manually resumed",
   "navRail.settingsCenter.action.resume": "Resume reminders",
   "navRail.settingsCenter.row.customMuteTime": "Custom mute time",
   "navRail.settingsCenter.action.muteUntil": "Mute until this time",

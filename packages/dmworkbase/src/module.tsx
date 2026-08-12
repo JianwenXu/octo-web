@@ -12,6 +12,8 @@ import {
   Task,
   TaskStatus,
   MessageStatus,
+  WKSDK,
+  ConnectStatus,
 } from "wukongimjssdk";
 import React, { ElementType } from "react";
 import { Smile, Scissors, ImagePlus, Paperclip, AtSign } from "lucide-react";
@@ -77,6 +79,7 @@ import { isMessageReactionChannelSupported } from "./features/messageReaction/co
 import { LocationCell, LocationContent } from "./Messages/Location";
 import { Toast } from "@douyinfe/semi-ui";
 import { DefaultEmojiService } from "./Service/EmojiService";
+import { quickMuteStore } from "./Components/NavRail/QuickMuteStore";
 import IconClick from "./Components/IconClick";
 import EmojiToolbar from "./Components/EmojiToolbar";
 import MergeforwardContent, { MergeforwardCell } from "./Messages/Mergeforward";
@@ -259,6 +262,19 @@ export default class BaseModule implements IModule {
       WKApp.shared.logout();
     };
 
+    // 账号级快捷静音复用 WuKongIM CMD；回前台、网络恢复和重连时用 GET
+    // 校准，CMD 只作为低延迟更新，不承担最终一致性。
+    const refreshQuickMute = () => { void quickMuteStore.refresh(); };
+    WKApp.mittBus.on("wk:app-foreground", refreshQuickMute);
+    WKApp.mittBus.on("wk:auth-state-changed", () => {
+      quickMuteStore.reset();
+      refreshQuickMute();
+    });
+    if (typeof window !== "undefined") window.addEventListener("online", refreshQuickMute);
+    WKSDK.shared().connectManager.addConnectStatusListener((status) => {
+      if (status === ConnectStatus.Connected) refreshQuickMute();
+    });
+
     WKApp.endpointManager.setMethod(
       EndpointID.emojiService,
       () => DefaultEmojiService.shared
@@ -438,7 +454,9 @@ export default class BaseModule implements IModule {
       const cmdContent = message.content as CMDContent;
       const param = cmdContent.param;
 
-      if (cmdContent.cmd === "channelUpdate") {
+      if (cmdContent.cmd === "user.notification_pause.changed") {
+        quickMuteStore.applyRemoteCMD(param);
+      } else if (cmdContent.cmd === "channelUpdate") {
         // 频道信息更新——通用事件（改名/公告/头像/解散等都会触发）。
         // 使用 fetchChannelInfo 拉取最新状态：channelUpdate 无法区分是改名/公告/头像还是解散，
         // 不能盲目调用 syncGroupDisbandState（会把正常群标记为已解散）。
