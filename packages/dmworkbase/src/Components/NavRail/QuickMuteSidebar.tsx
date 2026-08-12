@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { t } from "../../i18n";
 import NavFlyout from "./NavFlyout";
-import { createMockQuickMuteService, type QuickMuteDuration, type QuickMuteService, type QuickMuteScope, type QuickMuteState } from "./QuickMuteSettings";
+import { createMockQuickMuteService, type QuickMuteDuration, type QuickMuteService, type QuickMuteState } from "./QuickMuteSettings";
 
 const defaultService = createMockQuickMuteService();
 
@@ -20,19 +20,18 @@ export default function QuickMuteSidebar({ service = defaultService }: { service
   const triggerRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
   const [state, setState] = useState<QuickMuteState>({ active: false, scope: "sound" });
-  const [scope, setScope] = useState<QuickMuteScope>("sound");
   const [customTime, setCustomTime] = useState(defaultCustomTime);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(false);
   const [customOpen, setCustomOpen] = useState(false);
 
-  useEffect(() => { void service.getState().then((next) => { setState(next); setScope(next.scope); }).catch(() => setError(true)); }, [service]);
+  useEffect(() => { void service.getState().then((next) => { setState(next); }).catch(() => setError(true)); }, [service]);
 
   const apply = async (duration: QuickMuteDuration) => {
     const endAt = duration === "custom" ? new Date(customTime).getTime() : undefined;
     if (duration === "custom" && (!Number.isFinite(endAt) || endAt <= Date.now())) { setError(true); return; }
     setBusy(true); setError(false);
-    try { setState(await service.setMute({ duration, endAt, scope })); setOpen(false); setCustomOpen(false); } catch { setError(true); } finally { setBusy(false); }
+    try { setState(await service.setMute({ duration, endAt, scope: state.scope })); setOpen(false); setCustomOpen(false); } catch { setError(true); } finally { setBusy(false); }
   };
   const resume = async () => { setBusy(true); setError(false); try { setState(await service.resume()); setOpen(false); } catch { setError(true); } finally { setBusy(false); } };
 
@@ -49,7 +48,6 @@ export default function QuickMuteSidebar({ service = defaultService }: { service
       <button type="button" role="menuitem" disabled={busy} className="wk-navrail__quick-mute-option" onClick={() => setCustomOpen((visible) => !visible)}>{t("base.navRail.quickMute.chooseDateTime")}</button>
       {customOpen && <div className="wk-navrail__quick-mute-custom"><input type="datetime-local" value={customTime} min={new Date().toISOString().slice(0, 16)} onChange={(event) => setCustomTime(event.target.value)} aria-label={t("base.navRail.settingsCenter.row.customMuteTime")} /><button type="button" disabled={busy} onClick={() => void apply("custom")}>{t("base.navRail.settingsCenter.action.muteUntil")}</button></div>}
       {state.active && <button type="button" role="menuitem" disabled={busy} className="wk-navrail__quick-mute-resume" onClick={() => void resume()}>{t("base.navRail.settingsCenter.action.resume")}</button>}
-      <div className="wk-navrail__quick-mute-scope"><label htmlFor="wk-quick-mute-scope">{t("base.navRail.settingsCenter.row.muteScope")}</label><select id="wk-quick-mute-scope" value={scope} onChange={(event) => setScope(event.target.value as QuickMuteScope)}><option value="sound">{t("base.navRail.settingsCenter.value.soundOnly")}</option><option value="sound-and-popup">{t("base.navRail.settingsCenter.value.soundAndPopup")}</option></select></div>
       {error && <div className="wk-navrail__quick-mute-error" role="alert">{t("base.navRail.settingsCenter.value.saveFailed")} <button type="button" onClick={() => void apply("custom")}>{t("base.navRail.settingsCenter.action.retry")}</button></div>}
     </NavFlyout>
   </div>;

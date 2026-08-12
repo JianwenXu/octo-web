@@ -75,12 +75,29 @@ export function SettingsPage({ item, environment, accountCenterUrl, onSecrets, o
 }
 function NotificationsSettingsPage({ environment }: { environment: import("../../Runtime").RuntimeEnvironment }) {
   const [notificationsEnabled, setNotificationsEnabled] = useState(() => !WKApp.shared.notificationIsClose);
+  const [muteScope, setMuteScope] = useState<"sound" | "sound-and-popup">("sound");
+  const [replySoundEnabled, setReplySoundEnabled] = useState(true);
+  const [messageSoundEnabled, setMessageSoundEnabled] = useState(true);
   const [permission, setPermission] = useState(() => createNotificationAdapter(environment).getPermission());
   const notificationAdapter = createNotificationAdapter(environment);
+  const isDesktop = environment.target === "desktop";
   const permissionLabel = permission === "unsupported" ? t("base.navRail.settingsCenter.value.unsupported") : permission === "denied" ? t("base.navRail.settingsCenter.value.denied") : permission === "granted" ? t("base.navRail.settingsCenter.value.granted") : t("base.navRail.settingsCenter.value.unset");
   const permissionTone: "success" | "attention" | "danger" | "neutral" = permission === "granted" ? "success" : permission === "denied" ? "danger" : permission === "default" ? "attention" : "neutral";
   const requestPermission = async () => setPermission(await notificationAdapter.requestPermission());
-  return <SettingsPageFrame title={t("base.navRail.settingsCenter.page.notifications.title")} description={t("base.navRail.settingsCenter.page.notifications.description")}><SettingsRow title={t("base.navRail.settingsCenter.row.desktopNotifications")} description={notificationsEnabled ? t("base.navRail.settingsCenter.value.on") : t("base.navRail.settingsCenter.value.off")} trailing={<Switch checked={notificationsEnabled} onChange={(checked) => { setNotificationsEnabled(checked); WKApp.shared.notificationIsClose = !checked; }} aria-label={t("base.navRail.settingsCenter.row.desktopNotifications")} />} /><SettingsRow title={t("base.navRail.settingsCenter.row.systemPermission")} trailing={<span className="wk-settings-center__row-actions"><SettingsStatusTag tone={permissionTone} label={permissionLabel} />{permission === "default" && <button type="button" className="wk-settings-center__link" onClick={() => { void requestPermission(); }}>{t("base.navRail.settingsCenter.action.authorize")}</button>}</span>} /></SettingsPageFrame>;
+  return <SettingsPageFrame title={t("base.navRail.settingsCenter.page.notifications.title")} description={t("base.navRail.settingsCenter.page.notifications.description")}>
+    <SettingsSection title={t("base.navRail.settingsCenter.section.quickMute")}>
+      <SettingsRow title={t("base.navRail.settingsCenter.row.muteScope")} description={t("base.navRail.settingsCenter.row.muteScopeDescription")} trailing={<Select aria-label={t("base.navRail.settingsCenter.row.muteScope")} value={muteScope} onChange={(value) => setMuteScope(String(value) as typeof muteScope)} optionList={[{ value: "sound", label: t("base.navRail.settingsCenter.value.soundOnly") }, { value: "sound-and-popup", label: t("base.navRail.settingsCenter.value.soundAndPopup") }]} />} />
+    </SettingsSection>
+    <SettingsSection title={t("base.navRail.settingsCenter.section.desktopSystemNotifications")}>
+      <SettingsRow title={t("base.navRail.settingsCenter.row.notificationOptions")} description={isDesktop ? t("base.navRail.settingsCenter.row.notificationOptionsDesktopDescription") : t("base.navRail.settingsCenter.row.notificationOptionsWebDescription")} trailing={<Switch checked={notificationsEnabled} onChange={(checked) => { setNotificationsEnabled(checked); WKApp.shared.notificationIsClose = !checked; }} aria-label={t("base.navRail.settingsCenter.row.notificationOptions")} />} />
+      <SettingsRow title={t("base.navRail.settingsCenter.row.systemPermission")} description={isDesktop ? t("base.navRail.settingsCenter.row.systemPermissionDesktopDescription") : t("base.navRail.settingsCenter.row.systemPermissionWebDescription")} trailing={<span className="wk-settings-center__row-actions"><SettingsStatusTag tone={permissionTone} label={permissionLabel} />{permission === "default" && <button type="button" className="wk-settings-center__link" onClick={() => { void requestPermission(); }}>{t("base.navRail.settingsCenter.action.authorize")}</button>}</span>} />
+    </SettingsSection>
+    <SettingsSection title={t("base.navRail.settingsCenter.section.notificationSounds")}>
+      <SettingsRow title={t("base.navRail.settingsCenter.row.botReplySound")} trailing={<Switch checked={replySoundEnabled} onChange={setReplySoundEnabled} aria-label={t("base.navRail.settingsCenter.row.botReplySound")} />} />
+      <SettingsRow title={t("base.navRail.settingsCenter.row.normalMessageSound")} trailing={<Switch checked={messageSoundEnabled} onChange={setMessageSoundEnabled} aria-label={t("base.navRail.settingsCenter.row.normalMessageSound")} />} />
+      <SettingsRow title={t("base.navRail.settingsCenter.row.restoreDefaultSounds")} trailing={<button type="button" className="wk-settings-center__link" onClick={() => { setReplySoundEnabled(true); setMessageSoundEnabled(true); }}>{t("base.navRail.settingsCenter.action.restore")}</button>} />
+    </SettingsSection>
+  </SettingsPageFrame>;
 }
 function SettingsPageFrame({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) { return <div className="wk-settings-center__page"><header className="wk-settings-center__page-header"><h2>{title}</h2>{description && <p>{description}</p>}</header><section className="wk-settings-center__section-content">{children}</section></div>; }
 function ShortcutRow({ label, keys }: { label: string; keys: string[] }) { return <div className="wk-settings-center__shortcut-row"><span>{label}</span><span className="wk-settings-center__shortcut-keys">{keys.map((key) => <kbd key={key}>{key}</kbd>)}</span></div>; }
