@@ -1548,7 +1548,7 @@
   "navRail.settingsCenter.page.devices.description": "Only showing resources with confirmed addresses or status",
   "navRail.settingsCenter.resource.mobile": "Mobile",
   "navRail.settingsCenter.resource.androidDescription": "Latest Android version",
-  "navRail.settingsCenter.resource.downloadConfirmed": "Download link confirmed",
+  "navRail.settingsCenter.resource.downloadConfirmed": "Download link not provided",
   "navRail.settingsCenter.action.download": "Download from GitHub",
   "navRail.settingsCenter.resource.iosDescription": "iOS client",
   "navRail.settingsCenter.resource.appStorePending": "Awaiting App Store listing",

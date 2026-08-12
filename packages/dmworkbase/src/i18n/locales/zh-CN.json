@@ -1548,7 +1548,7 @@
   "navRail.settingsCenter.page.devices.description": "仅展示已确认地址或状态的资源",
   "navRail.settingsCenter.resource.mobile": "移动端",
   "navRail.settingsCenter.resource.androidDescription": "Android 最新版本",
-  "navRail.settingsCenter.resource.downloadConfirmed": "已确认下载地址",
+  "navRail.settingsCenter.resource.downloadConfirmed": "下载地址暂未提供",
   "navRail.settingsCenter.action.download": "从 GitHub 下载",
   "navRail.settingsCenter.resource.iosDescription": "iOS 客户端",
   "navRail.settingsCenter.resource.appStorePending": "等待 App Store 上架",
