@@ -17,6 +17,7 @@ describe("SettingsStatusTag", () => {
     expect(tag).toHaveTextContent(`${tone} state`);
     expect(tag).toHaveClass(`wk-settings-status-tag--${tone}`);
     expect(tag?.querySelector("button")).toBeNull();
+    expect(tag?.querySelector(".wk-settings-status-tag__dot")).toBeNull();
     act(() => ReactDOM.unmountComponentAtNode(container));
     container.remove();
   });

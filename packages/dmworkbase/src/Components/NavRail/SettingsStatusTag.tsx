@@ -12,7 +12,6 @@ export interface SettingsStatusTagProps {
 export default function SettingsStatusTag({ tone, label }: SettingsStatusTagProps) {
   return (
     <span className={`wk-settings-status-tag wk-settings-status-tag--${tone}`} role="status">
-      <span className="wk-settings-status-tag__dot" aria-hidden="true" />
       <span>{label}</span>
     </span>
   );
