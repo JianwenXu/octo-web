@@ -18,7 +18,6 @@ export interface NavRailVMProps {
     currentMenus?: Menus;
     settingSelected: boolean;
     hasNewVersion: boolean;
-    showNewVersion: boolean;
     showAppVersion: boolean;
     showAppUpdate: boolean;
     appUpdateProgress: number;
@@ -26,7 +25,6 @@ export interface NavRailVMProps {
     lastVersionInfo?: { appVersion: string; updateDesc: string };
     onMenuClick: (menus: Menus) => void;
     onToggleSetting: () => void;
-    onSetShowNewVersion: (v: boolean) => void;
     onSetShowAppVersion: (v: boolean) => void;
     onInstallUpdate: () => void;
     onNotifyListener: () => void;
@@ -58,7 +56,6 @@ export default class NavRail extends Component<NavRailProps> {
             currentMenus,
             settingSelected,
             hasNewVersion,
-            showNewVersion,
             showAppVersion,
             showAppUpdate,
             appUpdateProgress,
@@ -66,7 +63,6 @@ export default class NavRail extends Component<NavRailProps> {
             lastVersionInfo,
             onMenuClick,
             onToggleSetting,
-            onSetShowNewVersion,
             onSetShowAppVersion,
             onInstallUpdate,
             onNotifyListener,
@@ -140,17 +136,13 @@ export default class NavRail extends Component<NavRailProps> {
                 {/* 设置面板 + Modals（挂在 nav 外，避免 overflow 裁剪） */}
                 <NavSettingsPanel
                     settingSelected={settingSelected}
-                    triggerRef={this.settingsButtonRef}
-                    hasNewVersion={hasNewVersion}
                     canManageSpace={canManageSpace}
-                    showNewVersion={showNewVersion}
                     showAppVersion={showAppVersion}
                     showAppUpdate={showAppUpdate}
                     appUpdateProgress={appUpdateProgress}
                     showAppUpdateOperation={showAppUpdateOperation}
                     lastVersionInfo={lastVersionInfo}
                     onToggleSetting={onToggleSetting}
-                    onSetShowNewVersion={onSetShowNewVersion}
                     onSetShowAppVersion={onSetShowAppVersion}
                     onInstallUpdate={onInstallUpdate}
                     onNotifyListener={onNotifyListener}

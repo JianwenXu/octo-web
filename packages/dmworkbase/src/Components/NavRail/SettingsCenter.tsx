@@ -8,6 +8,13 @@ import { SettingsPage } from "./settingsPages";
 import WKApp from "../../App";
 import SecretsSettingsPanel from "../SecretsSettings/SecretsSettingsPanel";
 
+export interface OpenSecretsRequest {
+  create?: boolean;
+  name?: string;
+  value?: string;
+  sequence: number;
+}
+
 export type SettingsCenterCapability = "desktop" | "account";
 export interface SettingsCenterProps {
   visible: boolean;
@@ -22,6 +29,7 @@ export interface SettingsCenterProps {
   onVoice?: () => void;
   onAbout?: () => void;
   onOpenOnboarding?: () => void;
+  openSecretsRequest?: OpenSecretsRequest | null;
 }
 function SettingsIcon({ name }: { name: string }) {
   const paths: Record<string, React.ReactNode> = {
@@ -37,7 +45,7 @@ function SettingsIcon({ name }: { name: string }) {
   };
   return <svg viewBox="0 0 24 24" aria-hidden="true">{paths[name] ?? paths.general}</svg>;
 }
-export default function SettingsCenter({ visible, isDesktop = false, environment, hasAccountCenter = false, accountCenterUrl, onClose, onSpaceManagement, onLogout, onSecrets, onVoice, onAbout, onOpenOnboarding }: SettingsCenterProps) {
+export default function SettingsCenter({ visible, isDesktop = false, environment, hasAccountCenter = false, accountCenterUrl, onClose, onSpaceManagement, onLogout, onSecrets, onVoice, onAbout, onOpenOnboarding, openSecretsRequest }: SettingsCenterProps) {
   const runtimeEnvironment = environment ?? detectRuntimeEnvironment(isDesktop);
   const availableGroups = useMemo(
     () => getAvailableSettingsGroups({ environment: runtimeEnvironment, hasAccountCenter }),
@@ -45,6 +53,12 @@ export default function SettingsCenter({ visible, isDesktop = false, environment
   );
   const [selectedId, setSelectedId] = useState("general");
   const [secondaryPage, setSecondaryPage] = useState<"secrets" | null>(null);
+  React.useEffect(() => {
+    if (openSecretsRequest) {
+      setSelectedId("account");
+      setSecondaryPage("secrets");
+    }
+  }, [openSecretsRequest]);
   const selected = availableGroups.flatMap((group) => group.items).find((item) => item.id === selectedId) ?? availableGroups[0]?.items[0];
-  return <WKModal visible={visible} onCancel={onClose} width="min(1080px, calc(100vw - 48px))" className="wk-settings-center-modal" bodyStyle={{ padding: 0 }} options={{ maskClosable: true }}><div className="wk-settings-center" data-testid="settings-center"><aside className="wk-settings-center__sidebar" aria-label={t("base.navRail.settingsCenter.navigation")}><h1>{t("base.navRail.settingsCenter.title")}</h1><nav className="wk-settings-center__navigation">{availableGroups.map((group) => <section className="wk-settings-center__group" key={group.titleKey}><h2>{t(group.titleKey)}</h2><div className="wk-settings-center__nav-list">{group.items.map((item) => <button type="button" key={item.id} data-testid={`settings-center-nav-${item.id}`} className={`wk-settings-center__nav-item${item.id === selectedId ? " is-active" : ""}`} aria-current={item.id === selectedId ? "page" : undefined} onClick={() => { setSecondaryPage(null); setSelectedId(item.id); }}><SettingsIcon name={item.id} /><span>{t(item.labelKey)}</span></button>)}</div></section>)}</nav><div className="wk-settings-center__footer">{onSpaceManagement && <button type="button" data-testid="settings-center-space-management" onClick={onSpaceManagement}>⌘ {t("base.navRail.settingsPanel.spaceManagement")}</button>}{onLogout && <button type="button" className="is-danger" data-testid="settings-center-logout" onClick={onLogout}>↪ {t("base.navRail.settingsPanel.logout")}</button>}</div></aside><main className="wk-settings-center__content" data-testid="settings-center-content"><button type="button" className="wk-settings-center__close" aria-label={t("base.common.close")} onClick={onClose} />{secondaryPage === "secrets" ? <div className="wk-settings-center__secondary-page"><button type="button" className="wk-settings-center__back" data-testid="settings-center-secondary-back" onClick={() => setSecondaryPage(null)}>← {t("base.common.back")}</button><SecretsSettingsPanel embedded onClose={() => setSecondaryPage(null)} /></div> : <SettingsPage item={selected} environment={runtimeEnvironment} accountCenterUrl={accountCenterUrl} onSecrets={() => setSecondaryPage("secrets")} onVoice={onVoice} onAbout={onAbout} onOpenOnboarding={onOpenOnboarding} />}</main></div></WKModal>;
+  return <WKModal visible={visible} onCancel={onClose} width="min(1080px, calc(100vw - 48px))" className="wk-settings-center-modal" bodyStyle={{ padding: 0 }} options={{ maskClosable: true }}><div className="wk-settings-center" data-testid="settings-center"><aside className="wk-settings-center__sidebar" aria-label={t("base.navRail.settingsCenter.navigation")}><h1>{t("base.navRail.settingsCenter.title")}</h1><nav className="wk-settings-center__navigation">{availableGroups.map((group) => <section className="wk-settings-center__group" key={group.titleKey}><h2>{t(group.titleKey)}</h2><div className="wk-settings-center__nav-list">{group.items.map((item) => <button type="button" key={item.id} data-testid={`settings-center-nav-${item.id}`} className={`wk-settings-center__nav-item${item.id === selectedId ? " is-active" : ""}`} aria-current={item.id === selectedId ? "page" : undefined} onClick={() => { setSecondaryPage(null); setSelectedId(item.id); }}><SettingsIcon name={item.id} /><span>{t(item.labelKey)}</span></button>)}</div></section>)}</nav><div className="wk-settings-center__footer">{onSpaceManagement && <button type="button" data-testid="settings-center-space-management" onClick={onSpaceManagement}>⌘ {t("base.navRail.settingsPanel.spaceManagement")}</button>}{onLogout && <button type="button" className="is-danger" data-testid="settings-center-logout" onClick={onLogout}>↪ {t("base.navRail.settingsPanel.logout")}</button>}</div></aside><main className="wk-settings-center__content" data-testid="settings-center-content"><button type="button" className="wk-settings-center__close" aria-label={t("base.common.close")} onClick={onClose} />{secondaryPage === "secrets" ? <div className="wk-settings-center__secondary-page"><button type="button" className="wk-settings-center__back" data-testid="settings-center-secondary-back" onClick={() => setSecondaryPage(null)}>← {t("base.common.back")}</button><SecretsSettingsPanel key={openSecretsRequest?.sequence ?? "embedded"} embedded onClose={() => setSecondaryPage(null)} initialCreate={openSecretsRequest?.create} prefillName={openSecretsRequest?.name} prefillValue={openSecretsRequest?.value} /></div> : <SettingsPage item={selected} environment={runtimeEnvironment} accountCenterUrl={accountCenterUrl} onSecrets={() => setSecondaryPage("secrets")} onVoice={onVoice} onAbout={onAbout} onOpenOnboarding={onOpenOnboarding} />}</main></div></WKModal>;
 }

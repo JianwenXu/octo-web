@@ -722,45 +722,6 @@
 }
 
 
-/* ── 设置面板内版本更新提示 ── */
-.wk-navrail__settings-version-update {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--wk-sp-2, 8px);
-    padding: var(--wk-sp-2, 8px) var(--wk-sp-3, 12px);
-    border-bottom: 1px solid var(--wk-border-subtle);
-    color: var(--wk-text-primary);
-    font-size: var(--wk-text-size-sm, 13px);
-    cursor: default;
-}
-
-.wk-navrail__settings-version-refresh {
-    padding: 2px 10px;
-    border-radius: 4px;
-    border: none;
-    background: var(--wk-brand-primary);
-    color: #fff;
-    font-size: var(--wk-text-size-sm, 13px);
-    cursor: pointer;
-    flex-shrink: 0;
-}
-
-.wk-navrail__settings-version-refresh:hover {
-    opacity: 0.85;
-}
-
-/* ── Settings panel (flyout) ── */
-.wk-navrail__settings-list {
-    list-style: none;
-}
-
-.wk-navrail__settings-list .wk-navrail__flyout-item {
-    border-radius: 0;
-    padding: var(--wk-sp-2, 8px) var(--wk-sp-3, 12px);
-    font-size: var(--wk-text-size-sm, 13px);
-}
-
 /* ── User avatar ── */
 .wk-navrail__avatar {
     width: 30px;
