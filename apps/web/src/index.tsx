@@ -62,8 +62,6 @@ WKApp.apiClient.config.spaceIdCallback = () => {
 }
 WKApp.config.appVersion = import.meta.env.VITE_VERSION || pkgVersion
 WKApp.config.appName = "Octo"
-// SettingsCenter 通过 WKApp.config 读取 Desktop 能力，和入口处的运行时判断保持一致。
-;(WKApp.config as unknown as { isDesktop?: boolean }).isDesktop = isDesktopRuntime
 
 WKApp.loginInfo.load() // 加载登录信息
 i18n.registerNamespace("app", {

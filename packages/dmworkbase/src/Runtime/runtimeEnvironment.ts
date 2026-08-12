@@ -40,7 +40,9 @@ export function detectRuntimeEnvironment(isDesktopHint = false): RuntimeEnvironm
 
   const runtimeWindow = window as RuntimeWindow;
   const hasTauri = Boolean(runtimeWindow.__TAURI_IPC__);
-  const hasElectron = Boolean(runtimeWindow.__POWERED_ELECTRON__);
+  // Electron 的 preload 标记在部分开发刷新场景下可能未及时注入，User-Agent
+  // 仍然是宿主提供的稳定信号；两者都属于运行时环境检测，不向业务层泄漏判断细节。
+  const hasElectron = Boolean(runtimeWindow.__POWERED_ELECTRON__) || /Electron\//i.test(navigator.userAgent);
   const isFileProtocol = window.location.protocol === "file:";
   const target: AppTarget = hasTauri || hasElectron || isFileProtocol || isDesktopHint ? "desktop" : "web";
   const shell: DesktopShell | null = hasTauri ? "tauri" : hasElectron ? "electron" : target === "desktop" ? "unknown" : null;
