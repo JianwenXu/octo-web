@@ -1,6 +1,10 @@
 import { contextBridge, ipcRenderer } from "electron";
 import { subscribeDisposable } from "./notificationListeners";
-import { IPC_CONVERSATION_UNREAD_COUNT } from "../shared/ipc-channels";
+import {
+  IPC_CONVERSATION_UNREAD_COUNT,
+  IPC_KEEP_AWAKE_GET,
+  IPC_KEEP_AWAKE_SET,
+} from "../shared/ipc-channels";
 
 const ALLOWED_SEND_CHANNELS = [
   "check-update",
@@ -18,6 +22,8 @@ const ALLOWED_INVOKE_CHANNELS = [
   "close-all-native-notifications",
   "test-notification-icon",
   "is-window-focused",
+  IPC_KEEP_AWAKE_GET,
+  IPC_KEEP_AWAKE_SET,
 ];
 
 const ALLOWED_RECEIVE_CHANNELS = [

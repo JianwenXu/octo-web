@@ -8,7 +8,8 @@ export type RuntimeCapability =
   | "fileSystem"
   | "downloadDirectory"
   | "autoUpdate"
-  | "voiceInput";
+  | "voiceInput"
+  | "keepAwake";
 
 export interface RuntimeEnvironment {
   target: AppTarget;
@@ -22,6 +23,7 @@ interface RuntimeWindow extends Window {
   __TAURI_IPC__?: unknown;
   __TAURI_OS__?: string;
   electronNotification?: unknown;
+  ipc?: { invoke: (channel: string, ...args: unknown[]) => Promise<unknown> };
 }
 
 function detectOperatingSystem(platform: string): OperatingSystem {
@@ -56,6 +58,7 @@ export function detectRuntimeEnvironment(isDesktopHint = false): RuntimeEnvironm
     capabilities.add("fileSystem");
     capabilities.add("downloadDirectory");
     capabilities.add("autoUpdate");
+    if (shell === "electron" && runtimeWindow.ipc) capabilities.add("keepAwake");
   }
 
   return { target, shell, os, capabilities };

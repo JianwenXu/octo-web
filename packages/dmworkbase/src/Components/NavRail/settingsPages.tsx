@@ -7,7 +7,7 @@ import { updateUserLanguagePreference } from "../../Service/UserLanguageService"
 import { i18n, t } from "../../i18n";
 import { Locale } from "../../i18n/types";
 import type { SettingsItem } from "./settingsRegistry";
-import { createNotificationAdapter } from "../../Runtime/adapters";
+import { createKeepAwakeAdapter, createNotificationAdapter } from "../../Runtime/adapters";
 import SettingsStatusTag from "./SettingsStatusTag";
 import { MeInfo } from "../MeInfo";
 import octoLogo from "../../assets/settings-center/octo-logo.png";
@@ -83,7 +83,7 @@ export function SettingsPage({ item, environment, accountCenterUrl, onSecrets, o
   if (item?.id === "notifications") {
     return <NotificationsSettingsPage environment={environment} />;
   }
-  if (item?.id === "desktop-behavior") return <SettingsPageFrame title={t("base.navRail.settingsCenter.page.desktopBehavior.title")}><SettingsSection title={t("base.navRail.settingsCenter.section.display")}><SettingsRow title={t("base.navRail.settingsCenter.row.interfaceScale")} description={t("base.navRail.settingsCenter.row.interfaceScaleDescription")} trailing={<select className="wk-settings-center__demo-select" disabled aria-label={t("base.navRail.settingsCenter.row.interfaceScale")} defaultValue="100"><option value="80">80%</option><option value="90">90%</option><option value="100">100%</option><option value="110">110%</option><option value="125">125%</option></select>} /></SettingsSection><SettingsSection title={t("base.navRail.settingsCenter.section.system")}><SettingsRow title={t("base.navRail.settingsCenter.row.launchAtStartup")} description={t("base.navRail.settingsCenter.row.launchAtStartupDescription")} trailing={<Switch disabled checked={false} aria-label={t("base.navRail.settingsCenter.row.launchAtStartup")} />} /><SettingsRow title={t("base.navRail.settingsCenter.row.systemTray")} description={t("base.navRail.settingsCenter.row.systemTrayDescription")} trailing={<Switch disabled checked aria-label={t("base.navRail.settingsCenter.row.systemTray")} />} /><SettingsRow title={t("base.navRail.settingsCenter.row.keepAwake")} description={t("base.navRail.settingsCenter.row.keepAwakeDescription")} trailing={<Switch disabled checked={false} aria-label={t("base.navRail.settingsCenter.row.keepAwake")} />} /><SettingsRow title={t("base.navRail.settingsCenter.row.closeWindowBehavior")} description={t("base.navRail.settingsCenter.row.closeWindowBehaviorDescription")} trailing={<select className="wk-settings-center__demo-select" disabled aria-label={t("base.navRail.settingsCenter.row.closeWindowBehavior")} defaultValue="background"><option value="background">{t("base.navRail.settingsCenter.value.continueInBackground")}</option><option value="quit">{t("base.navRail.settingsCenter.value.quitOcto")}</option></select>} /></SettingsSection></SettingsPageFrame>;
+  if (item?.id === "desktop-behavior") return <DesktopBehaviorSettingsPage environment={environment} />;
   if (item?.id === "downloads") return <SettingsPageFrame title={t("base.navRail.settingsCenter.page.downloads.title")}><SettingsSection title={t("base.navRail.settingsCenter.section.downloads")}><SettingsRow title={t("base.navRail.settingsCenter.row.downloadDirectory")} description={t("base.navRail.settingsCenter.row.downloadDirectoryDescription")}><div className="wk-settings-center__download-location"><code>{t("base.navRail.settingsCenter.value.defaultDownloadPath")}</code><button type="button" className="wk-settings-center__manage-button" disabled>{t("base.navRail.settingsCenter.action.change")}</button></div></SettingsRow><SettingsRow title={t("base.navRail.settingsCenter.row.askBeforeSaving")} description={t("base.navRail.settingsCenter.row.askBeforeSavingDescription")} trailing={<Switch disabled checked={false} aria-label={t("base.navRail.settingsCenter.row.askBeforeSaving")} />} /></SettingsSection></SettingsPageFrame>;
   if (item?.id === "voice") return <SettingsPageFrame title={t("base.navRail.settingsCenter.page.voice.title")} description={t("base.navRail.settingsCenter.page.voice.description")}><SettingsRow title={t("base.navRail.settingsCenter.row.voice")} description={t("base.navRail.settingsCenter.row.voiceDescription")} trailing={<button type="button" className="wk-settings-center__link" onClick={onVoice}>{t("base.navRail.settingsCenter.action.open")}</button>} /></SettingsPageFrame>;
   if (item?.id === "shortcuts") return <SettingsPageFrame title={t("base.navRail.settingsCenter.page.shortcuts.title")}><div className="wk-settings-center__shortcut-catalog"><section className="wk-settings-center__shortcut-group"><h3>{t("base.navRail.settingsCenter.shortcut.chat")}</h3><ShortcutRow label={t("base.navRail.settingsCenter.shortcut.newChat")} keys={["Ctrl+N"]} /><ShortcutRow label={t("base.navRail.settingsCenter.shortcut.quickChat")} keys={["Ctrl+Alt+N"]} /><ShortcutRow label={t("base.navRail.settingsCenter.shortcut.archiveChat")} keys={["Ctrl+Shift+A"]} /></section><section className="wk-settings-center__shortcut-group"><h3>{t("base.navRail.settingsCenter.shortcut.navigation")}</h3><ShortcutRow label={t("base.navRail.settingsCenter.shortcut.search")} keys={["Ctrl+F"]} /><ShortcutRow label={t("base.navRail.settingsCenter.shortcut.back")} keys={["Alt+Left", "Mouse Back"]} /><ShortcutRow label={t("base.navRail.settingsCenter.shortcut.forward")} keys={["Alt+Right", "Mouse Forward"]} /></section><section className="wk-settings-center__shortcut-group"><h3>{t("base.navRail.settingsCenter.shortcut.voice")}</h3><ShortcutRow label={t("base.navRail.settingsCenter.shortcut.holdToTalk")} keys={["Ctrl+Shift+Space"]} /><ShortcutRow label={t("base.navRail.settingsCenter.shortcut.cancelVoice")} keys={["Esc"]} /></section></div></SettingsPageFrame>;
@@ -91,6 +91,52 @@ export function SettingsPage({ item, environment, accountCenterUrl, onSecrets, o
   if (item?.id === "about") return <AboutSettingsPage onAbout={onAbout} onOpenOnboarding={onOpenOnboarding} />;
   return <SettingsPageFrame title={t("base.navRail.settingsCenter.page.fallback.title")} description={t("base.navRail.settingsCenter.page.fallback.description")}><SettingsRow title={t("base.navRail.settingsCenter.row.placeholder")} description={t("base.navRail.settingsCenter.placeholder")} /></SettingsPageFrame>;
 }
+function DesktopBehaviorSettingsPage({ environment }: { environment: import("../../Runtime").RuntimeEnvironment }) {
+  const keepAwakeAdapter = React.useMemo(() => createKeepAwakeAdapter(environment), [environment]);
+  const [keepAwake, setKeepAwake] = useState(false);
+  const [keepAwakeLoading, setKeepAwakeLoading] = useState(Boolean(keepAwakeAdapter));
+  const [keepAwakeSaving, setKeepAwakeSaving] = useState(false);
+
+  React.useEffect(() => {
+    let active = true;
+    if (!keepAwakeAdapter) {
+      setKeepAwakeLoading(false);
+      return () => { active = false; };
+    }
+    void keepAwakeAdapter.getEnabled().then((enabled) => {
+      if (active) {
+        setKeepAwake(enabled);
+        setKeepAwakeLoading(false);
+      }
+    }).catch(() => {
+      if (active) setKeepAwakeLoading(false);
+    });
+    return () => { active = false; };
+  }, [keepAwakeAdapter]);
+
+  const updateKeepAwake = async (enabled: boolean) => {
+    if (!keepAwakeAdapter) return;
+    setKeepAwakeSaving(true);
+    try {
+      setKeepAwake(await keepAwakeAdapter.setEnabled(enabled));
+    } finally {
+      setKeepAwakeSaving(false);
+    }
+  };
+
+  return <SettingsPageFrame title={t("base.navRail.settingsCenter.page.desktopBehavior.title")}>
+    <SettingsSection title={t("base.navRail.settingsCenter.section.display")}>
+      <SettingsRow title={t("base.navRail.settingsCenter.row.interfaceScale")} description={t("base.navRail.settingsCenter.row.interfaceScaleDescription")} trailing={<select className="wk-settings-center__demo-select" disabled aria-label={t("base.navRail.settingsCenter.row.interfaceScale")} defaultValue="100"><option value="80">80%</option><option value="90">90%</option><option value="100">100%</option><option value="110">110%</option><option value="125">125%</option></select>} />
+    </SettingsSection>
+    <SettingsSection title={t("base.navRail.settingsCenter.section.system")}>
+      <SettingsRow title={t("base.navRail.settingsCenter.row.launchAtStartup")} description={t("base.navRail.settingsCenter.row.launchAtStartupDescription")} trailing={<Switch disabled checked={false} aria-label={t("base.navRail.settingsCenter.row.launchAtStartup")} />} />
+      <SettingsRow title={t("base.navRail.settingsCenter.row.systemTray")} description={t("base.navRail.settingsCenter.row.systemTrayDescription")} trailing={<Switch disabled checked aria-label={t("base.navRail.settingsCenter.row.systemTray")} />} />
+      <SettingsRow title={t("base.navRail.settingsCenter.row.keepAwake")} description={t("base.navRail.settingsCenter.row.keepAwakeDescription")} trailing={<Switch disabled={keepAwakeLoading || keepAwakeSaving} checked={keepAwake} onChange={(checked) => { void updateKeepAwake(checked); }} aria-label={t("base.navRail.settingsCenter.row.keepAwake")} />} />
+      <SettingsRow title={t("base.navRail.settingsCenter.row.closeWindowBehavior")} description={t("base.navRail.settingsCenter.row.closeWindowBehaviorDescription")} trailing={<select className="wk-settings-center__demo-select" disabled aria-label={t("base.navRail.settingsCenter.row.closeWindowBehavior")} defaultValue="background"><option value="background">{t("base.navRail.settingsCenter.value.continueInBackground")}</option><option value="quit">{t("base.navRail.settingsCenter.value.quitOcto")}</option></select>} />
+    </SettingsSection>
+  </SettingsPageFrame>;
+}
+
 function NotificationsSettingsPage({ environment }: { environment: import("../../Runtime").RuntimeEnvironment }) {
   const [notificationsEnabled, setNotificationsEnabled] = useState(() => !WKApp.shared.notificationIsClose);
   const [muteScope, setMuteScope] = useState<"sound" | "sound-and-popup">("sound");
