@@ -1580,5 +1580,8 @@
   "navRail.settingsCenter.row.placeholder": "设置项",
   "navRail.settingsCenter.value.unsupported": "当前环境不支持",
   "navRail.settingsCenter.value.granted": "已允许",
-  "navRail.settingsCenter.value.denied": "已拒绝"
+  "navRail.settingsCenter.value.denied": "已拒绝",
+  "navRail.settingsCenter.value.unauthorized": "未授权",
+  "navRail.settingsCenter.resource.available": "可用",
+  "navRail.settingsCenter.resource.comingSoon": "即将上线"
 }

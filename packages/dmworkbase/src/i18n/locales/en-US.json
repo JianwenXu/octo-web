@@ -1580,5 +1580,8 @@
   "navRail.settingsCenter.row.placeholder": "Setting",
   "navRail.settingsCenter.value.unsupported": "Not supported in this environment",
   "navRail.settingsCenter.value.granted": "Allowed",
-  "navRail.settingsCenter.value.denied": "Denied"
+  "navRail.settingsCenter.value.denied": "Denied",
+  "navRail.settingsCenter.value.unauthorized": "Not authorized",
+  "navRail.settingsCenter.resource.available": "Available",
+  "navRail.settingsCenter.resource.comingSoon": "Coming soon"
 }

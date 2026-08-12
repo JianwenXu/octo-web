@@ -82,7 +82,6 @@
 .wk-settings-center__resource-card--clients .wk-settings-center__resource-status { margin-top: 8px; }
 .wk-settings-center__resource-card--clients .wk-settings-center__resource-actions { margin-top: 16px; }
 .wk-settings-center__resource-card--resources { align-items: center; }
-.wk-settings-center__resource-card--resources .wk-settings-center__resource-status { display: none; }
 .wk-settings-center__resource-identity { display: flex; min-width: 0; flex: 1; align-items: center; gap: 16px; }
 .wk-settings-center__resource-icon { display: inline-flex; width: 32px; height: 32px; flex: 0 0 32px; align-items: center; justify-content: center; color: var(--wk-text-secondary); }
 .wk-settings-center__resource-icon svg { display: block; width: 24px; height: 24px; }

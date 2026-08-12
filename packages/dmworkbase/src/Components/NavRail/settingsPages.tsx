@@ -30,7 +30,7 @@ export const settingsResourceGroups: ResourceGroup[] = [
     titleKey: "base.navRail.settingsCenter.resource.mobile",
     category: "clients",
     resources: [
-      { id: "android", title: "Android", descriptionKey: "base.navRail.settingsCenter.resource.androidDescription", status: "available", statusKey: "base.navRail.settingsCenter.resource.downloadConfirmed", url: "https://github.com/Mininglamp-OSS/octo-android/releases/latest", actionKey: "base.navRail.settingsCenter.action.download" },
+      { id: "android", title: "Android", descriptionKey: "base.navRail.settingsCenter.resource.androidDescription", status: "available", statusKey: "base.navRail.settingsCenter.resource.available", url: "https://github.com/Mininglamp-OSS/octo-android/releases/latest", actionKey: "base.navRail.settingsCenter.action.download" },
       { id: "iphone", title: "iPhone", descriptionKey: "base.navRail.settingsCenter.resource.iosDescription", status: "coming-soon", statusKey: "base.navRail.settingsCenter.resource.appStorePending", actionKey: "base.navRail.settingsCenter.action.download" },
     ],
   },
@@ -38,23 +38,23 @@ export const settingsResourceGroups: ResourceGroup[] = [
     titleKey: "base.navRail.settingsCenter.resource.openSource",
     category: "resources",
     resources: [
-      { id: "octo-asr", title: "OctoASR", descriptionKey: "base.navRail.settingsCenter.resource.asrDescription", status: "available", statusKey: "base.navRail.settingsCenter.resource.projectConfirmed", url: "https://github.com/Mininglamp-AI/OctoASR", actionKey: "base.navRail.settingsCenter.action.viewProject" },
+      { id: "octo-asr", title: "OctoASR", descriptionKey: "base.navRail.settingsCenter.resource.asrDescription", status: "available", statusKey: "base.navRail.settingsCenter.resource.available", url: "https://github.com/Mininglamp-AI/OctoASR", actionKey: "base.navRail.settingsCenter.action.viewProject" },
     ],
   },
   {
     titleKey: "base.navRail.settingsCenter.resource.desktop",
     category: "clients",
     resources: [
-      { id: "windows", title: "Windows", descriptionKey: "base.navRail.settingsCenter.resource.windowsDescription", status: "coming-soon", statusKey: "base.navRail.settingsCenter.resource.downloadPending" },
-      { id: "macos", title: "macOS", descriptionKey: "base.navRail.settingsCenter.resource.macosDescription", status: "coming-soon", statusKey: "base.navRail.settingsCenter.resource.downloadPending" },
+      { id: "windows", title: "Windows", descriptionKey: "base.navRail.settingsCenter.resource.windowsDescription", status: "coming-soon", statusKey: "base.navRail.settingsCenter.resource.comingSoon" },
+      { id: "macos", title: "macOS", descriptionKey: "base.navRail.settingsCenter.resource.macosDescription", status: "coming-soon", statusKey: "base.navRail.settingsCenter.resource.comingSoon" },
     ],
   },
   {
     titleKey: "base.navRail.settingsCenter.resource.extensions",
     category: "resources",
     resources: [
-      { id: "chrome", title: "Octo Chrome Extension", descriptionKey: "base.navRail.settingsCenter.resource.chromeDescription", status: "coming-soon", statusKey: "base.navRail.settingsCenter.resource.downloadPending", actionKey: "base.navRail.settingsCenter.action.download" },
-      { id: "openclaw", title: "OpenClaw Plugin", descriptionKey: "base.navRail.settingsCenter.resource.openclawDescription", status: "coming-soon", statusKey: "base.navRail.settingsCenter.resource.downloadPending", actionKey: "base.navRail.settingsCenter.action.download" },
+      { id: "chrome", title: "Octo Chrome Extension", descriptionKey: "base.navRail.settingsCenter.resource.chromeDescription", status: "coming-soon", statusKey: "base.navRail.settingsCenter.resource.comingSoon", actionKey: "base.navRail.settingsCenter.action.download" },
+      { id: "openclaw", title: "OpenClaw Plugin", descriptionKey: "base.navRail.settingsCenter.resource.openclawDescription", status: "coming-soon", statusKey: "base.navRail.settingsCenter.resource.comingSoon", actionKey: "base.navRail.settingsCenter.action.download" },
     ],
   },
 ];
@@ -79,7 +79,7 @@ function NotificationsSettingsPage({ environment }: { environment: import("../..
   const [permission, setPermission] = useState(() => createNotificationAdapter(environment).getPermission());
   const notificationAdapter = createNotificationAdapter(environment);
   const isDesktop = environment.target === "desktop";
-  const permissionLabel = permission === "unsupported" ? t("base.navRail.settingsCenter.value.unsupported") : permission === "denied" ? t("base.navRail.settingsCenter.value.denied") : permission === "granted" ? t("base.navRail.settingsCenter.value.granted") : t("base.navRail.settingsCenter.value.unset");
+  const permissionLabel = permission === "unsupported" ? t("base.navRail.settingsCenter.value.unsupported") : permission === "denied" ? t("base.navRail.settingsCenter.value.denied") : permission === "granted" ? t("base.navRail.settingsCenter.value.granted") : t("base.navRail.settingsCenter.value.unauthorized");
   const permissionTone: "success" | "attention" | "danger" | "neutral" = permission === "granted" ? "success" : permission === "denied" ? "danger" : permission === "default" ? "attention" : "neutral";
   const requestPermission = async () => setPermission(await notificationAdapter.requestPermission());
   return <SettingsPageFrame title={t("base.navRail.settingsCenter.page.notifications.title")} description={t("base.navRail.settingsCenter.page.notifications.description")}>
@@ -102,4 +102,4 @@ function ResourceBrandIcon({ id }: { id: string }) {
   if (id === "openclaw") return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4 7.5v9L12 21l8-4.5v-9L12 3Z" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" /><path d="m8 10 4 2 4-2M8 14l4 2 4-2M12 12v4" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" /></svg>;
   return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="1.7" /><path d="M9 3.5c2.3 2.3 3.7 5.2 3.7 8.5s-1.4 6.2-3.7 8.5M15 3.5c-2.3 2.3-3.7 5.2-3.7 8.5s1.4 6.2 3.7 8.5M3.5 9h17M3.5 15h17" fill="none" stroke="currentColor" strokeWidth="1.2" /></svg>;
 }
-function ResourceCard({ id, title, description, status, statusLabel, category, action }: ResourceDefinition & { description: string; statusLabel: string; category: ResourceGroup["category"]; action?: React.ReactNode }) { return <article className={`wk-settings-center__resource-card wk-settings-center__resource-card--${category}`} data-resource-status={status}><div className="wk-settings-center__resource-identity"><span className="wk-settings-center__resource-icon" aria-hidden="true"><ResourceBrandIcon id={id} /></span><div className="wk-settings-center__resource-body"><h4>{title}</h4><p>{category === "clients" ? statusLabel : description}</p>{category === "resources" && id === "openclaw" && <span className="wk-settings-center__resource-meta">来源：ClawHub · GitHub</span>}</div></div><span className="wk-settings-center__resource-status">{statusLabel}</span>{action && <div className="wk-settings-center__resource-actions">{action}</div>}</article>; }
+function ResourceCard({ id, title, description, status, statusLabel, category, action }: ResourceDefinition & { description: string; statusLabel: string; category: ResourceGroup["category"]; action?: React.ReactNode }) { const tone = status === "available" ? "success" : status === "unavailable" ? "danger" : "neutral"; return <article className={`wk-settings-center__resource-card wk-settings-center__resource-card--${category}`} data-resource-status={status}><div className="wk-settings-center__resource-identity"><span className="wk-settings-center__resource-icon" aria-hidden="true"><ResourceBrandIcon id={id} /></span><div className="wk-settings-center__resource-body"><h4>{title}</h4><p>{description}</p>{category === "resources" && id === "openclaw" && <span className="wk-settings-center__resource-meta">来源：ClawHub · GitHub</span>}</div></div><SettingsStatusTag tone={tone} label={statusLabel} />{action && <div className="wk-settings-center__resource-actions">{action}</div>}</article>; }
