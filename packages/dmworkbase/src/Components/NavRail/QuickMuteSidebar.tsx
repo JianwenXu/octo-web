@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { t } from "../../i18n";
 import NavFlyout from "./NavFlyout";
 import { type QuickMuteDuration, type QuickMuteService, type QuickMuteState } from "./QuickMuteSettings";
@@ -21,23 +21,32 @@ export default function QuickMuteSidebar({ service = quickMuteStore }: { service
   const [state, setState] = useState<QuickMuteState>({ active: false, scope: "sound" });
   const [customTime, setCustomTime] = useState(defaultCustomTime);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<"load" | "save" | null>(null);
   const [customOpen, setCustomOpen] = useState(false);
+
+  const loadState = useCallback(async () => {
+    try {
+      setState(await service.getState());
+      setError(null);
+    } catch {
+      setError("load");
+    }
+  }, [service]);
 
   useEffect(() => {
     let mounted = true;
-    void service.getState().then((next) => { if (mounted) setState(next); }).catch(() => setError(true));
+    void service.getState().then((next) => { if (mounted) { setState(next); setError(null); } }).catch(() => { if (mounted) setError("load"); });
     const unsubscribe = service.subscribe?.((next) => { if (mounted) setState(next); });
     return () => { mounted = false; unsubscribe?.(); };
   }, [service]);
 
   const apply = async (duration: QuickMuteDuration) => {
     const endAt = duration === "custom" ? new Date(customTime).getTime() : undefined;
-    if (duration === "custom" && (!Number.isFinite(endAt) || endAt <= Date.now())) { setError(true); return; }
-    setBusy(true); setError(false);
-    try { setState(await service.setMute({ duration, endAt, scope: state.scope })); setOpen(false); setCustomOpen(false); } catch { setError(true); } finally { setBusy(false); }
+    if (duration === "custom" && (!Number.isFinite(endAt) || endAt <= Date.now())) { setError("save"); return; }
+    setBusy(true); setError(null);
+    try { setState(await service.setMute({ duration, endAt, scope: state.scope })); setOpen(false); setCustomOpen(false); } catch { setError("save"); } finally { setBusy(false); }
   };
-  const resume = async () => { setBusy(true); setError(false); try { setState(await service.resume()); setOpen(false); } catch { setError(true); } finally { setBusy(false); } };
+  const resume = async () => { setBusy(true); setError(null); try { setState(await service.resume()); setOpen(false); } catch { setError("save"); } finally { setBusy(false); } };
 
   return <div className="wk-navrail__quick-mute-wrap">
     <button ref={triggerRef} type="button" className="wk-navrail__item wk-navrail__quick-mute-trigger" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((visible) => !visible)} title={state.active ? t("base.navRail.settingsCenter.value.muted") : t("base.navRail.settingsCenter.value.remindersOn")}>
@@ -51,7 +60,7 @@ export default function QuickMuteSidebar({ service = quickMuteStore }: { service
       <button type="button" role="menuitem" disabled={busy} className="wk-navrail__quick-mute-option" onClick={() => setCustomOpen((visible) => !visible)}>{t("base.navRail.quickMute.chooseDateTime")}</button>
       {customOpen && <div className="wk-navrail__quick-mute-custom"><input type="datetime-local" value={customTime} min={new Date().toISOString().slice(0, 16)} onChange={(event) => setCustomTime(event.target.value)} aria-label={t("base.navRail.settingsCenter.row.customMuteTime")} /><button type="button" disabled={busy} onClick={() => void apply("custom")}>{t("base.navRail.settingsCenter.action.muteUntil")}</button></div>}
       {state.active && <button type="button" role="menuitem" disabled={busy} className="wk-navrail__quick-mute-resume" onClick={() => void resume()}>{t("base.navRail.settingsCenter.action.resume")}</button>}
-      {error && <div className="wk-navrail__quick-mute-error" role="alert">{t("base.navRail.settingsCenter.value.saveFailed")} <button type="button" onClick={() => void apply("custom")}>{t("base.navRail.settingsCenter.action.retry")}</button></div>}
+      {error && <div className="wk-navrail__quick-mute-error" role="alert">{t(error === "load" ? "base.navRail.settingsCenter.value.loadFailed" : "base.navRail.settingsCenter.value.saveFailed")} <button type="button" onClick={() => error === "load" ? void loadState() : void apply("custom")}>{t("base.navRail.settingsCenter.action.retry")}</button></div>}
     </NavFlyout>
   </div>;
 }

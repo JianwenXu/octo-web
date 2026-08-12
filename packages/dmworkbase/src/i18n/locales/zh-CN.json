@@ -1520,6 +1520,7 @@
   "navRail.settingsCenter.action.muteUntil": "静音到此时间",
   "navRail.settingsCenter.value.submitting": "正在保存…",
   "navRail.settingsCenter.value.saveFailed": "保存失败，原状态未改变。",
+  "navRail.settingsCenter.value.loadFailed": "加载失败，原状态未改变。",
   "navRail.settingsCenter.action.retry": "重试",
   "navRail.quickMute.menuTitle": "暂停通知",
   "navRail.quickMute.menuHint": "将同步到此账号的所有设备",

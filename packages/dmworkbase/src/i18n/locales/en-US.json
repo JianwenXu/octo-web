@@ -1520,6 +1520,7 @@
   "navRail.settingsCenter.action.muteUntil": "Mute until this time",
   "navRail.settingsCenter.value.submitting": "Saving…",
   "navRail.settingsCenter.value.saveFailed": "Save failed; the previous state was kept.",
+  "navRail.settingsCenter.value.loadFailed": "Load failed; the previous state was kept.",
   "navRail.settingsCenter.action.retry": "Retry",
   "navRail.quickMute.menuTitle": "Pause notifications",
   "navRail.quickMute.menuHint": "Syncs across all devices signed in to this account",
