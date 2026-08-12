@@ -10,6 +10,8 @@ import type { SettingsItem } from "./settingsRegistry";
 import { createNotificationAdapter } from "../../Runtime/adapters";
 import SettingsStatusTag from "./SettingsStatusTag";
 import { MeInfo } from "../MeInfo";
+import octoLogo from "../../assets/settings-center/octo-logo.png";
+import mininglampLogo from "../../assets/settings-center/mininglamp-logo.png";
 
 export function SettingsRow({ title, description, trailing, children }: { title: string; description?: string; trailing?: React.ReactNode; children?: React.ReactNode }) { return <div className="wk-settings-center__row"><div className="wk-settings-center__row-main"><div className="wk-settings-center__row-title">{title}</div>{description && <div className="wk-settings-center__row-description">{description}</div>}</div>{children ?? trailing}</div>; }
 
@@ -113,12 +115,12 @@ function AboutSettingsPage({ onAbout, onOpenOnboarding }: { onAbout?: () => void
   const externalLink = (label: string, href: string) => <a className="wk-settings-center__external-link" href={href} target="_blank" rel="noreferrer" aria-label={label}>↗</a>;
   return <SettingsPageFrame title={t("base.navRail.settingsCenter.page.about.title")}>
     <div className="wk-settings-center__about-identity">
-      <img className="wk-settings-center__about-logo" src="/logo.png" alt="Octo" />
+      <img className="wk-settings-center__about-logo" src={octoLogo} alt="Octo" />
       <div className="wk-settings-center__about-copy"><strong>Octo Web</strong><span>{t("base.navRail.settingsCenter.page.about.versionPrefix")}：{WKApp.config.appVersion}</span></div>
       <button type="button" className="wk-settings-center__about-update" onClick={onAbout}>{t("base.navRail.settingsCenter.action.checkUpdate")}</button>
     </div>
     <SettingsSection title={t("base.navRail.settingsCenter.section.help")}>
-      <SettingsRow title={t("base.navRail.settingsCenter.row.guide")} trailing={onOpenOnboarding ? <button type="button" className="wk-settings-center__about-icon-button" onClick={onOpenOnboarding} aria-label={t("base.navRail.settingsCenter.row.guide")}>›</button> : undefined} />
+      <SettingsRow title={t("base.navRail.settingsCenter.row.guide")} trailing={onOpenOnboarding ? <button type="button" className="wk-settings-center__about-icon-button" onClick={onOpenOnboarding} aria-label={t("base.navRail.settingsCenter.row.guide")}><ChevronIcon /></button> : undefined} />
       <SettingsRow title={t("base.navRail.settingsCenter.row.feedback")} trailing={externalLink(t("base.navRail.settingsCenter.row.feedback"), "https://github.com/Mininglamp-OSS/octo-web/issues/new")} />
     </SettingsSection>
     <SettingsSection title={t("base.navRail.settingsCenter.section.productInfo")}>
@@ -127,9 +129,10 @@ function AboutSettingsPage({ onAbout, onOpenOnboarding }: { onAbout?: () => void
       <SettingsRow title={t("base.navRail.settingsCenter.row.openSource")} trailing={externalLink(t("base.navRail.settingsCenter.row.openSource"), "https://github.com/Mininglamp-OSS")} />
       <SettingsRow title={t("base.navRail.settingsCenter.row.license")} trailing={externalLink(t("base.navRail.settingsCenter.row.license"), "https://github.com/Mininglamp-OSS/octo-web/blob/main/LICENSE")} />
     </SettingsSection>
-    <footer className="wk-settings-center__about-footer"><div className="wk-settings-center__mininglamp-logo">明略科技</div><p>{t("base.navRail.settingsCenter.about.developedBy")}</p><div className="wk-settings-center__about-links"><a href="https://www.mininglamp.com/about/" target="_blank" rel="noreferrer">{t("base.navRail.settingsCenter.about.learnMininglamp")} ↗</a><a href="https://www.mininglamp.com/" target="_blank" rel="noreferrer">{t("base.navRail.settingsCenter.about.enterpriseSupport")} ↗</a></div></footer>
+    <footer className="wk-settings-center__about-footer"><img className="wk-settings-center__mininglamp-logo" src={mininglampLogo} alt="明略科技" /><p>{t("base.navRail.settingsCenter.about.developedBy")}</p><div className="wk-settings-center__about-links"><a href="https://www.mininglamp.com/about/" target="_blank" rel="noreferrer">{t("base.navRail.settingsCenter.about.learnMininglamp")} ↗</a><a href="https://www.mininglamp.com/" target="_blank" rel="noreferrer">{t("base.navRail.settingsCenter.about.enterpriseSupport")} ↗</a></div></footer>
   </SettingsPageFrame>;
 }
+function ChevronIcon() { return <svg className="wk-settings-center__chevron-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7" /></svg>; }
 function ShortcutRow({ label, keys }: { label: string; keys: string[] }) { return <div className="wk-settings-center__shortcut-row"><span>{label}</span><span className="wk-settings-center__shortcut-keys">{keys.map((key) => <kbd key={key}>{key}</kbd>)}</span></div>; }
 function ResourceSection({ title, category, children }: { title: string; category: ResourceGroup["category"]; children: React.ReactNode }) { return <section className={`wk-settings-center__resource-section wk-settings-center__resource-section--${category}`}><h3>{title}</h3><div className="wk-settings-center__resource-grid">{children}</div></section>; }
 function ResourceBrandIcon({ id }: { id: string }) {

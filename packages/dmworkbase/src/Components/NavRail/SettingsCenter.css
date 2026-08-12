@@ -42,7 +42,8 @@
 .wk-settings-center__about-icon-button { display: inline-flex; width: 28px; height: 28px; align-items: center; justify-content: center; border: 0; background: transparent; color: var(--wk-text-tertiary); cursor: pointer; font-size: 24px; line-height: 1; }
 .wk-settings-center__about-icon-button:hover { color: var(--wk-text-primary); }
 .wk-settings-center__about-footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--wk-border-subtle); }
-.wk-settings-center__mininglamp-logo { color: var(--wk-text-primary); font-size: 20px; font-weight: 700; letter-spacing: .04em; }
+.wk-settings-center__mininglamp-logo { display: block; width: 144px; height: auto; }
+.wk-settings-center__chevron-icon { display: block; width: 20px; height: 20px; fill: none; stroke: var(--wk-text-tertiary); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .wk-settings-center__about-footer p { margin: 12px 0 0; color: var(--wk-text-secondary); font-size: 12px; }
 .wk-settings-center__about-links { display: flex; gap: 16px; margin-top: 8px; font-size: 12px; }
 .wk-settings-center__about-links a { color: var(--wk-text-secondary); text-decoration: none; }
@@ -56,7 +57,7 @@
 .wk-meinfo--settings-embedded .wk-meinfo-section-rows { border: 0; border-radius: 0; background: transparent; }
 .wk-settings-center__row { display: flex; width: calc(100% + 24px); min-height: 68px; align-items: center; justify-content: space-between; gap: 16px; margin-inline: -12px; padding: 12px; border-bottom: 1px solid var(--wk-border-subtle); }
 .wk-settings-center__row-main { display: grid; min-width: 0; gap: 4px; }
-.wk-settings-center__row-title { font-size: 14px; font-weight: 500; }
+.wk-settings-center__row-title { font-size: 14px; font-weight: 400; }
 .wk-settings-center__row-description { color: var(--wk-text-tertiary); font-size: 13px; }
 .wk-settings-center__row-actions { display: inline-flex; align-items: center; gap: 12px; }
 .wk-settings-center__row-value { display: inline-flex; align-items: center; gap: 8px; color: var(--wk-text-secondary); font-size: 13px; }
