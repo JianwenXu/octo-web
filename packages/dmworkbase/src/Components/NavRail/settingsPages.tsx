@@ -126,4 +126,19 @@ function ResourceBrandIcon({ id }: { id: string }) {
   if (id === "openclaw") return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4 7.5v9L12 21l8-4.5v-9L12 3Z" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" /><path d="m8 10 4 2 4-2M8 14l4 2 4-2M12 12v4" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" /></svg>;
   return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="1.7" /><path d="M9 3.5c2.3 2.3 3.7 5.2 3.7 8.5s-1.4 6.2-3.7 8.5M15 3.5c-2.3 2.3-3.7 5.2-3.7 8.5s1.4 6.2 3.7 8.5M3.5 9h17M3.5 15h17" fill="none" stroke="currentColor" strokeWidth="1.2" /></svg>;
 }
-function ResourceCard({ id, title, description, status, statusLabel, category, action }: ResourceDefinition & { description: string; statusLabel: string; category: ResourceGroup["category"]; action?: React.ReactNode }) { const tone = status === "available" ? "success" : status === "unavailable" ? "danger" : "neutral"; const qrUrl = useMobileDownloadUrl(id); const isMobile = category === "clients" && (id === "android" || id === "iphone"); return <article className={`wk-settings-center__resource-card wk-settings-center__resource-card--${category}`} data-resource-status={status}><div className="wk-settings-center__resource-identity"><span className="wk-settings-center__resource-icon" aria-hidden="true"><ResourceBrandIcon id={id} /></span><div className="wk-settings-center__resource-body"><h4>{title}</h4>{isMobile ? <div className="wk-settings-center__resource-qr" aria-label={`${title} QR code`}>{qrUrl ? <QRCodeSVG value={qrUrl} size={104} /> : <span className="wk-settings-center__resource-qr-placeholder" aria-hidden="true" />}</div> : <p>{description}</p>}{category === "resources" && id === "openclaw" && <span className="wk-settings-center__resource-meta">来源：ClawHub · GitHub</span>}</div></div>{!isMobile && <SettingsStatusTag tone={tone} label={statusLabel} />}{action && <div className="wk-settings-center__resource-actions">{action}</div>}</article>; }
+function ResourceCard({ id, title, description, status, statusLabel, category, action }: ResourceDefinition & { description: string; statusLabel: string; category: ResourceGroup["category"]; action?: React.ReactNode }) {
+  const tone = status === "available" ? "success" : status === "unavailable" ? "danger" : "neutral";
+  const qrUrl = useMobileDownloadUrl(id);
+  const isMobile = category === "clients" && (id === "android" || id === "iphone");
+  if (category === "clients") {
+    return <article className="wk-settings-center__resource-card wk-settings-center__resource-card--clients" data-resource-status={status}>
+      <div className="wk-settings-center__client-head"><span className="wk-settings-center__resource-icon" aria-hidden="true"><ResourceBrandIcon id={id} /></span><h4>{title}</h4></div>
+      {isMobile ? <div className="wk-settings-center__resource-qr" aria-label={`${title} QR code`}>{qrUrl ? <QRCodeSVG value={qrUrl} size={104} /> : <span className="wk-settings-center__resource-qr-placeholder" aria-hidden="true" />}</div> : <div className="wk-settings-center__client-status">{description}</div>}
+      {action && <div className="wk-settings-center__resource-actions">{action}</div>}
+    </article>;
+  }
+  return <article className="wk-settings-center__resource-card wk-settings-center__resource-card--resources" data-resource-status={status}>
+    <div className="wk-settings-center__resource-identity"><span className="wk-settings-center__resource-icon" aria-hidden="true"><ResourceBrandIcon id={id} /></span><div className="wk-settings-center__resource-body"><h4>{title}</h4><p>{description}</p>{id === "openclaw" && <span className="wk-settings-center__resource-meta">来源：ClawHub · GitHub</span>}</div></div>
+    <SettingsStatusTag tone={tone} label={statusLabel} />{action && <div className="wk-settings-center__resource-actions">{action}</div>}
+  </article>;
+}
