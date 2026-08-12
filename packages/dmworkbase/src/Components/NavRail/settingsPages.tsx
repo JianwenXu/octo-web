@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { Switch } from "@douyinfe/semi-ui";
+import { QRCodeSVG } from "qrcode.react";
 import WKApp, { ThemeMode } from "../../App";
+import { apiFetchJson } from "../../Service/apiFetch";
 import { updateUserLanguagePreference } from "../../Service/UserLanguageService";
 import { i18n, t } from "../../i18n";
 import { Locale } from "../../i18n/types";
@@ -59,6 +61,27 @@ export const settingsResourceGroups: ResourceGroup[] = [
   },
 ];
 
+const mobileUpdaterPaths: Record<string, string> = {
+  android: "common/updater/android/1.0",
+  iphone: "common/updater/ios/1.0.0",
+};
+
+function useMobileDownloadUrl(resourceId: string) {
+  const [url, setUrl] = useState<string>();
+  const path = mobileUpdaterPaths[resourceId];
+
+  React.useEffect(() => {
+    if (!path) return;
+    let active = true;
+    void apiFetchJson<{ url?: unknown }>(`${WKApp.apiClient.config.apiURL.replace(/\/?$/, "/")}${path}`).then((result) => {
+      if (active && typeof result?.url === "string" && result.url.trim()) setUrl(result.url.trim());
+    }).catch(() => undefined);
+    return () => { active = false; };
+  }, [path]);
+
+  return url;
+}
+
 export function SettingsPage({ item, environment, accountCenterUrl, onSecrets, onVoice, onAbout, onOpenOnboarding }: { item?: SettingsItem; environment: import("../../Runtime").RuntimeEnvironment; accountCenterUrl?: string; onSecrets?: () => void; onVoice?: () => void; onAbout?: () => void; onOpenOnboarding?: () => void }) {
   if (item?.id === "general") return <SettingsPageFrame title={t("base.navRail.settingsCenter.page.general.title")}><SettingsSection title={t("base.navRail.settingsCenter.section.displayLanguage")}><SettingsRow title={t("base.navRail.settingsCenter.row.language")} description={t("base.navRail.settingsCenter.row.languageDescription")} trailing={<select className="wk-settings-center__demo-select" aria-label={t("base.navRail.settingsCenter.row.language")} value={i18n.getLocale()} onChange={(event) => { const locale = event.target.value as Locale; i18n.setLocale(locale); if (WKApp.shared.isLogined()) void updateUserLanguagePreference(locale); }}><option value="zh-CN">简体中文</option><option value="en-US">English</option></select>} /><SettingsRow title={t("base.navRail.settingsCenter.row.darkMode")} description={t("base.navRail.settingsCenter.row.darkModeDescription")} trailing={<SettingsStatusTag tone="neutral" label={t("base.navRail.settingsCenter.value.comingSoon")} />} /></SettingsSection></SettingsPageFrame>;
   if (item?.id === "account") return <SettingsPageFrame title={t("base.navRail.settingsCenter.page.account.title")}><>{accountCenterUrl && <SettingsSection title={t("base.navRail.settingsCenter.section.accountSecurity")}><SettingsRow title={t("base.navRail.settingsCenter.row.accountCenter")} description={t("base.navRail.settingsCenter.row.accountCenterDescription")} trailing={<a className="wk-settings-center__external-link" href={accountCenterUrl} target="_blank" rel="noreferrer" aria-label={t("base.navRail.settingsCenter.row.accountCenter")}>↗</a>} /></SettingsSection>}<SettingsSection title={t("base.navRail.settingsCenter.section.profile")}><MeInfo onClose={() => undefined} embedded /></SettingsSection><SettingsSection title={t("base.navRail.settingsCenter.section.verification")}><SettingsRow title={t("base.navRail.settingsCenter.row.realname")} trailing={<span className="wk-settings-center__row-value">{t("base.navRail.settingsCenter.value.unverified")} <span aria-hidden="true">›</span></span>} /></SettingsSection><SettingsSection title={t("base.navRail.settingsCenter.section.secrets")}><SettingsRow title={t("base.navRail.settingsCenter.row.manageSecrets")} description={t("base.navRail.settingsCenter.row.manageSecretsDescription")} trailing={<button type="button" className="wk-settings-center__manage-button" onClick={onSecrets}>{t("base.navRail.settingsCenter.action.manage")}</button>} /><SettingsRow title={t("base.navRail.settingsCenter.row.referenceSecrets")} description={t("base.navRail.settingsCenter.row.referenceSecretsDescription")} /></SettingsSection></></SettingsPageFrame>;
@@ -98,8 +121,9 @@ function ResourceSection({ title, category, children }: { title: string; categor
 function ResourceBrandIcon({ id }: { id: string }) {
   if (id === "windows") return <svg viewBox="0 0 21 21" aria-hidden="true"><rect x="1" y="1" width="9" height="9" fill="currentColor" /><rect x="1" y="11" width="9" height="9" fill="currentColor" /><rect x="11" y="1" width="9" height="9" fill="currentColor" /><rect x="11" y="11" width="9" height="9" fill="currentColor" /></svg>;
   if (id === "android") return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 9h10v8a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V9Zm-2 1v6m14-6v6M9 6l-1.5-2M15 6l1.5-2M9.5 6h5a3.5 3.5 0 0 1 3.5 3.5h-12A3.5 3.5 0 0 1 9.5 6Z" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /><circle cx="10" cy="9" r=".6" fill="currentColor" /><circle cx="14" cy="9" r=".6" fill="currentColor" /></svg>;
+  if (id === "iphone") return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.6 12.7c0-2 1.6-3 1.7-3.1-.9-1.3-2.3-1.5-2.8-1.5-1.2-.1-2.3.7-2.9.7-.6 0-1.5-.7-2.5-.7-1.3 0-2.5.8-3.2 1.9-1.4 2.4-.4 5.9 1 7.8.7.9 1.5 1.9 2.6 1.9 1 0 1.4-.6 2.6-.6 1.2 0 1.6.6 2.6.6 1.1 0 1.8-.9 2.5-1.8.8-1.1 1.1-2.2 1.1-2.2-.1 0-2.7-1-2.7-3Z" fill="currentColor" /><path d="M14 6.9c.5-.6.8-1.4.7-2.2-.7 0-1.6.5-2.1 1.1-.5.5-.8 1.3-.7 2.1.8.1 1.6-.4 2.1-1Z" fill="currentColor" /></svg>;
   if (id === "chrome") return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="2" /><circle cx="12" cy="12" r="3.5" fill="none" stroke="currentColor" strokeWidth="2" /><path d="M3.5 7h9m-1 12 4.5-7.5M20.5 7l-4.5 1" fill="none" stroke="currentColor" strokeWidth="2" /></svg>;
   if (id === "openclaw") return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4 7.5v9L12 21l8-4.5v-9L12 3Z" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" /><path d="m8 10 4 2 4-2M8 14l4 2 4-2M12 12v4" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" /></svg>;
   return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="1.7" /><path d="M9 3.5c2.3 2.3 3.7 5.2 3.7 8.5s-1.4 6.2-3.7 8.5M15 3.5c-2.3 2.3-3.7 5.2-3.7 8.5s1.4 6.2 3.7 8.5M3.5 9h17M3.5 15h17" fill="none" stroke="currentColor" strokeWidth="1.2" /></svg>;
 }
-function ResourceCard({ id, title, description, status, statusLabel, category, action }: ResourceDefinition & { description: string; statusLabel: string; category: ResourceGroup["category"]; action?: React.ReactNode }) { const tone = status === "available" ? "success" : status === "unavailable" ? "danger" : "neutral"; return <article className={`wk-settings-center__resource-card wk-settings-center__resource-card--${category}`} data-resource-status={status}><div className="wk-settings-center__resource-identity"><span className="wk-settings-center__resource-icon" aria-hidden="true"><ResourceBrandIcon id={id} /></span><div className="wk-settings-center__resource-body"><h4>{title}</h4><p>{description}</p>{category === "resources" && id === "openclaw" && <span className="wk-settings-center__resource-meta">来源：ClawHub · GitHub</span>}</div></div><SettingsStatusTag tone={tone} label={statusLabel} />{action && <div className="wk-settings-center__resource-actions">{action}</div>}</article>; }
+function ResourceCard({ id, title, description, status, statusLabel, category, action }: ResourceDefinition & { description: string; statusLabel: string; category: ResourceGroup["category"]; action?: React.ReactNode }) { const tone = status === "available" ? "success" : status === "unavailable" ? "danger" : "neutral"; const qrUrl = useMobileDownloadUrl(id); const isMobile = category === "clients" && (id === "android" || id === "iphone"); return <article className={`wk-settings-center__resource-card wk-settings-center__resource-card--${category}`} data-resource-status={status}><div className="wk-settings-center__resource-identity"><span className="wk-settings-center__resource-icon" aria-hidden="true"><ResourceBrandIcon id={id} /></span><div className="wk-settings-center__resource-body"><h4>{title}</h4>{isMobile ? <div className="wk-settings-center__resource-qr" aria-label={`${title} QR code`}>{qrUrl ? <QRCodeSVG value={qrUrl} size={104} /> : <span className="wk-settings-center__resource-qr-placeholder" aria-hidden="true" />}</div> : <p>{description}</p>}{category === "resources" && id === "openclaw" && <span className="wk-settings-center__resource-meta">来源：ClawHub · GitHub</span>}</div></div>{!isMobile && <SettingsStatusTag tone={tone} label={statusLabel} />}{action && <div className="wk-settings-center__resource-actions">{action}</div>}</article>; }
