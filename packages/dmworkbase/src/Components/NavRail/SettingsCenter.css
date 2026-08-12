@@ -32,6 +32,21 @@
 .wk-settings-center__settings-section h3 { margin: 0 0 16px; color: var(--wk-text-primary); font-size: 16px; font-weight: 600; line-height: 1.35; }
 .wk-settings-center__external-link { display: inline-flex; width: 28px; height: 28px; align-items: center; justify-content: center; color: var(--wk-text-tertiary); font-size: 20px; text-decoration: none; }
 .wk-settings-center__external-link:hover { color: var(--wk-text-primary); }
+.wk-settings-center__about-identity { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 16px; margin-bottom: 40px; padding-bottom: 24px; border-bottom: 1px solid var(--wk-border-subtle); }
+.wk-settings-center__about-logo { display: block; width: 88px; height: 88px; border-radius: 16px; object-fit: cover; }
+.wk-settings-center__about-copy { display: grid; min-width: 0; gap: 4px; }
+.wk-settings-center__about-copy strong { font-size: 16px; font-weight: 600; }
+.wk-settings-center__about-copy span { color: var(--wk-text-secondary); font-size: 12px; line-height: 1.5; }
+.wk-settings-center__about-update { min-height: 32px; padding: 0 12px; border: 1px solid var(--wk-border-default); border-radius: 6px; background: var(--wk-bg-surface); color: var(--wk-text-primary); cursor: pointer; font-size: 13px; white-space: nowrap; }
+.wk-settings-center__about-update:hover { background: var(--wk-bg-base); }
+.wk-settings-center__about-icon-button { display: inline-flex; width: 28px; height: 28px; align-items: center; justify-content: center; border: 0; background: transparent; color: var(--wk-text-tertiary); cursor: pointer; font-size: 24px; line-height: 1; }
+.wk-settings-center__about-icon-button:hover { color: var(--wk-text-primary); }
+.wk-settings-center__about-footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--wk-border-subtle); }
+.wk-settings-center__mininglamp-logo { color: var(--wk-text-primary); font-size: 20px; font-weight: 700; letter-spacing: .04em; }
+.wk-settings-center__about-footer p { margin: 12px 0 0; color: var(--wk-text-secondary); font-size: 12px; }
+.wk-settings-center__about-links { display: flex; gap: 16px; margin-top: 8px; font-size: 12px; }
+.wk-settings-center__about-links a { color: var(--wk-text-secondary); text-decoration: none; }
+.wk-settings-center__about-links a:hover { color: var(--wk-text-primary); }
 .wk-meinfo--settings-embedded .wk-meinfo { margin: 0; }
 .wk-meinfo--settings-embedded .wk-meinfo-header { display: none; }
 .wk-meinfo--settings-embedded .wk-meinfo-section { margin: 0; }
