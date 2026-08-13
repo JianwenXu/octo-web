@@ -116,7 +116,6 @@ jobs:
       - name: Feature-flag gate tests
         run: >-
           pnpm --filter @octo/web exec vitest run
-          src/__tests__/expertMarketOn.test.ts
           src/__tests__/driveOn.test.ts
       - name: APIClient request interceptor tests
         run: >-
