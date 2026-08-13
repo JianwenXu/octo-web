@@ -14,7 +14,6 @@ export interface NavSettingsPanelProps {
     appUpdateProgress: number;
     showAppUpdateOperation: boolean;
     lastVersionInfo?: { appVersion: string; updateDesc: string };
-    canManageSpace?: boolean;
     onOpenOnboarding?: () => void;
     onToggleSetting: () => void;
     onSetShowAppVersion: (v: boolean) => void;
@@ -59,7 +58,6 @@ export default class NavSettingsPanel extends Component<NavSettingsPanelProps, N
             appUpdateProgress,
             showAppUpdateOperation,
             lastVersionInfo,
-            canManageSpace = false,
             onOpenOnboarding,
             onSetShowAppVersion,
             onInstallUpdate,
@@ -78,7 +76,6 @@ export default class NavSettingsPanel extends Component<NavSettingsPanelProps, N
                     hasAccountCenter={Boolean(accountCenterUrl)}
                     accountCenterUrl={accountCenterUrl}
                     onClose={this.closeSettings}
-                    onSpaceManagement={canManageSpace ? () => { window.location.href = "/space"; } : undefined}
                     onLogout={() => { this.closeSettings(); void WKApp.shared.logoutUserInitiated(); }}
                     onAbout={() => { void this.checkVersion(); }}
                     onOpenOnboarding={onOpenOnboarding}

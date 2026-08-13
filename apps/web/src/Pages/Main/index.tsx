@@ -244,6 +244,7 @@ export class MainPage extends Component<{}, MainPageState> {
                                         onJoinSpace={() => this.setState({ showJoinSpace: true })}
                                         onCreateSpace={() => this.setState({ showCreateSpace: true })}
                                         canManageSpace={canManageSpace}
+                                        onSpaceManagement={() => { window.location.href = "/space"; }}
                                         // 菜单
                                         menusList={vm.menusList}
                                         currentMenus={vm.currentMenus}

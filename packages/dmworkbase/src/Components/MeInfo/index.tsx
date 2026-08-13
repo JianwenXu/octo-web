@@ -19,6 +19,7 @@ import "./index.css"
 export interface MeInfoProps {
     onClose: () => void
     embedded?: boolean
+    onRealnameStatusChange?: (verified: boolean) => void
 }
 
 interface MeInfoState {
@@ -408,8 +409,8 @@ export class MeInfo extends Component<MeInfoProps, MeInfoState> {
 
     render() {
         const title = this.context.t("base.meInfo.title")
-        return <Provider create={function (): IProviderListener {
-            return new MeInfoVM()
+        return <Provider create={() : IProviderListener => {
+            return new MeInfoVM((verified) => this.props.onRealnameStatusChange?.(verified))
         }} render={(vm: MeInfoVM): ReactNode => {
             if (this.props.embedded) {
                 return <div className="wk-meinfo--settings-embedded">{this.renderPanel(vm)}</div>

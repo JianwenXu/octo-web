@@ -87,6 +87,10 @@ export const chatBaselineHandlers = [
     // 用户在 space 里的个人设置 (通知 / 免打扰 / hidden bots 等), 空对象兜底.
     HttpResponse.json({ mute: 0, hidden_bots: [], notify_level: 0 })
   ),
+  http.get("*/user/notification-pause", () =>
+    HttpResponse.json({ paused: false, until: null })
+  ),
+  http.put("*/user/language", () => HttpResponse.json({})),
 
   // === Contacts / friends ===
   http.get("*/friend/sync", () => HttpResponse.json([])),

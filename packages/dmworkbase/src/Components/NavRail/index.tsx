@@ -39,8 +39,9 @@ export interface NavRailVMProps {
     onSpaceSelect: (spaceId: string) => void;
     onJoinSpace?: () => void;
     onCreateSpace?: () => void;
-    /** 是否在设置菜单中显示「空间管理」入口（仅 owner/admin 可见） */
+    /** 是否显示「Space 管理」入口（仅 owner/admin 可见） */
     canManageSpace?: boolean;
+    onSpaceManagement?: () => void;
     /** 用户关闭版本更新气泡时的回调 */
     onDismissNewVersion?: () => void;
 }
@@ -76,6 +77,7 @@ export default class NavRail extends Component<NavRailProps> {
             onJoinSpace,
             onCreateSpace,
             canManageSpace = false,
+            onSpaceManagement,
         } = this.props;
         const userChannel = new Channel(WKApp.loginInfo.uid || "", ChannelTypePerson);
         const userName = WKApp.loginInfo.name || WKApp.loginInfo.uid || t("base.navRail.me");
@@ -130,13 +132,13 @@ export default class NavRail extends Component<NavRailProps> {
                         onSpaceSelect={onSpaceSelect}
                         onJoinSpace={onJoinSpace}
                         onCreateSpace={onCreateSpace}
+                        onSpaceManagement={canManageSpace ? onSpaceManagement : undefined}
                     />
                 </nav>
 
                 {/* 设置面板 + Modals（挂在 nav 外，避免 overflow 裁剪） */}
                 <NavSettingsPanel
                     settingSelected={settingSelected}
-                    canManageSpace={canManageSpace}
                     showAppVersion={showAppVersion}
                     showAppUpdate={showAppUpdate}
                     appUpdateProgress={appUpdateProgress}
