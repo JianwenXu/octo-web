@@ -5,6 +5,12 @@ test.use({ video: "on", trace: "on" });
 test("@TES10 settings center shell interaction", async ({ authedPage }, testInfo) => {
   const frame = (name: string) => testInfo.outputPath(`${name}.png`);
   await authedPage.screenshot({ path: frame("01-main"), fullPage: true });
+  const quickMuteButton = authedPage.getByRole("button", { name: "提醒开启" });
+  await expect(quickMuteButton).toBeVisible();
+  await quickMuteButton.click();
+  await expect(authedPage.getByRole("menu", { name: "暂停通知" })).toBeVisible();
+  await expect(authedPage.getByRole("menuitem", { name: "静音 30 分钟" })).toBeVisible();
+  await authedPage.keyboard.press("Escape");
   const settingsButton = authedPage.getByRole("button", { name: "设置" });
   await expect(settingsButton).toBeVisible({ timeout: 15_000 });
   await settingsButton.click();
@@ -22,6 +28,8 @@ test("@TES10 settings center shell interaction", async ({ authedPage }, testInfo
   await authedPage.screenshot({ path: frame("03-settings-center-general"), fullPage: true });
   await authedPage.getByTestId("settings-center-nav-notifications").click();
   await expect(authedPage.getByTestId("settings-center-content")).toContainText("Notifications and sound");
+  await expect(authedPage.getByRole("combobox", { name: "Mute behavior" })).toBeVisible();
+  await expect(authedPage.getByRole("switch", { name: "Notification options" })).toBeVisible();
   await authedPage.screenshot({ path: frame("04-settings-center-notifications"), fullPage: true });
 
   await authedPage.getByTestId("settings-center-nav-shortcuts").click();
