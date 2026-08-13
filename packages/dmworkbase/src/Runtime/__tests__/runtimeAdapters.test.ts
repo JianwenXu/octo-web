@@ -37,6 +37,14 @@ describe("runtime adapters", () => {
     await expect(adapter.requestPermission()).resolves.toBe("unsupported");
   });
 
+  it("reads the browser notification permission when Web Notification exists", () => {
+    vi.stubGlobal("Notification", { permission: "granted" });
+    const adapter = createNotificationAdapter(webEnvironment);
+
+    expect(adapter.isSupported()).toBe(true);
+    expect(adapter.getPermission()).toBe("granted");
+  });
+
   it("bridges keep-awake reads and writes to Electron IPC", async () => {
     const invoke = vi.fn()
       .mockResolvedValueOnce(true)
@@ -53,6 +61,10 @@ describe("runtime adapters", () => {
     await expect(adapter?.getEnabled()).resolves.toBe(true);
     await expect(adapter?.setEnabled(false)).resolves.toBe(false);
     expect(invoke.mock.calls).toEqual([["keep-awake-get"], ["keep-awake-set", false]]);
+  });
+
+  it("does not create keep-awake IPC on Web", () => {
+    expect(createKeepAwakeAdapter(webEnvironment)).toBeNull();
   });
 
   it("detects Electron from the user agent and exposes desktop capabilities", () => {
