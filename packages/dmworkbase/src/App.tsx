@@ -92,7 +92,7 @@ export type MittEvents = {
   /**
    * 打开「密钥 / Secrets」管理面板（YUJ-3539）。由聊天反向跳转（bot 消息里的
    * 「去添加密钥」按钮）或输入框防手滑提示触发；payload 可携带预填名字 / 明文，
-   * 接收方 NavSecretsSettingsItem 据此打开面板并预填新增弹窗（绝不自动发送/保存）。
+   * 设置中心据此打开密钥二级页并预填新增弹窗（绝不自动发送/保存）。
    */
   'wk:open-secrets': {
     create?: boolean;

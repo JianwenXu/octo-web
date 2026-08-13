@@ -11,6 +11,7 @@ import {
   nativeImage,
   dialog,
   net,
+  powerSaveBlocker,
 } from "electron";
 import fs from "fs";
 import tmp from 'tmp';
@@ -21,6 +22,8 @@ import { pathToFileURL } from "url";
 import logo, { getNoMessageTrayIcon } from "./logo";
 import {
   IPC_CONVERSATION_UNREAD_COUNT,
+  IPC_KEEP_AWAKE_GET,
+  IPC_KEEP_AWAKE_SET,
   IPC_OIDC_AUTHORIZE_START,
   IPC_OIDC_AUTHORIZE_END,
   IPC_OIDC_HTTP_REQUEST,
@@ -56,6 +59,56 @@ let isFullScreen = false;
 let isOsx = process.platform === "darwin";
 let isWin = process.platform === "win32";
 let isWindowFocusHandlerRegistered = false;
+let keepAwakeBlockerId: number | null = null;
+let keepAwakeEnabled = false;
+
+const keepAwakeSettingsPath = () => join(app.getPath("userData"), "settings.json");
+
+function readKeepAwakePreference(): boolean {
+  try {
+    const raw = JSON.parse(fs.readFileSync(keepAwakeSettingsPath(), "utf8"));
+    return raw?.keepAwake === true;
+  } catch {
+    return false;
+  }
+}
+
+function writeKeepAwakePreference(enabled: boolean) {
+  const path = keepAwakeSettingsPath();
+  let settings: Record<string, unknown> = {};
+  try {
+    const raw = JSON.parse(fs.readFileSync(path, "utf8"));
+    if (raw && typeof raw === "object") settings = raw;
+  } catch {
+    // A missing or invalid settings file is treated as an empty preference set.
+  }
+  settings.keepAwake = enabled;
+  fs.writeFileSync(path, JSON.stringify(settings, null, 2));
+}
+
+function applyKeepAwake(enabled: boolean): boolean {
+  if (enabled && keepAwakeBlockerId === null) {
+    keepAwakeBlockerId = powerSaveBlocker.start("prevent-app-suspension");
+  } else if (!enabled && keepAwakeBlockerId !== null) {
+    if (powerSaveBlocker.isStarted(keepAwakeBlockerId)) {
+      powerSaveBlocker.stop(keepAwakeBlockerId);
+    }
+    keepAwakeBlockerId = null;
+  }
+  keepAwakeEnabled = enabled;
+  return keepAwakeEnabled;
+}
+
+function registerKeepAwakeHandlers() {
+  ipcMain.handle(IPC_KEEP_AWAKE_GET, () => keepAwakeEnabled);
+  ipcMain.handle(IPC_KEEP_AWAKE_SET, (_event, enabled: unknown) => {
+    if (typeof enabled !== "boolean") throw new Error("keep-awake value must be boolean");
+    const applied = applyKeepAwake(enabled);
+    writeKeepAwakePreference(applied);
+    return applied;
+  });
+}
+
 type OidcFlow = {
   origin: string;
   authcode: string;
@@ -1115,6 +1168,7 @@ const userDataPlan = planUserDataMigration(
 if (userDataPlan.action !== "none") {
   app.setPath("userData", userDataPlan.oldDir);
 }
+keepAwakeEnabled = readKeepAwakePreference();
 
 // Migration dialogs. Round-6 P2-2: dialog.showErrorBox called before `ready`
 // degrades to stderr on Linux (documented in electron.d.ts), so every dialog
@@ -1366,6 +1420,8 @@ app.on("ready", () => {
     app.quit();
     return;
   }
+  registerKeepAwakeHandlers();
+  applyKeepAwake(keepAwakeEnabled);
   regShortcut();
   registerWindowFocusHandler();
   createMainWindow(); // 创建窗口

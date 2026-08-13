@@ -9,6 +9,10 @@
 /** Renderer → Main: sync the current unread-message count to the tray. */
 export const IPC_CONVERSATION_UNREAD_COUNT = "conversation-manager-unread-count";
 
+/** Renderer ↔ Main: persist and apply the Desktop keep-awake preference. */
+export const IPC_KEEP_AWAKE_GET = "keep-awake-get";
+export const IPC_KEEP_AWAKE_SET = "keep-awake-set";
+
 /** Renderer → Main: register the API origin expected for the OIDC callback. */
 export const IPC_OIDC_AUTHORIZE_START = "oidc-authorize-start";
 

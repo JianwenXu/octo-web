@@ -95,6 +95,14 @@
     {
       "path": "packages/dmworksummary/src/utils/channelType.ts",
       "reason": "Error message template with interpolation placeholder; already covered by runtime error handling with proper i18n."
+    },
+    {
+      "path": "packages/dmworkbase/src/Components/NavRail/NavLanguageSwitcher.tsx",
+      "reason": "The language selector option label is intentionally locale-invariant and must always display the canonical language names 简体中文 and English."
+    },
+    {
+      "path": "packages/dmworkbase/src/Components/NavRail/settingsPages.tsx",
+      "reason": "The settings-center language selector option label is intentionally locale-invariant and must always display the canonical language names 简体中文 and English."
     }
   ]
 }
