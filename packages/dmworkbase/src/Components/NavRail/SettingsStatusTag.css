@@ -10,15 +10,11 @@
   white-space: nowrap;
 }
 
-.wk-settings-status-tag--success { color: var(--wk-status-success-text, #18794e); background: var(--wk-status-success-bg, #e8f5ed); }
-.wk-settings-status-tag--attention { color: var(--wk-status-attention-text, #a55d00); background: var(--wk-status-attention-bg, #fff3dc); }
-.wk-settings-status-tag--danger { color: var(--wk-status-danger-text, #c43838); background: var(--wk-status-danger-bg, #fff0f0); }
-.wk-settings-status-tag--neutral { color: var(--wk-status-neutral-text, #5f6670); background: var(--wk-status-neutral-bg, #eef0f2); }
+.wk-settings-status-tag--success { color: var(--wk-color-success); background: var(--wk-color-success-bg); }
+.wk-settings-status-tag--attention { color: var(--wk-color-warning); background: var(--wk-color-warning-bg); }
+.wk-settings-status-tag--danger { color: var(--wk-color-danger); background: var(--wk-color-danger-bg); }
+.wk-settings-status-tag--neutral { color: var(--wk-text-tertiary); background: var(--wk-bg-base); }
 
-body[theme-mode="dark"] .wk-settings-status-tag--success { color: #72dca3; background: #193c29; }
-body[theme-mode="dark"] .wk-settings-status-tag--attention { color: #f4bd62; background: #483619; }
-body[theme-mode="dark"] .wk-settings-status-tag--danger { color: #ff9191; background: #481f21; }
-body[theme-mode="dark"] .wk-settings-status-tag--neutral { color: #c3c6cb; background: #34363a; }
 
 @media (prefers-reduced-motion: reduce) {
   .wk-settings-status-tag { transition: none; }

@@ -19,6 +19,9 @@
 .wk-settings-center__content { position: relative; min-width: 0; overflow: auto; background: var(--wk-bg-surface); }
 .wk-settings-center__close { position: absolute; top: 16px; right: 16px; z-index: 1; display: inline-flex; width: 32px; height: 32px; align-items: center; justify-content: center; padding: 0; border: 0; border-radius: 8px; background: transparent; color: var(--wk-text-tertiary); cursor: pointer; font-size: 24px; line-height: 1; }
 .wk-settings-center__close:hover { background: var(--wk-bg-item-hover); color: var(--wk-text-primary); }
+.wk-settings-center__close::before, .wk-settings-center__close::after { position: absolute; width: 16px; height: 1.5px; border-radius: 1px; background: currentColor; content: ""; }
+.wk-settings-center__close::before { transform: rotate(45deg); }
+.wk-settings-center__close::after { transform: rotate(-45deg); }
 .wk-settings-center__secondary-page { min-height: 100%; padding: 24px 32px 48px; }
 .wk-settings-center__back { display: inline-flex; align-items: center; gap: 6px; margin: 0 0 16px; padding: 4px 8px; border: 0; border-radius: 6px; background: transparent; color: var(--wk-text-secondary); cursor: pointer; font-size: 13px; }
 .wk-settings-center__back:hover { background: var(--wk-bg-item-hover); color: var(--wk-text-primary); }
@@ -65,7 +68,7 @@
 .wk-settings-center__manage-button:hover { border-color: var(--wk-border-strong, var(--wk-border-default)); background: var(--wk-bg-base); }
 .wk-settings-center__demo-select { width: 184px; height: 32px; padding: 0 34px 0 12px; border: 1px solid var(--wk-border-default); border-radius: 6px; background-color: var(--wk-bg-surface); background-image: linear-gradient(45deg, transparent 50%, var(--wk-text-tertiary) 50%), linear-gradient(135deg, var(--wk-text-tertiary) 50%, transparent 50%); background-position: calc(100% - 16px) 13px, calc(100% - 11px) 13px; background-repeat: no-repeat; background-size: 5px 5px, 5px 5px; color: var(--wk-text-primary); cursor: pointer; font: inherit; font-size: 13px; appearance: none; }
 .wk-settings-center__demo-select:hover { border-color: var(--wk-border-strong, var(--wk-border-default)); }
-.wk-settings-center__demo-select:focus-visible { border-color: #8b5cf6; outline: none; box-shadow: 0 0 0 2px rgba(139, 92, 246, .16); }
+.wk-settings-center__demo-select:focus-visible { border-color: var(--wk-color-accent); outline: none; box-shadow: 0 0 0 2px var(--wk-brand-primary-ring); }
 .wk-settings-center__download-location { display: grid; min-width: 184px; gap: 8px; justify-items: end; }
 .wk-settings-center__download-location code { max-width: 280px; color: var(--wk-text-tertiary); font: 11px/1.4 var(--wk-font-mono, monospace); overflow-wrap: anywhere; text-align: right; }
 .wk-settings-center__manage-button:disabled, .wk-settings-center__demo-select:disabled { cursor: not-allowed; opacity: .55; }

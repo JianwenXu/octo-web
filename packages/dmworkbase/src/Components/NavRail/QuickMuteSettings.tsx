@@ -38,6 +38,7 @@ export default function QuickMuteSettings({ service = quickMuteStore }: { servic
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<"load" | "save" | null>(null);
   const [selectedDuration, setSelectedDuration] = useState<QuickMuteDuration>("30m");
+  const [lastAction, setLastAction] = useState<QuickMuteDuration | "resume">("30m");
   const [remaining, setRemaining] = useState<number | null>(null);
 
   useEffect(() => {
@@ -57,7 +58,15 @@ export default function QuickMuteSettings({ service = quickMuteStore }: { servic
     return () => { mounted = false; unsubscribe?.(); };
   }, [service]);
 
+  useEffect(() => {
+    const update = () => setRemaining(state.endAt !== undefined ? Math.max(0, state.endAt - Date.now()) : null);
+    update();
+    const timer = window.setInterval(update, 1_000);
+    return () => window.clearInterval(timer);
+  }, [state.endAt]);
+
   const submit = async (duration: QuickMuteDuration) => {
+    setLastAction(duration);
     const endAt = duration === "custom" ? new Date(customTime).getTime() : undefined;
     if (duration === "custom" && (!Number.isFinite(endAt) || endAt <= Date.now())) { setError("save"); return; }
     setBusy(true); setError(null);
@@ -65,7 +74,7 @@ export default function QuickMuteSettings({ service = quickMuteStore }: { servic
     catch { setError("save"); }
     finally { setBusy(false); }
   };
-  const resume = async () => { setBusy(true); setError(null); try { setState(await service.resume()); setRemaining(null); } catch { setError("save"); } finally { setBusy(false); } };
+  const resume = async () => { setLastAction("resume"); setBusy(true); setError(null); try { setState(await service.resume()); setRemaining(null); } catch { setError("save"); } finally { setBusy(false); } };
   const durationText = useMemo(() => remaining === null ? null : `${Math.ceil(remaining / 60_000)} min`, [remaining]);
 
   return <section className="wk-settings-center__settings-section wk-quick-mute" data-testid="quick-mute-settings">
@@ -73,7 +82,7 @@ export default function QuickMuteSettings({ service = quickMuteStore }: { servic
     <div className="wk-quick-mute__status"><div><strong>{state.active ? t("base.navRail.settingsCenter.value.muted") : t("base.navRail.settingsCenter.value.remindersOn")}</strong>{durationText && <span>{t("base.navRail.settingsCenter.row.resumeIn")} {durationText}</span>}</div><SettingsStatusTag tone={state.active ? "attention" : "success"} label={state.active ? t("base.navRail.settingsCenter.value.muted") : t("base.navRail.settingsCenter.value.remindersOn")} /></div>
     <div className="wk-settings-center__row"><div className="wk-settings-center__row-main"><div className="wk-settings-center__row-title">{t("base.navRail.settingsCenter.row.muteScope")}</div><div className="wk-settings-center__row-description">{t("base.navRail.settingsCenter.row.muteScopeDescription")}</div></div><select value={scope} onChange={(event) => setScope(event.target.value as QuickMuteScope)} aria-label={t("base.navRail.settingsCenter.row.muteScope")}><option value="sound">{t("base.navRail.settingsCenter.value.soundOnly")}</option><option value="sound-and-popup">{t("base.navRail.settingsCenter.value.soundAndPopup")}</option></select></div>
     <div className="wk-quick-mute__actions"><button type="button" disabled={busy} onClick={() => void submit("30m")}>{t("base.navRail.settingsCenter.action.mute30m")}</button><button type="button" disabled={busy} onClick={() => void submit("1h")}>{t("base.navRail.settingsCenter.action.mute1h")}</button>{state.active && <button type="button" disabled={busy} onClick={() => void resume()}>{t("base.navRail.settingsCenter.action.resume")}</button>}</div>
-    <div className="wk-quick-mute__custom"><input type="datetime-local" value={customTime} min={formatLocalDateTime(new Date())} onChange={(event) => { setCustomTime(event.target.value); setSelectedDuration("custom"); }} aria-label={t("base.navRail.settingsCenter.row.customMuteTime")} /><button type="button" disabled={busy || selectedDuration !== "custom"} onClick={() => void submit("custom")}>{t("base.navRail.settingsCenter.action.muteUntil")}</button></div>
-    {busy && <span className="wk-quick-mute__feedback">{t("base.navRail.settingsCenter.value.submitting")}</span>}{error && <span className="wk-quick-mute__error" role="alert">{t(error === "load" ? "base.navRail.settingsCenter.value.loadFailed" : "base.navRail.settingsCenter.value.saveFailed")} <button type="button" onClick={() => error === "load" ? void service.getState().then((next) => { setState(next); setScope(next.scope); setError(null); }).catch(() => setError("load")) : void submit(selectedDuration)}>{t("base.navRail.settingsCenter.action.retry")}</button></span>}
+    <div className="wk-quick-mute__custom"><input type="datetime-local" value={customTime} min={formatLocalDateTime(new Date())} onChange={(event) => { setCustomTime(event.target.value); setSelectedDuration("custom"); }} aria-label={t("base.navRail.settingsCenter.row.customMuteTime")} /><button type="button" disabled={busy} onClick={() => void submit("custom")}>{t("base.navRail.settingsCenter.action.muteUntil")}</button></div>
+    {busy && <span className="wk-quick-mute__feedback">{t("base.navRail.settingsCenter.value.submitting")}</span>}{error && <span className="wk-quick-mute__error" role="alert">{t(error === "load" ? "base.navRail.settingsCenter.value.loadFailed" : "base.navRail.settingsCenter.value.saveFailed")} <button type="button" onClick={() => error === "load" ? void service.getState().then((next) => { setState(next); setScope(next.scope); setError(null); }).catch(() => setError("load")) : lastAction === "resume" ? void resume() : void submit(lastAction)}>{t("base.navRail.settingsCenter.action.retry")}</button></span>}
   </section>;
 }

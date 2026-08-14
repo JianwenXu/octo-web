@@ -18,7 +18,7 @@ const hoisted = vi.hoisted(() => {
 });
 
 vi.mock("../../../App", () => ({ default: { mittBus: hoisted.bus, config: { appVersion: "test" }, loginInfo: { loginProvider: "" }, remoteConfig: { oidcProviders: [] }, shared: { logoutUserInitiated: vi.fn() } }, __esModule: true }));
-vi.mock("../../../Utils/versionChecker", () => ({ checkVersionOnce: vi.fn().mockResolvedValue(null) }));
+vi.mock("../../../Utils/versionChecker", () => ({ checkVersionOnce: vi.fn().mockResolvedValue(null), checkVersionOnceWithStatus: vi.fn().mockResolvedValue({ status: "latest" }) }));
 vi.mock("@douyinfe/semi-ui", () => ({ Button: ({ children, ...props }: { children: React.ReactNode }) => <button {...props}>{children}</button>, Progress: () => <div /> }));
 vi.mock("../ChangelogMarkdown", () => ({ default: () => <div /> }));
 vi.mock("../../WKModal", () => ({ default: ({ children, visible }: { children: React.ReactNode; visible: boolean }) => visible ? <div>{children}</div> : null }));

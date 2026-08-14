@@ -80,7 +80,7 @@ function writeKeepAwakePreference(enabled: boolean) {
     const raw = JSON.parse(fs.readFileSync(path, "utf8"));
     if (raw && typeof raw === "object") settings = raw;
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT" && !(error instanceof SyntaxError)) throw error;
   }
   settings.keepAwake = enabled;
   const tempPath = `${path}.${process.pid}.tmp`;
@@ -105,8 +105,8 @@ function registerKeepAwakeHandlers() {
   ipcMain.handle(IPC_KEEP_AWAKE_GET, () => keepAwakeEnabled);
   ipcMain.handle(IPC_KEEP_AWAKE_SET, (_event, enabled: unknown) => {
     if (typeof enabled !== "boolean") throw new Error("keep-awake value must be boolean");
+    writeKeepAwakePreference(enabled);
     const applied = applyKeepAwake(enabled);
-    writeKeepAwakePreference(applied);
     return applied;
   });
 }

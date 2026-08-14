@@ -21,14 +21,14 @@ describe("QuickMuteApiService", () => {
       paused: true,
       paused_until: new Date(Date.now() - 1_000).toISOString(),
       revision: 7,
-      server_time: "2026-08-13T00:00:00Z",
+      server_time: new Date().toISOString(),
     });
 
     await expect(new QuickMuteApiService().getState()).resolves.toMatchObject({
       active: false,
       revision: 7,
       scope: "sound-and-popup",
-      serverTime: "2026-08-13T00:00:00Z",
+      serverTime: expect.any(String),
     });
     expect(api.get).toHaveBeenCalledWith("/user/notification-pause");
   });

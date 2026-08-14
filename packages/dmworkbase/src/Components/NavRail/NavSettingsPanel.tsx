@@ -3,7 +3,7 @@ import React, { Component } from "react";
 import { Button, Progress, Toast } from "@douyinfe/semi-ui";
 import WKModal from "../WKModal";
 import { t } from "../../i18n";
-import { checkVersionOnce } from "../../Utils/versionChecker";
+import { checkVersionOnceWithStatus } from "../../Utils/versionChecker";
 import ChangelogMarkdown from "./ChangelogMarkdown";
 import SettingsCenter, { OpenSecretsRequest } from "./SettingsCenter";
 
@@ -109,8 +109,9 @@ export default class NavSettingsPanel extends Component<NavSettingsPanelProps, N
     }
 
     private checkVersion = async () => {
-        const version = await checkVersionOnce();
-        if (version) Toast.info(`${t("base.navRail.settingsPanel.versionAvailable")}: ${version}`);
-        else Toast.success(t("base.navRail.settingsCenter.value.latestVersion"));
+        const result = await checkVersionOnceWithStatus();
+        if (result.status === "update") Toast.info(`${t("base.navRail.settingsPanel.versionAvailable")}: ${result.version}`);
+        else if (result.status === "latest") Toast.success(t("base.navRail.settingsCenter.value.latestVersion"));
+        else Toast.error(t("base.navRail.settingsCenter.value.updateCheckFailed"));
     };
 }

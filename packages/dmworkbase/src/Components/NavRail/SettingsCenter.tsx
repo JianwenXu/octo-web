@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import { t } from "../../i18n";
 import WKModal from "../WKModal";
 import "./SettingsCenter.css";
@@ -52,6 +52,11 @@ export default function SettingsCenter({ visible, isDesktop = false, environment
   );
   const [selectedId, setSelectedId] = useState("general");
   const [secondaryPage, setSecondaryPage] = useState<"secrets" | null>(null);
+  const previousSecondaryPage = useRef<"secrets" | null>(null);
+  React.useEffect(() => {
+    if (previousSecondaryPage.current === "secrets" && secondaryPage === null) onSecrets?.();
+    previousSecondaryPage.current = secondaryPage;
+  }, [onSecrets, secondaryPage]);
   React.useEffect(() => {
     if (openSecretsRequest) {
       setSelectedId("account");

@@ -264,7 +264,7 @@ export default class BaseModule implements IModule {
 
     // 账号级快捷静音复用 WuKongIM CMD；回前台、网络恢复和重连时用 GET
     // 校准，CMD 只作为低延迟更新，不承担最终一致性。
-    const refreshQuickMute = () => { void quickMuteStore.refresh(); };
+    const refreshQuickMute = () => { void quickMuteStore.refresh().catch(() => undefined); };
     WKApp.mittBus.on("wk:app-foreground", refreshQuickMute);
     WKApp.mittBus.on("wk:auth-state-changed", () => {
       quickMuteStore.reset();
