@@ -37,6 +37,7 @@ describe("QuickMuteApiService", () => {
     api.put.mockResolvedValueOnce({
       paused: true,
       paused_until: new Date(Date.now() + 30 * 60_000).toISOString(),
+      server_time: new Date().toISOString(),
       revision: 8,
     });
 
@@ -46,7 +47,7 @@ describe("QuickMuteApiService", () => {
     });
     const [path, body] = api.put.mock.calls[0];
     expect(path).toBe("/user/notification-pause");
-    expect(body.paused_until).toMatch(/Z$/);
+    expect(body).toEqual({ duration: "30m" });
   });
 
   it("rejects a custom pause that is not in the future", async () => {
@@ -54,6 +55,12 @@ describe("QuickMuteApiService", () => {
       "A future notification pause time is required",
     );
     expect(api.put).not.toHaveBeenCalled();
+  });
+
+  it("sends manual mode without calculating a client deadline", async () => {
+    api.put.mockResolvedValueOnce({ paused: true, mode: "manual", paused_until: null, revision: 8, server_time: new Date().toISOString() });
+    await expect(new QuickMuteApiService().setMute({ duration: "manual" })).resolves.toMatchObject({ active: true, mode: "manual", endAt: undefined });
+    expect(api.put).toHaveBeenCalledWith("/user/notification-pause", { mode: "manual" });
   });
 
   it("resumes through DELETE and normalizes the response", async () => {

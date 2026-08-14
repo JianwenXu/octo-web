@@ -25,7 +25,7 @@ afterEach(() => {
 function service(initial: QuickMuteState, overrides: Partial<QuickMuteService> = {}): QuickMuteService {
   return {
     getState: vi.fn(async () => initial),
-    setMute: vi.fn(async ({ scope }) => ({ active: true, scope, endAt: Date.now() + 60_000 })),
+    setMute: vi.fn(async () => ({ active: true, scope: initial.scope, endAt: Date.now() + 60_000 })),
     resume: vi.fn(async () => ({ active: false, scope: initial.scope })),
     ...overrides,
   };
@@ -53,7 +53,7 @@ describe("QuickMuteSidebar", () => {
     act(() => button("静音 30 分钟").click());
     await flush();
 
-    expect(api.setMute).toHaveBeenCalledWith({ duration: "30m", scope: "sound" });
+    expect(api.setMute).toHaveBeenCalledWith({ duration: "30m" });
     expect(document.querySelector('[role="menu"]')).toBeNull();
   });
 

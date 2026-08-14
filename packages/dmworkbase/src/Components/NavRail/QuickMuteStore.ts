@@ -1,17 +1,20 @@
 import APIClient from "../../Service/APIClient";
 
-export type QuickMuteDuration = "30m" | "1h" | "custom";
+export type QuickMuteDuration = "30m" | "1h" | "manual" | "custom";
 export type QuickMuteScope = "sound" | "sound-and-popup";
+export type QuickMuteMode = "timed" | "manual";
 export interface QuickMuteState {
   active: boolean;
+  mode?: QuickMuteMode;
   endAt?: number;
   scope: QuickMuteScope;
   revision?: number;
   serverTime?: string;
+  serverOffset?: number;
 }
 export interface QuickMuteService {
   getState(): Promise<QuickMuteState>;
-  setMute(input: { duration: QuickMuteDuration; endAt?: number; scope: QuickMuteScope }): Promise<QuickMuteState>;
+  setMute(input: { duration: QuickMuteDuration; endAt?: number }): Promise<QuickMuteState>;
   resume(): Promise<QuickMuteState>;
   subscribe?(listener: (state: QuickMuteState) => void): () => void;
 }
@@ -19,6 +22,7 @@ export interface QuickMuteService {
 interface NotificationPauseResponse {
   paused?: boolean;
   paused_until?: string | null;
+  mode?: QuickMuteMode | null;
   revision?: number;
   server_time?: string;
 }
@@ -55,15 +59,18 @@ export function defaultQuickMuteTime(): string {
   return formatLocalDateTime(date);
 }
 
-function toState(response: NotificationPauseResponse): QuickMuteState {
+function toState(response: NotificationPauseResponse, serverOffset = 0): QuickMuteState {
   const endAt = response.paused_until ? Date.parse(response.paused_until) : undefined;
   const serverNow = response.server_time ? Date.parse(response.server_time) : NaN;
+  const mode = response.mode ?? (response.paused === true && !Number.isFinite(endAt) ? "manual" : endAt ? "timed" : undefined);
   return {
-    active: response.paused === true && endAt !== undefined && Number.isFinite(endAt) && endAt > (Number.isFinite(serverNow) ? serverNow : Date.now()),
+    active: response.paused === true && (mode === "manual" || (endAt !== undefined && Number.isFinite(endAt) && endAt > Date.now() + serverOffset)),
+    mode,
     endAt,
     scope: getStoredScope(),
     revision: response.revision ?? 0,
     serverTime: response.server_time,
+    serverOffset,
   };
 }
 
@@ -79,25 +86,33 @@ export class QuickMuteApiService implements QuickMuteService {
   private static readonly PATH = "/user/notification-pause";
 
   async getState(): Promise<QuickMuteState> {
-    return toState(await APIClient.shared.get<NotificationPauseResponse>(QuickMuteApiService.PATH));
+    const startedAt = Date.now();
+    const response = await APIClient.shared.get<NotificationPauseResponse>(QuickMuteApiService.PATH);
+    const referenceTime = startedAt + (Date.now() - startedAt) / 2;
+    const serverTime = response.server_time ? Date.parse(response.server_time) : NaN;
+    return toState(response, Number.isFinite(serverTime) ? serverTime - referenceTime : 0);
   }
 
   async setMute(input: { duration: QuickMuteDuration; endAt?: number }): Promise<QuickMuteState> {
-    const endAt = input.duration === "30m"
-      ? Date.now() + 30 * 60_000
-      : input.duration === "1h"
-        ? Date.now() + 60 * 60_000
-        : input.endAt;
-    if (!endAt || !Number.isFinite(endAt) || endAt <= Date.now()) {
-      throw new Error("A future notification pause time is required");
-    }
-    return toState(await APIClient.shared.put(QuickMuteApiService.PATH, {
-      paused_until: new Date(endAt).toISOString(),
-    }));
+    const body = input.duration === "custom"
+      ? (() => {
+          if (!input.endAt || !Number.isFinite(input.endAt) || input.endAt <= Date.now()) throw new Error("A future notification pause time is required");
+          return { paused_until: new Date(input.endAt).toISOString() };
+        })()
+      : input.duration === "manual" ? { mode: "manual" } : { duration: input.duration };
+    const startedAt = Date.now();
+    const response = await APIClient.shared.put(QuickMuteApiService.PATH, body);
+    const referenceTime = startedAt + (Date.now() - startedAt) / 2;
+    const serverTime = response.server_time ? Date.parse(response.server_time) : NaN;
+    return toState(response, Number.isFinite(serverTime) ? serverTime - referenceTime : 0);
   }
 
   async resume(): Promise<QuickMuteState> {
-    return toState(await APIClient.shared.delete(QuickMuteApiService.PATH));
+    const startedAt = Date.now();
+    const response = await APIClient.shared.delete<NotificationPauseResponse>(QuickMuteApiService.PATH);
+    const referenceTime = startedAt + (Date.now() - startedAt) / 2;
+    const serverTime = response.server_time ? Date.parse(response.server_time) : NaN;
+    return toState(response, Number.isFinite(serverTime) ? serverTime - referenceTime : 0);
   }
 }
 
@@ -126,30 +141,35 @@ export class QuickMuteStore implements QuickMuteService {
     const currentRevision = this.state.revision ?? 0;
     const nextRevision = next.revision ?? 0;
     if (nextRevision < currentRevision) return this.state;
-    if (next.serverTime) {
+    if (typeof next.serverOffset === "number" && Number.isFinite(next.serverOffset)) this.serverOffset = next.serverOffset;
+    else if (next.serverTime) {
       const serverTime = Date.parse(next.serverTime);
       if (Number.isFinite(serverTime)) this.serverOffset = serverTime - Date.now();
     }
     const endAt = next.endAt;
-    this.state = { ...next, active: Boolean(next.active && endAt && endAt > Date.now() + this.serverOffset), scope: next.scope ?? getStoredScope() };
+    this.state = { ...next, active: Boolean(next.active && (next.mode === "manual" || (endAt && endAt > Date.now() + this.serverOffset))), scope: next.scope ?? getStoredScope() };
     this.loaded = true;
     if (this.expiryTimer) clearTimeout(this.expiryTimer);
-    if (this.state.active && endAt) {
-      this.expiryTimer = setTimeout(() => {
-        if (this.state.active && this.state.endAt === endAt) {
-          this.state = { ...this.state, active: false };
-          this.listeners.forEach((listener) => listener(this.state));
-        }
-      }, Math.max(0, endAt - (Date.now() + this.serverOffset)));
-    }
+    this.scheduleExpiry(endAt);
     this.listeners.forEach((listener) => listener(this.state));
     return this.state;
   }
 
   async getState() {
     if (!this.loaded) await this.refresh();
-    else this.state = { ...this.state, active: Boolean(this.state.endAt && this.state.endAt > Date.now() + this.serverOffset) };
+    else this.state = { ...this.state, active: Boolean(this.state.active && (this.state.mode === "manual" || (this.state.endAt && this.state.endAt > Date.now() + this.serverOffset))) };
     return this.state;
+  }
+
+  private scheduleExpiry(endAt?: number) {
+    if (this.expiryTimer) clearTimeout(this.expiryTimer);
+    if (!this.state.active || this.state.mode === "manual" || !endAt) return;
+    const remaining = endAt - (Date.now() + this.serverOffset);
+    this.expiryTimer = setTimeout(() => {
+      if (this.state.endAt !== endAt || !this.state.active) return;
+      if (endAt > Date.now() + this.serverOffset) this.scheduleExpiry(endAt);
+      else void this.refresh().catch(() => undefined);
+    }, Math.min(Math.max(remaining, 0), 60 * 60_000));
   }
 
   async refresh() {
@@ -188,8 +208,7 @@ export class QuickMuteStore implements QuickMuteService {
     return true;
   }
 
-  async setMute(input: { duration: QuickMuteDuration; endAt?: number; scope: QuickMuteState["scope"] }) {
-    storeScope(input.scope);
+  async setMute(input: { duration: QuickMuteDuration; endAt?: number }) {
     const version = ++this.mutationVersion;
     const next = await this.service.setMute(input);
     if (version === this.mutationVersion) return this.apply(next);

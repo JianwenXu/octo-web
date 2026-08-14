@@ -1547,6 +1547,7 @@
   "navRail.settingsCenter.value.soundAndPopup": "提示音和桌面弹窗",
   "navRail.settingsCenter.action.mute30m": "静音 30 分钟",
   "navRail.settingsCenter.action.mute1h": "静音 1 小时",
+  "navRail.settingsCenter.action.muteManual": "直到手动恢复",
   "navRail.settingsCenter.action.resume": "恢复提醒",
   "navRail.settingsCenter.row.customMuteTime": "自定义静音时间",
   "navRail.settingsCenter.action.muteUntil": "静音到此时间",
