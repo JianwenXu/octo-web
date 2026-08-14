@@ -1610,6 +1610,7 @@
   "navRail.settingsCenter.action.checkUpdate": "Check for updates",
   "navRail.settingsCenter.value.latestVersion": "You are using the latest version",
   "navRail.settingsCenter.value.updateCheckFailed": "Update check failed. Please try again later",
+  "navRail.settingsCenter.value.keepAwakeSaveFailed": "Could not save the keep-awake setting. Please try again",
   "navRail.settingsCenter.row.feedback": "Feedback",
   "navRail.settingsCenter.row.officialWebsite": "Octo website",
   "navRail.settingsCenter.row.openSource": "Octo open source",

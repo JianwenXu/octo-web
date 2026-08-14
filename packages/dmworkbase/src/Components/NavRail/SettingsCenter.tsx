@@ -24,7 +24,7 @@ export interface SettingsCenterProps {
   accountCenterUrl?: string;
   onClose: () => void;
   onLogout?: () => void;
-  onSecrets?: () => void;
+  onSecretsClosed?: () => void;
   onVoice?: () => void;
   onAbout?: () => void;
   onOpenOnboarding?: () => void;
@@ -44,7 +44,7 @@ function SettingsIcon({ name }: { name: string }) {
   };
   return <svg viewBox="0 0 24 24" aria-hidden="true">{paths[name] ?? paths.general}</svg>;
 }
-export default function SettingsCenter({ visible, isDesktop = false, environment, hasAccountCenter = false, accountCenterUrl, onClose, onLogout, onSecrets, onVoice, onAbout, onOpenOnboarding, openSecretsRequest }: SettingsCenterProps) {
+export default function SettingsCenter({ visible, isDesktop = false, environment, hasAccountCenter = false, accountCenterUrl, onClose, onLogout, onSecretsClosed, onVoice, onAbout, onOpenOnboarding, openSecretsRequest }: SettingsCenterProps) {
   const runtimeEnvironment = React.useMemo(() => environment ?? detectRuntimeEnvironment(isDesktop), [environment, isDesktop]);
   const availableGroups = useMemo(
     () => getAvailableSettingsGroups({ environment: runtimeEnvironment, hasAccountCenter }),
@@ -54,9 +54,9 @@ export default function SettingsCenter({ visible, isDesktop = false, environment
   const [secondaryPage, setSecondaryPage] = useState<"secrets" | null>(null);
   const previousSecondaryPage = useRef<"secrets" | null>(null);
   React.useEffect(() => {
-    if (previousSecondaryPage.current === "secrets" && secondaryPage === null) onSecrets?.();
+    if (previousSecondaryPage.current === "secrets" && secondaryPage === null) onSecretsClosed?.();
     previousSecondaryPage.current = secondaryPage;
-  }, [onSecrets, secondaryPage]);
+  }, [onSecretsClosed, secondaryPage]);
   React.useEffect(() => {
     if (openSecretsRequest) {
       setSelectedId("account");

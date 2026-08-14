@@ -77,7 +77,7 @@ export default class NavSettingsPanel extends Component<NavSettingsPanelProps, N
                     accountCenterUrl={accountCenterUrl}
                     onClose={this.closeSettings}
                     onLogout={() => { this.closeSettings(); void WKApp.shared.logoutUserInitiated(); }}
-                    onSecrets={() => this.setState({ secretsRequest: null })}
+                    onSecretsClosed={() => this.setState({ secretsRequest: null })}
                     onAbout={() => { void this.checkVersion(); }}
                     onOpenOnboarding={onOpenOnboarding}
                     openSecretsRequest={this.state.secretsRequest}

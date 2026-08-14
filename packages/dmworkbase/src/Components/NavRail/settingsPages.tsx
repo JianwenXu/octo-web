@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Switch } from "@douyinfe/semi-ui";
+import { Switch, Toast } from "@douyinfe/semi-ui";
 import { QRCodeSVG } from "qrcode.react";
 import WKApp, { ThemeMode } from "../../App";
 import { apiFetchJson } from "../../Service/apiFetch";
@@ -129,6 +129,8 @@ function DesktopBehaviorSettingsPage({ environment }: { environment: import("../
     setKeepAwakeSaving(true);
     try {
       setKeepAwake(await keepAwakeAdapter.setEnabled(enabled));
+    } catch {
+      Toast.error(t("base.navRail.settingsCenter.value.keepAwakeSaveFailed"));
     } finally {
       setKeepAwakeSaving(false);
     }
