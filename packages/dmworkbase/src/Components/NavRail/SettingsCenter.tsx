@@ -45,7 +45,7 @@ function SettingsIcon({ name }: { name: string }) {
   return <svg viewBox="0 0 24 24" aria-hidden="true">{paths[name] ?? paths.general}</svg>;
 }
 export default function SettingsCenter({ visible, isDesktop = false, environment, hasAccountCenter = false, accountCenterUrl, onClose, onLogout, onSecrets, onVoice, onAbout, onOpenOnboarding, openSecretsRequest }: SettingsCenterProps) {
-  const runtimeEnvironment = environment ?? detectRuntimeEnvironment(isDesktop);
+  const runtimeEnvironment = React.useMemo(() => environment ?? detectRuntimeEnvironment(isDesktop), [environment, isDesktop]);
   const availableGroups = useMemo(
     () => getAvailableSettingsGroups({ environment: runtimeEnvironment, hasAccountCenter }),
     [hasAccountCenter, runtimeEnvironment],

@@ -157,8 +157,10 @@ function NotificationsSettingsPage({ environment }: { environment: import("../..
   const permissionTone: "success" | "attention" | "danger" | "neutral" = permission === "granted" ? "success" : permission === "denied" ? "danger" : permission === "default" ? "attention" : "neutral";
   const requestPermission = async () => setPermission(await notificationAdapter.requestPermission());
   React.useEffect(() => {
-    void quickMuteStore.getState().then((next) => setMuteScope(next.scope));
-    return quickMuteStore.subscribe((next) => setMuteScope(next.scope));
+    let mounted = true;
+    void quickMuteStore.getState().then((next) => { if (mounted) setMuteScope(next.scope); }).catch(() => undefined);
+    const unsubscribe = quickMuteStore.subscribe((next) => { if (mounted) setMuteScope(next.scope); });
+    return () => { mounted = false; unsubscribe(); };
   }, []);
   return <SettingsPageFrame title={t("base.navRail.settingsCenter.page.notifications.title")}>
     <SettingsSection title={t("base.navRail.settingsCenter.section.quickMute")}>

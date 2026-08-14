@@ -1608,6 +1608,7 @@
   "navRail.settingsCenter.row.updateCheckDescription": "复用现有版本检查和更新日志能力",
   "navRail.settingsCenter.action.check": "检查",
   "navRail.settingsCenter.action.checkUpdate": "检查更新",
+  "navRail.settingsCenter.value.latestVersion": "当前已是最新版本",
   "navRail.settingsCenter.row.feedback": "问题反馈",
   "navRail.settingsCenter.row.officialWebsite": "Octo 官网",
   "navRail.settingsCenter.row.openSource": "Octo 开源代码",

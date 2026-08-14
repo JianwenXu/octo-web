@@ -79,11 +79,13 @@ function writeKeepAwakePreference(enabled: boolean) {
   try {
     const raw = JSON.parse(fs.readFileSync(path, "utf8"));
     if (raw && typeof raw === "object") settings = raw;
-  } catch {
-    // A missing or invalid settings file is treated as an empty preference set.
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
   }
   settings.keepAwake = enabled;
-  fs.writeFileSync(path, JSON.stringify(settings, null, 2));
+  const tempPath = `${path}.${process.pid}.tmp`;
+  fs.writeFileSync(tempPath, JSON.stringify(settings, null, 2));
+  fs.renameSync(tempPath, path);
 }
 
 function applyKeepAwake(enabled: boolean): boolean {

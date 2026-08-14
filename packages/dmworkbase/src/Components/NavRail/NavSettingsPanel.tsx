@@ -1,6 +1,6 @@
 import WKApp from "../../App";
 import React, { Component } from "react";
-import { Button, Progress } from "@douyinfe/semi-ui";
+import { Button, Progress, Toast } from "@douyinfe/semi-ui";
 import WKModal from "../WKModal";
 import { t } from "../../i18n";
 import { checkVersionOnce } from "../../Utils/versionChecker";
@@ -77,6 +77,7 @@ export default class NavSettingsPanel extends Component<NavSettingsPanelProps, N
                     accountCenterUrl={accountCenterUrl}
                     onClose={this.closeSettings}
                     onLogout={() => { this.closeSettings(); void WKApp.shared.logoutUserInitiated(); }}
+                    onSecrets={() => this.setState({ secretsRequest: null })}
                     onAbout={() => { void this.checkVersion(); }}
                     onOpenOnboarding={onOpenOnboarding}
                     openSecretsRequest={this.state.secretsRequest}
@@ -108,8 +109,8 @@ export default class NavSettingsPanel extends Component<NavSettingsPanelProps, N
     }
 
     private checkVersion = async () => {
-        // The About page still uses the shared version checker through the host VM.
-        // Keeping this hook local preserves the existing update notification behavior.
-        await checkVersionOnce();
+        const version = await checkVersionOnce();
+        if (version) Toast.info(`${t("base.navRail.settingsPanel.versionAvailable")}: ${version}`);
+        else Toast.success(t("base.navRail.settingsCenter.value.latestVersion"));
     };
 }

@@ -37,7 +37,7 @@ describe("QuickMuteStore", () => {
     store.applyRemoteCMD({ paused: true });
     store.applyRemoteCMD({ paused: true, paused_until: new Date(Date.now() + 60_000).toISOString(), revision: 3 });
     await Promise.resolve();
-    expect(service.getState).toHaveBeenCalledTimes(3);
+    expect(service.getState).toHaveBeenCalledTimes(2);
   });
 
   it("rejects malformed CMD payloads", () => {

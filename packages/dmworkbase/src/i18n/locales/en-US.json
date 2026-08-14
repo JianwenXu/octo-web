@@ -1608,6 +1608,7 @@
   "navRail.settingsCenter.row.updateCheckDescription": "Use the existing update check and changelog",
   "navRail.settingsCenter.action.check": "Check",
   "navRail.settingsCenter.action.checkUpdate": "Check for updates",
+  "navRail.settingsCenter.value.latestVersion": "You are using the latest version",
   "navRail.settingsCenter.row.feedback": "Feedback",
   "navRail.settingsCenter.row.officialWebsite": "Octo website",
   "navRail.settingsCenter.row.openSource": "Octo open source",

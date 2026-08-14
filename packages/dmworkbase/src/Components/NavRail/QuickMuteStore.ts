@@ -28,6 +28,18 @@ function storeScope(scope: QuickMuteState["scope"]) {
   }
 }
 
+export function formatLocalDateTime(date: Date): string {
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+export function defaultQuickMuteTime(): string {
+  const date = new Date();
+  date.setDate(date.getDate() + 1);
+  date.setHours(9, 0, 0, 0);
+  return formatLocalDateTime(date);
+}
+
 function toState(response: NotificationPauseResponse): QuickMuteState {
   const endAt = response.paused_until ? Date.parse(response.paused_until) : undefined;
   return {
@@ -79,6 +91,9 @@ export class QuickMuteStore implements QuickMuteService {
   private state: QuickMuteState = { active: false, scope: getStoredScope(), revision: 0 };
   private listeners = new Set<(state: QuickMuteState) => void>();
   private requestVersion = 0;
+  private loaded = false;
+  private inFlight?: Promise<QuickMuteState>;
+  private serverOffset = 0;
 
   constructor(service: QuickMuteService = new QuickMuteApiService()) {
     this.service = service;
@@ -93,25 +108,36 @@ export class QuickMuteStore implements QuickMuteService {
     const currentRevision = this.state.revision ?? 0;
     const nextRevision = next.revision ?? 0;
     if (nextRevision < currentRevision) return this.state;
-    this.state = { ...next, scope: next.scope ?? getStoredScope() };
+    if (next.serverTime) {
+      const serverTime = Date.parse(next.serverTime);
+      if (Number.isFinite(serverTime)) this.serverOffset = serverTime - Date.now();
+    }
+    const endAt = next.endAt;
+    this.state = { ...next, active: Boolean(next.active && endAt && endAt > Date.now() + this.serverOffset), scope: next.scope ?? getStoredScope() };
+    this.loaded = true;
     this.listeners.forEach((listener) => listener(this.state));
     return this.state;
   }
 
   async getState() {
-    if (this.state.revision === 0) await this.refresh();
+    if (!this.loaded) await this.refresh();
+    else this.state = { ...this.state, active: Boolean(this.state.endAt && this.state.endAt > Date.now() + this.serverOffset) };
     return this.state;
   }
 
   async refresh() {
+    if (this.inFlight) return this.inFlight;
     const version = ++this.requestVersion;
-    const next = await this.service.getState();
-    if (version === this.requestVersion) this.apply(next);
-    return this.state;
+    this.inFlight = this.service.getState().then((next) => {
+      if (version === this.requestVersion) this.apply(next);
+      return this.state;
+    }).finally(() => { this.inFlight = undefined; });
+    return this.inFlight;
   }
 
   reset() {
     this.requestVersion += 1;
+    this.loaded = false;
     this.state = { active: false, scope: getStoredScope(), revision: 0 };
     this.listeners.forEach((listener) => listener(this.state));
   }
@@ -132,8 +158,10 @@ export class QuickMuteStore implements QuickMuteService {
 
   async setMute(input: { duration: QuickMuteDuration; endAt?: number; scope: QuickMuteState["scope"] }) {
     storeScope(input.scope);
+    const version = ++this.requestVersion;
     const next = await this.service.setMute(input);
-    return this.apply(next);
+    if (version === this.requestVersion) return this.apply(next);
+    return this.state;
   }
 
   setScope(scope: QuickMuteState["scope"]) {
@@ -142,8 +170,10 @@ export class QuickMuteStore implements QuickMuteService {
   }
 
   async resume() {
+    const version = ++this.requestVersion;
     const next = await this.service.resume();
-    return this.apply(next);
+    if (version === this.requestVersion) return this.apply(next);
+    return this.state;
   }
 }
 

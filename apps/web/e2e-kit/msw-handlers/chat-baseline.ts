@@ -88,7 +88,7 @@ export const chatBaselineHandlers = [
     HttpResponse.json({ mute: 0, hidden_bots: [], notify_level: 0 })
   ),
   http.get("*/user/notification-pause", () =>
-    HttpResponse.json({ paused: false, until: null })
+    HttpResponse.json({ paused: false, paused_until: null, revision: 0, server_time: new Date().toISOString() })
   ),
   http.put("*/user/language", () => HttpResponse.json({})),
 
