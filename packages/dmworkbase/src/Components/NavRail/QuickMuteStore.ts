@@ -1,5 +1,20 @@
 import APIClient from "../../Service/APIClient";
-import type { QuickMuteDuration, QuickMuteService, QuickMuteState } from "./QuickMuteSettings";
+
+export type QuickMuteDuration = "30m" | "1h" | "custom";
+export type QuickMuteScope = "sound" | "sound-and-popup";
+export interface QuickMuteState {
+  active: boolean;
+  endAt?: number;
+  scope: QuickMuteScope;
+  revision?: number;
+  serverTime?: string;
+}
+export interface QuickMuteService {
+  getState(): Promise<QuickMuteState>;
+  setMute(input: { duration: QuickMuteDuration; endAt?: number; scope: QuickMuteScope }): Promise<QuickMuteState>;
+  resume(): Promise<QuickMuteState>;
+  subscribe?(listener: (state: QuickMuteState) => void): () => void;
+}
 
 interface NotificationPauseResponse {
   paused?: boolean;

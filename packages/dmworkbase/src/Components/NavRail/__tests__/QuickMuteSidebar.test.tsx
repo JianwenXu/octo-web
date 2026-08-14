@@ -5,7 +5,7 @@ import { act } from "react-dom/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { i18n } from "../../../i18n";
 import QuickMuteSidebar from "../QuickMuteSidebar";
-import type { QuickMuteService, QuickMuteState } from "../QuickMuteSettings";
+import type { QuickMuteService, QuickMuteState } from "../QuickMuteStore";
 
 const flush = async () => act(async () => { await Promise.resolve(); await Promise.resolve(); });
 

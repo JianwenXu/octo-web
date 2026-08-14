@@ -1,8 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { t } from "../../i18n";
 import NavFlyout from "./NavFlyout";
-import { type QuickMuteDuration, type QuickMuteService, type QuickMuteState } from "./QuickMuteSettings";
-import { defaultQuickMuteTime, formatLocalDateTime, quickMuteStore } from "./QuickMuteStore";
+import { defaultQuickMuteTime, formatLocalDateTime, quickMuteStore, type QuickMuteDuration, type QuickMuteService, type QuickMuteState } from "./QuickMuteStore";
 
 function BellIcon({ muted }: { muted: boolean }) {
   return <svg viewBox="0 0 24 24" aria-hidden="true"><path d={muted ? "M4 4l16 16M10.3 5.2A6 6 0 0 1 18 10c0 4.5 1.4 6 2.7 7.3A1 1 0 0 1 20 19H4a1 1 0 0 1-.7-1.7C4.6 16 6 14.5 6 10a6 6 0 0 1 .6-2.6M10 21h4" : "M18 10a6 6 0 0 0-12 0c0 4.5-1.4 6-2.7 7.3A1 1 0 0 0 4 19h16a1 1 0 0 0 .7-1.7C19.4 16 18 14.5 18 10ZM10 21h4"} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>;

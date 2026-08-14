@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { QuickMuteStore, parseQuickMuteCMD } from "../QuickMuteStore";
-import type { QuickMuteService, QuickMuteState } from "../QuickMuteSettings";
+import type { QuickMuteService, QuickMuteState } from "../QuickMuteStore";
 
 const state = (revision: number, active = true): QuickMuteState => ({
   active,
