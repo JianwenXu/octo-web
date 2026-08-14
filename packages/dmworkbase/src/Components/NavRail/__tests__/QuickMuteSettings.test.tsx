@@ -64,4 +64,21 @@ describe("QuickMuteSettings", () => {
     expect(getState).toHaveBeenCalledTimes(2);
     expect(container.querySelector('[role="alert"]')).toBeNull();
   });
+
+  it("retries a failed resume instead of submitting a mute", async () => {
+    const resume = vi.fn()
+      .mockRejectedValueOnce(new Error("offline"))
+      .mockResolvedValueOnce({ active: false, scope: "sound" });
+    const api = service({ active: true, scope: "sound" }, { resume });
+    act(() => ReactDOM.render(<QuickMuteSettings service={api} />, container));
+    await flush();
+    const resumeButton = Array.from(container.querySelectorAll("button")).find((button) => button.textContent?.includes("恢复提醒"));
+    act(() => resumeButton?.click());
+    await flush();
+    const retry = Array.from(container.querySelectorAll("button")).find((button) => button.textContent?.includes("重试"));
+    act(() => retry?.click());
+    await flush();
+    expect(resume).toHaveBeenCalledTimes(2);
+    expect(api.setMute).not.toHaveBeenCalled();
+  });
 });

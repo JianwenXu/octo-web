@@ -11,7 +11,8 @@ function BellIcon({ muted }: { muted: boolean }) {
 export default function QuickMuteSidebar({ service = quickMuteStore }: { service?: QuickMuteService }) {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
-  const [state, setState] = useState<QuickMuteState>({ active: false, scope: "sound" });
+  const [state, setState] = useState<QuickMuteState>({ active: false, scope: "sound-and-popup" });
+  const [loaded, setLoaded] = useState(false);
   const [customTime, setCustomTime] = useState(defaultQuickMuteTime);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<"load" | "save" | null>(null);
@@ -26,6 +27,7 @@ export default function QuickMuteSidebar({ service = quickMuteStore }: { service
   const loadState = useCallback(async () => {
     try {
       setState(await service.getState());
+      setLoaded(true);
       setError(null);
     } catch {
       setError("load");
@@ -34,8 +36,8 @@ export default function QuickMuteSidebar({ service = quickMuteStore }: { service
 
   useEffect(() => {
     let mounted = true;
-    void service.getState().then((next) => { if (mounted) { setState(next); setError(null); } }).catch(() => { if (mounted) setError("load"); });
-    const unsubscribe = service.subscribe?.((next) => { if (mounted) setState(next); });
+    void service.getState().then((next) => { if (mounted) { setState(next); setLoaded(true); setError(null); } }).catch(() => { if (mounted) setError("load"); });
+    const unsubscribe = service.subscribe?.((next) => { if (mounted) { setState(next); setLoaded(true); } });
     return () => { mounted = false; unsubscribe?.(); };
   }, [service]);
 
@@ -55,11 +57,11 @@ export default function QuickMuteSidebar({ service = quickMuteStore }: { service
     <NavFlyout open={open} triggerRef={triggerRef} onOpenChange={(nextOpen) => nextOpen ? setOpen(true) : closePopover()} size="md" role="menu" ariaLabel={t("base.navRail.quickMute.menuTitle")} className="wk-navrail__quick-mute-menu">
       <div className="wk-navrail__quick-mute-title">{t("base.navRail.quickMute.menuTitle")}</div>
       <div className="wk-navrail__quick-mute-hint">{t("base.navRail.quickMute.menuHint")}</div>
-      <button type="button" role="menuitem" disabled={busy} className="wk-navrail__quick-mute-option" onClick={() => void apply("30m")}>{t("base.navRail.settingsCenter.action.mute30m")}</button>
-      <button type="button" role="menuitem" disabled={busy} className="wk-navrail__quick-mute-option" onClick={() => void apply("1h")}>{t("base.navRail.settingsCenter.action.mute1h")}</button>
-      <button type="button" role="menuitem" disabled={busy} className="wk-navrail__quick-mute-option" onClick={() => setCustomOpen((visible) => !visible)}>{t("base.navRail.quickMute.chooseDateTime")}</button>
-      {customOpen && <div className="wk-navrail__quick-mute-custom"><input type="datetime-local" value={customTime} min={formatLocalDateTime(new Date())} onChange={(event) => setCustomTime(event.target.value)} aria-label={t("base.navRail.settingsCenter.row.customMuteTime")} /><button type="button" disabled={busy} onClick={() => void apply("custom")}>{t("base.navRail.settingsCenter.action.muteUntil")}</button></div>}
-      {state.active && <button type="button" role="menuitem" disabled={busy} className="wk-navrail__quick-mute-resume" onClick={() => void resume()}>{t("base.navRail.settingsCenter.action.resume")}</button>}
+      <button type="button" role="menuitem" disabled={busy || !loaded} className="wk-navrail__quick-mute-option" onClick={() => void apply("30m")}>{t("base.navRail.settingsCenter.action.mute30m")}</button>
+      <button type="button" role="menuitem" disabled={busy || !loaded} className="wk-navrail__quick-mute-option" onClick={() => void apply("1h")}>{t("base.navRail.settingsCenter.action.mute1h")}</button>
+      <button type="button" role="menuitem" disabled={busy || !loaded} className="wk-navrail__quick-mute-option" onClick={() => setCustomOpen((visible) => !visible)}>{t("base.navRail.quickMute.chooseDateTime")}</button>
+      {customOpen && <div className="wk-navrail__quick-mute-custom"><input type="datetime-local" value={customTime} min={formatLocalDateTime(new Date())} onChange={(event) => setCustomTime(event.target.value)} aria-label={t("base.navRail.settingsCenter.row.customMuteTime")} /><button type="button" disabled={busy || !loaded} onClick={() => void apply("custom")}>{t("base.navRail.settingsCenter.action.muteUntil")}</button></div>}
+      {state.active && <button type="button" role="menuitem" disabled={busy || !loaded} className="wk-navrail__quick-mute-resume" onClick={() => void resume()}>{t("base.navRail.settingsCenter.action.resume")}</button>}
       {error && <div className="wk-navrail__quick-mute-error" role="alert">{t(error === "load" ? "base.navRail.settingsCenter.value.loadFailed" : "base.navRail.settingsCenter.value.saveFailed")} <button type="button" onClick={() => error === "load" ? void loadState() : lastAction === "resume" ? void resume() : void apply(lastAction)}>{t("base.navRail.settingsCenter.action.retry")}</button></div>}
     </NavFlyout>
   </div>;

@@ -57,6 +57,18 @@ describe("QuickMuteSidebar", () => {
     expect(document.querySelector('[role="menu"]')).toBeNull();
   });
 
+  it("keeps mute actions disabled until the initial state is loaded", async () => {
+    let resolveState!: (state: QuickMuteState) => void;
+    const getState = vi.fn(() => new Promise<QuickMuteState>((resolve) => { resolveState = resolve; }));
+    const api = service({ active: false, scope: "sound-and-popup" }, { getState });
+    renderSidebar(api);
+    act(() => button("提醒开启", container).click());
+    expect(button("静音 30 分钟").disabled).toBe(true);
+    await act(async () => resolveState({ active: false, scope: "sound-and-popup" }));
+    await flush();
+    expect(button("静音 30 分钟").disabled).toBe(false);
+  });
+
   it("shows a save error when muting fails", async () => {
     const api = service({ active: false, scope: "sound" }, {
       setMute: vi.fn(async () => { throw new Error("offline"); }),
@@ -98,5 +110,21 @@ describe("QuickMuteSidebar", () => {
     await flush();
     expect(getState).toHaveBeenCalledTimes(2);
     expect(document.querySelector('[role="alert"]')).toBeNull();
+  });
+
+  it("retries a failed resume instead of muting again", async () => {
+    const resume = vi.fn()
+      .mockRejectedValueOnce(new Error("offline"))
+      .mockResolvedValueOnce({ active: false, scope: "sound-and-popup" });
+    const api = service({ active: true, scope: "sound-and-popup" }, { resume });
+    renderSidebar(api);
+    await flush();
+    act(() => button("已静音", container).click());
+    act(() => button("恢复提醒").click());
+    await flush();
+    act(() => button("重试").click());
+    await flush();
+    expect(resume).toHaveBeenCalledTimes(2);
+    expect(api.setMute).not.toHaveBeenCalled();
   });
 });

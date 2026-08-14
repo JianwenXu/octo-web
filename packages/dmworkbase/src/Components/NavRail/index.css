@@ -119,17 +119,17 @@
 .wk-navrail__quick-mute-wrap { position: relative; width: 100%; }
 .wk-navrail__quick-mute-trigger svg { width: 20px; height: 20px; flex: 0 0 20px; }
 .wk-navrail__quick-mute-menu { padding: 8px; }
-.wk-navrail__quick-mute-title { padding: 7px 10px 2px; color: #222; font-size: 14px; font-weight: 700; line-height: 1.45; }
-.wk-navrail__quick-mute-hint { padding: 0 10px 8px; color: #666; font-size: 12px; line-height: 1.5; }
-.wk-navrail__quick-mute-option, .wk-navrail__quick-mute-resume { display: flex; width: 100%; min-height: 36px; align-items: center; justify-content: space-between; padding: 5px 10px; border: 0; border-radius: 6px; background: transparent; color: #222; cursor: pointer; font: inherit; font-size: 13px; line-height: 1.4; text-align: left; transition: background 140ms ease, color 140ms ease; }
-.wk-navrail__quick-mute-option:hover, .wk-navrail__quick-mute-option:focus-visible, .wk-navrail__quick-mute-resume:hover, .wk-navrail__quick-mute-resume:focus-visible { background: #f2f2f2; outline: none; }
+.wk-navrail__quick-mute-title { padding: 7px 10px 2px; color: var(--wk-text-primary); font-size: 14px; font-weight: 700; line-height: 1.45; }
+.wk-navrail__quick-mute-hint { padding: 0 10px 8px; color: var(--wk-text-tertiary); font-size: 12px; line-height: 1.5; }
+.wk-navrail__quick-mute-option, .wk-navrail__quick-mute-resume { display: flex; width: 100%; min-height: 36px; align-items: center; justify-content: space-between; padding: 5px 10px; border: 0; border-radius: 6px; background: transparent; color: var(--wk-text-primary); cursor: pointer; font: inherit; font-size: 13px; line-height: 1.4; text-align: left; transition: background 140ms ease, color 140ms ease; }
+.wk-navrail__quick-mute-option:hover, .wk-navrail__quick-mute-option:focus-visible, .wk-navrail__quick-mute-resume:hover, .wk-navrail__quick-mute-resume:focus-visible { background: var(--wk-bg-item-hover); outline: none; }
 .wk-navrail__quick-mute-option:disabled, .wk-navrail__quick-mute-resume:disabled { cursor: not-allowed; opacity: .5; }
-.wk-navrail__quick-mute-resume { margin: 4px 0 0; padding-inline: 10px; border-top: 1px solid #e4e4e4; border-radius: 0; color: var(--wk-color-primary, #3370ff); font-weight: 600; }
+.wk-navrail__quick-mute-resume { margin: 4px 0 0; padding-inline: 10px; border-top: 1px solid var(--wk-border-subtle); border-radius: 0; color: var(--wk-color-accent); font-weight: 600; }
 .wk-navrail__quick-mute-custom { display: grid; gap: 6px; padding: 6px 10px 4px; }
-.wk-navrail__quick-mute-custom input { width: 100%; min-height: 30px; box-sizing: border-box; padding: 0 7px; border: 1px solid #d7d7d7; border-radius: 5px; background: #fff; color: #222; font: inherit; font-size: 12px; }
-.wk-navrail__quick-mute-custom input:focus-visible { border-color: var(--wk-color-primary, #3370ff); outline: 2px solid rgba(51, 112, 255, 0.14); outline-offset: 0; }
-.wk-navrail__quick-mute-custom button { min-height: 30px; border: 1px solid #d7d7d7; border-radius: 5px; background: #fff; color: #222; cursor: pointer; font-size: 12px; }
-.wk-navrail__quick-mute-custom button:hover, .wk-navrail__quick-mute-custom button:focus-visible { background: #f2f2f2; outline: none; }
+.wk-navrail__quick-mute-custom input { width: 100%; min-height: 30px; box-sizing: border-box; padding: 0 7px; border: 1px solid var(--wk-border-default); border-radius: 5px; background: var(--wk-bg-surface); color: var(--wk-text-primary); font: inherit; font-size: 12px; }
+.wk-navrail__quick-mute-custom input:focus-visible { border-color: var(--wk-color-accent); outline: 2px solid var(--wk-brand-primary-ring); outline-offset: 0; }
+.wk-navrail__quick-mute-custom button { min-height: 30px; border: 1px solid var(--wk-border-default); border-radius: 5px; background: var(--wk-bg-surface); color: var(--wk-text-primary); cursor: pointer; font-size: 12px; }
+.wk-navrail__quick-mute-custom button:hover, .wk-navrail__quick-mute-custom button:focus-visible { background: var(--wk-bg-item-hover); outline: none; }
 .wk-navrail__quick-mute-scope { display: grid; gap: 4px; margin: 6px 4px 2px; padding-top: 8px; border-top: 1px solid var(--wk-border-subtle); color: var(--wk-text-tertiary); font-size: 12px; }
 .wk-navrail__quick-mute-scope select { min-height: 28px; border: 1px solid var(--wk-border-default); border-radius: 5px; background: var(--wk-bg-surface); color: var(--wk-text-primary); font-size: 12px; }
 .wk-navrail__quick-mute-error { padding: 6px 4px 2px; color: var(--wk-color-danger, #d14343); font-size: 12px; }
