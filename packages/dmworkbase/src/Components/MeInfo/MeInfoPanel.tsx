@@ -218,14 +218,14 @@ export default function MeInfoPanel({
             <MeInfoNavRow title={genderLabel} value={genderValue} onClick={onShowGender} />
         </MeInfoSection>}
 
-        {!embedded && <MeInfoSection title={securityTitle}>
+        <MeInfoSection title={securityTitle}>
             <MeInfoNavRow
                 title={realnameLabel}
                 value={realnameValue}
                 right={isRealnameVerified ? <Check size={16} aria-hidden="true" /> : undefined}
                 onClick={isRealnameVerified ? undefined : onRealnameClick}
             />
-        </MeInfoSection>}
+        </MeInfoSection>
 
         {showExperimentalFeatures && <MeInfoSection title={experimentalFeaturesLabel}>
             <MeInfoNavRow title={experimentalFeaturesLabel} onClick={onShowExperimentalFeatures} />
