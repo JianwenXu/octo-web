@@ -58,14 +58,14 @@ describe("static settings pages", () => {
   it("renders downloads as unavailable controls on web", () => {
     renderPage("downloads");
     expect(container.textContent).toContain("下载目录");
-    expect(container.querySelector("button")?.hasAttribute("disabled")).toBe(true);
-    expect(container.querySelector("input[aria-label=\"每次询问保存位置\"]")?.hasAttribute("disabled")).toBe(true);
+    expect(container.textContent).toContain("即将上线");
+    expect(container.querySelector("button")).toBeNull();
   });
 
   it("shows voice shortcuts only when voice input is available", () => {
     renderPage("shortcuts", { environment: { ...webEnvironment, os: "macos", capabilities: new Set(["voiceInput"]) } });
     expect(container.textContent).toContain("按住说话");
-    expect(container.textContent).toContain("Shift+Cmd+Space");
+    expect(container.textContent).toContain("右 Option");
   });
 
   it("renders device resources and about page actions", async () => {

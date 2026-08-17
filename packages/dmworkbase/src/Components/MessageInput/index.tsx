@@ -71,21 +71,19 @@ import {
 } from "../../im-runtime/channelRuntime";
 
 import { MAX_MESSAGE_LENGTH } from "./constants";
-
-// placeholder 格式化所需的平台快捷键标识（模块级常量，避免重复计算）
-const ALT_KEY = /Mac|iPhone|iPad/i.test(navigator.userAgent) ? '⌥' : 'Alt';
+import { getMicrophonePermission, getVoiceShortcut, setMicrophonePermission, subscribeMicrophonePermission, voiceSettingsStore, type VoiceSettings } from "../../Service/VoiceSettingsStore";
 
 /** 根据频道类型和名称生成 placeholder 文本 */
-function buildPlaceholder(channel: Channel, name: string, t: typeof translate): string {
-  if (channel.channelType === ChannelTypePerson) {
-    return name
-      ? t("base.messageInput.placeholder.directWithName", { values: { name } })
-      : t("base.messageInput.placeholder.direct");
-  } else {
-    return name
-      ? t("base.messageInput.placeholder.replyWithName", { values: { name, shortcut: ALT_KEY } })
-      : t("base.messageInput.placeholder.reply", { values: { shortcut: ALT_KEY } });
-  }
+function buildPlaceholder(channel: Channel, name: string, t: typeof translate, voiceSettings?: VoiceSettings): string {
+  const base = channel.channelType === ChannelTypePerson
+    ? (name ? t("base.messageInput.placeholder.directWithName", { values: { name } }) : t("base.messageInput.placeholder.direct"))
+    : (name ? t("base.messageInput.placeholder.replyWithName", { values: { name } }) : t("base.messageInput.placeholder.reply"));
+  if (!voiceSettings?.enabled) return base;
+  const os = /Mac|iPhone|iPad/i.test(navigator.userAgent) ? "macos" : "windows";
+  const shortcut = getVoiceShortcut(voiceSettings, os);
+  if (shortcut === "disabled") return base;
+  const label = shortcut === "alt-right" ? (os === "macos" ? t("base.navRail.settingsCenter.value.rightOption") : t("base.navRail.settingsCenter.value.rightAlt")) : shortcut === "shift-right" ? t("base.navRail.settingsCenter.value.rightShift") : t("base.navRail.settingsCenter.value.leftShift");
+  return `${base}${voiceSettings.speakingMode === "hold" ? t("base.messageInput.placeholder.voiceHold", { values: { shortcut: label } }) : t("base.messageInput.placeholder.voiceToggle", { values: { shortcut: label } })}`;
 }
 
 // 从编辑器中提取附件节点（纯函数，避免闭包问题）
@@ -498,12 +496,37 @@ const MessageInput: React.FC<MessageInputProps> = (props) => {
   // 顶部附件区的附件列表（非图片文件 + 上传的图片）
   const [topAttachments, setTopAttachments] = useState<TopAttachmentItem[]>([]);
   const topAttachmentsRef = useRef<TopAttachmentItem[]>([]);
+  const [voiceSettings, setVoiceSettings] = useState(() => voiceSettingsStore.get());
+  const [microphonePermission, setMicrophonePermissionState] = useState<PermissionState>(() => getMicrophonePermission());
+  useEffect(() => voiceSettingsStore.subscribe(setVoiceSettings), []);
+  const refreshMicrophonePermission = useCallback(async () => {
+    if (!navigator.permissions?.query) return;
+    try {
+      const status = await navigator.permissions.query({ name: "microphone" as PermissionName });
+      setMicrophonePermission(status.state);
+      setMicrophonePermissionState(status.state);
+    } catch {
+      // Some WebViews do not implement the microphone permission descriptor.
+      // Keep the conservative prompt state in that case.
+    }
+  }, []);
+  useEffect(() => {
+    void refreshMicrophonePermission();
+    const refresh = () => { void refreshMicrophonePermission(); };
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      window.removeEventListener("focus", refresh);
+      document.removeEventListener("visibilitychange", refresh);
+    };
+  }, [refreshMicrophonePermission, voiceSettings.enabled]);
+  useEffect(() => subscribeMicrophonePermission(setMicrophonePermissionState), []);
 
-  // 动态生成 placeholder（channelInfo 异步加载后通过 listener 自动更新）
-  const [placeholder, setPlaceholder] = useState(() => {
+  // 频道名称单独维护，placeholder 根据最新权限/语音配置纯派生，避免异步回调覆盖新配置。
+  const [channelName, setChannelName] = useState(() => {
     const channel = props.context.channel();
     const channelInfo = getImChannelInfo(WKSDK.shared(), channel);
-    return buildPlaceholder(channel, channelInfo?.title || "", t);
+    return channelInfo?.title || "";
   });
 
   useEffect(() => {
@@ -512,7 +535,7 @@ const MessageInput: React.FC<MessageInputProps> = (props) => {
 
     const updateName = (name: string) => {
       if (aborted) return;
-      setPlaceholder(buildPlaceholder(channel, name, t));
+      setChannelName(name);
     };
 
     // 监听 channelInfo 更新（SDK fetch 完成后会通知）
@@ -536,6 +559,13 @@ const MessageInput: React.FC<MessageInputProps> = (props) => {
       unsubscribeChannelInfo();
     };
   }, [props.context, t]);
+
+  const placeholder = useMemo(
+    () => buildPlaceholder(props.context.channel(), channelName, t, voiceSettings),
+    [props.context, channelName, t, voiceSettings],
+  );
+  const placeholderRef = useRef(placeholder);
+  placeholderRef.current = placeholder;
 
   const memberInfos = useMemo<MemberInfo[]>(
     () => buildMemberInfos(props.members),
@@ -649,7 +679,7 @@ const MessageInput: React.FC<MessageInputProps> = (props) => {
         link: false,
       }),
       Placeholder.configure({
-        placeholder,
+        placeholder: () => placeholderRef.current,
       }),
       AttachmentNode,
       TiptapMention.configure({
@@ -954,17 +984,23 @@ const MessageInput: React.FC<MessageInputProps> = (props) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 动态更新 placeholder
+  const applyPlaceholder = useCallback((nextPlaceholder: string) => {
+    if (!editor) return;
+    placeholderRef.current = nextPlaceholder;
+    // Placeholder 的动态函数会在事务产生装饰时重新读取 ref。
+    editor.view.dispatch(editor.state.tr.setMeta("voice-input-placeholder", true));
+    editor.view.dom.querySelectorAll<HTMLElement>("[data-placeholder]").forEach((element) => {
+      element.dataset.placeholder = nextPlaceholder;
+    });
+  }, [editor]);
+
+  // React 更新和编辑器装饰更新不是同一条链路；直接订阅配置，保证当前会话立即刷新。
   useEffect(() => {
-    if (editor) {
-      editor.extensionManager.extensions
-        .filter((ext) => ext.name === "placeholder")
-        .forEach((ext) => {
-          (ext.options as any).placeholder = placeholder;
-          editor.view.dispatch(editor.state.tr);
-        });
-    }
-  }, [editor, placeholder]);
+    applyPlaceholder(placeholder);
+  }, [applyPlaceholder, placeholder]);
+  useEffect(() => voiceSettingsStore.subscribe((settings) => {
+    applyPlaceholder(buildPlaceholder(props.context.channel(), channelName, t, settings));
+  }), [applyPlaceholder, props.context, channelName, t]);
 
   // 导出 addAttachment 方法
   useEffect(() => {

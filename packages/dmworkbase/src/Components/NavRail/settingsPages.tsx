@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { Switch, Toast } from "@douyinfe/semi-ui";
+import { Spin, Switch, Toast } from "@douyinfe/semi-ui";
+import DOMPurify from "dompurify";
 import { QRCodeSVG } from "qrcode.react";
 import WKApp, { ThemeMode } from "../../App";
 import { apiFetchJson } from "../../Service/apiFetch";
@@ -13,6 +14,9 @@ import { MeInfo } from "../MeInfo";
 import octoLogo from "../../assets/settings-center/octo-logo.png";
 import mininglampLogo from "../../assets/settings-center/mininglamp-logo.png";
 import { quickMuteStore } from "./QuickMuteStore";
+import { getVoiceShortcut, setMicrophonePermission, VOICE_PROTOCOL_VERSION, voiceSettingsStore, type VoiceSettings, type VoiceShortcut } from "../../Service/VoiceSettingsStore";
+import { getDocument } from "../../Service/DocumentService";
+import Checkbox from "../Checkbox";
 
 export function SettingsRow({ title, description, trailing, children }: { title: string; description?: string; trailing?: React.ReactNode; children?: React.ReactNode }) { return <div className="wk-settings-center__row"><div className="wk-settings-center__row-main"><div className="wk-settings-center__row-title">{title}</div>{description && <div className="wk-settings-center__row-description">{description}</div>}</div>{children ?? trailing}</div>; }
 
@@ -85,11 +89,12 @@ export function SettingsPage({ item, environment, accountCenterUrl, onSecrets, o
     return <NotificationsSettingsPage environment={environment} />;
   }
   if (item?.id === "desktop-behavior") return <DesktopBehaviorSettingsPage environment={environment} />;
-  if (item?.id === "downloads") return <SettingsPageFrame title={t("base.navRail.settingsCenter.page.downloads.title")}><SettingsSection title={t("base.navRail.settingsCenter.section.downloads")}><SettingsRow title={t("base.navRail.settingsCenter.row.downloadDirectory")} description={t("base.navRail.settingsCenter.row.downloadDirectoryDescription")}><div className="wk-settings-center__download-location"><code>{t("base.navRail.settingsCenter.value.defaultDownloadPath")}</code><button type="button" className="wk-settings-center__manage-button" disabled>{t("base.navRail.settingsCenter.action.change")}</button></div></SettingsRow><SettingsRow title={t("base.navRail.settingsCenter.row.askBeforeSaving")} description={t("base.navRail.settingsCenter.row.askBeforeSavingDescription")} trailing={<Switch disabled checked={false} aria-label={t("base.navRail.settingsCenter.row.askBeforeSaving")} />} /></SettingsSection></SettingsPageFrame>;
-  if (item?.id === "voice") return <SettingsPageFrame title={t("base.navRail.settingsCenter.page.voice.title")} description={t("base.navRail.settingsCenter.page.voice.description")}><SettingsRow title={t("base.navRail.settingsCenter.row.voice")} description={t("base.navRail.settingsCenter.row.voiceDescription")} trailing={<button type="button" className="wk-settings-center__link" onClick={onVoice}>{t("base.navRail.settingsCenter.action.open")}</button>} /></SettingsPageFrame>;
+  if (item?.id === "downloads") return <SettingsPageFrame title={t("base.navRail.settingsCenter.page.downloads.title")}><SettingsSection title={t("base.navRail.settingsCenter.section.downloads")}><SettingsRow title={t("base.navRail.settingsCenter.row.downloadDirectory")} description={t("base.navRail.settingsCenter.row.downloadDirectoryDescription")}><div className="wk-settings-center__download-location"><code>{t("base.navRail.settingsCenter.value.defaultDownloadPath")}</code><SettingsStatusTag tone="neutral" label={t("base.navRail.settingsCenter.value.comingSoon")} /></div></SettingsRow><SettingsRow title={t("base.navRail.settingsCenter.row.askBeforeSaving")} description={t("base.navRail.settingsCenter.row.askBeforeSavingDescription")} trailing={<SettingsStatusTag tone="neutral" label={t("base.navRail.settingsCenter.value.comingSoon")} />} /></SettingsSection></SettingsPageFrame>;
+  if (item?.id === "voice") return <VoiceInputSettingsPage environment={environment} />;
   if (item?.id === "shortcuts") {
-    const voiceShortcutModifier = environment.os === "macos" ? "Cmd" : "Ctrl";
-    return <SettingsPageFrame title={t("base.navRail.settingsCenter.page.shortcuts.title")}><div className="wk-settings-center__shortcut-catalog">{environment.capabilities.has("voiceInput") && <section className="wk-settings-center__shortcut-group"><h3>{t("base.navRail.settingsCenter.shortcut.voice")}</h3><ShortcutRow label={t("base.navRail.settingsCenter.shortcut.holdToTalk")} keys={[`Shift+${voiceShortcutModifier}+Space`, "Shift"]} /><ShortcutRow label={t("base.navRail.settingsCenter.shortcut.cancelVoice")} keys={["Esc"]} /></section>}</div></SettingsPageFrame>;
+    const settings = useVoiceSettings();
+    const os = getVoiceOs(environment);
+    return <SettingsPageFrame title={t("base.navRail.settingsCenter.page.shortcuts.title")}><div className="wk-settings-center__shortcut-catalog">{environment.capabilities.has("voiceInput") && <section className="wk-settings-center__shortcut-group"><h3>{t("base.navRail.settingsCenter.shortcut.voice")}</h3><ShortcutRow label={t("base.navRail.settingsCenter.shortcut.holdToTalk")} keys={[voiceShortcutLabel(getVoiceShortcut(settings, os), os), voiceModeLabel(settings.speakingMode)]} /><ShortcutRow label={t("base.navRail.settingsCenter.shortcut.cancelVoice")} keys={["Esc"]} /></section>}</div></SettingsPageFrame>;
   }
   if (item?.id === "devices") return <SettingsPageFrame title={t("base.navRail.settingsCenter.page.devices.title")}><div className="wk-settings-center__resource-sections">{settingsResourceGroups.map((group) => <ResourceSection key={group.titleKey} title={t(group.titleKey)} category={group.category}>{group.resources.map((resource) => <ResourceCard key={resource.id} {...resource} description={t(resource.descriptionKey)} statusLabel={t(resource.statusKey)} category={group.category} action={resource.url && resource.actionKey ? <a className="wk-settings-center__resource-action" href={resource.url} target="_blank" rel="noreferrer">↗ {t(resource.actionKey)}</a> : undefined} />)}</ResourceSection>)}</div></SettingsPageFrame>;
   if (item?.id === "about") return <AboutSettingsPage onAbout={onAbout} onOpenOnboarding={onOpenOnboarding} />;
@@ -97,8 +102,8 @@ export function SettingsPage({ item, environment, accountCenterUrl, onSecrets, o
 }
 
 function AccountSettingsPage({ accountCenterUrl, onSecrets }: { accountCenterUrl?: string; onSecrets?: () => void }) {
-  const [realnameVerified, setRealnameVerified] = React.useState(() => WKApp.loginInfo.realnameVerified === true);
-  return <SettingsPageFrame title={t("base.navRail.settingsCenter.page.account.title")}><>{accountCenterUrl && <SettingsSection title={t("base.navRail.settingsCenter.section.accountSecurity")}><SettingsRow title={t("base.navRail.settingsCenter.row.accountCenter")} description={t("base.navRail.settingsCenter.row.accountCenterDescription")} trailing={<a className="wk-settings-center__external-link" href={accountCenterUrl} target="_blank" rel="noreferrer" aria-label={t("base.navRail.settingsCenter.row.accountCenter")}>↗</a>} /></SettingsSection>}<SettingsSection title={t("base.navRail.settingsCenter.section.profile")}><MeInfo onClose={() => undefined} embedded onRealnameStatusChange={setRealnameVerified} /></SettingsSection><SettingsSection title={t("base.navRail.settingsCenter.section.verification")}><SettingsRow title={t("base.navRail.settingsCenter.row.realname")} trailing={<span className="wk-settings-center__row-value">{realnameVerified ? t("base.me.realname.verified") : t("base.navRail.settingsCenter.value.unverified")} {!realnameVerified && <span aria-hidden="true">›</span>}</span>} /></SettingsSection><SettingsSection title={t("base.navRail.settingsCenter.section.secrets")}><SettingsRow title={t("base.navRail.settingsCenter.row.manageSecrets")} description={t("base.navRail.settingsCenter.row.manageSecretsDescription")} trailing={<button type="button" className="wk-settings-center__manage-button" onClick={onSecrets}>{t("base.navRail.settingsCenter.action.manage")}</button>} /><SettingsRow title={t("base.navRail.settingsCenter.row.referenceSecrets")} description={t("base.navRail.settingsCenter.row.referenceSecretsDescription")} /></SettingsSection></></SettingsPageFrame>;
+  const [, setRealnameVerified] = React.useState(() => WKApp.loginInfo.realnameVerified === true);
+  return <SettingsPageFrame title={t("base.navRail.settingsCenter.page.account.title")}><>{accountCenterUrl && <SettingsSection title={t("base.navRail.settingsCenter.section.accountSecurity")}><SettingsRow title={t("base.navRail.settingsCenter.row.accountCenter")} description={t("base.navRail.settingsCenter.row.accountCenterDescription")} trailing={<a className="wk-settings-center__external-link" href={accountCenterUrl} target="_blank" rel="noreferrer" aria-label={t("base.navRail.settingsCenter.row.accountCenter")}>↗</a>} /></SettingsSection>}<SettingsSection title={t("base.navRail.settingsCenter.section.profile")}><MeInfo onClose={() => undefined} embedded onRealnameStatusChange={setRealnameVerified} /></SettingsSection><SettingsSection title={t("base.navRail.settingsCenter.section.secrets")}><SettingsRow title={t("base.navRail.settingsCenter.row.manageSecrets")} description={t("base.navRail.settingsCenter.row.manageSecretsDescription")} trailing={<button type="button" className="wk-settings-center__manage-button" onClick={onSecrets}>{t("base.navRail.settingsCenter.action.manage")}</button>} /><SettingsRow title={t("base.navRail.settingsCenter.row.referenceSecrets")} description={t("base.navRail.settingsCenter.row.referenceSecretsDescription")} /></SettingsSection></></SettingsPageFrame>;
 }
 
 function DesktopBehaviorSettingsPage({ environment }: { environment: import("../../Runtime").RuntimeEnvironment }) {
@@ -136,15 +141,17 @@ function DesktopBehaviorSettingsPage({ environment }: { environment: import("../
     }
   };
 
+  const os = environment.os === "macos" ? "macos" : "windows";
+  const unavailable = <SettingsStatusTag tone="neutral" label={t("base.navRail.settingsCenter.value.comingSoon")} />;
   return <SettingsPageFrame title={t("base.navRail.settingsCenter.page.desktopBehavior.title")}>
     <SettingsSection title={t("base.navRail.settingsCenter.section.display")}>
-      <SettingsRow title={t("base.navRail.settingsCenter.row.interfaceScale")} description={t("base.navRail.settingsCenter.row.interfaceScaleDescription")} trailing={<select className="wk-settings-center__demo-select" disabled aria-label={t("base.navRail.settingsCenter.row.interfaceScale")} defaultValue="100"><option value="80">80%</option><option value="90">90%</option><option value="100">100%</option><option value="110">110%</option><option value="125">125%</option></select>} />
+      <SettingsRow title={t("base.navRail.settingsCenter.row.interfaceScale")} description={t("base.navRail.settingsCenter.row.interfaceScaleDescription")} trailing={unavailable} />
     </SettingsSection>
     <SettingsSection title={t("base.navRail.settingsCenter.section.system")}>
-      <SettingsRow title={t("base.navRail.settingsCenter.row.launchAtStartup")} description={t("base.navRail.settingsCenter.row.launchAtStartupDescription")} trailing={<Switch disabled checked={false} aria-label={t("base.navRail.settingsCenter.row.launchAtStartup")} />} />
-      <SettingsRow title={t("base.navRail.settingsCenter.row.systemTray")} description={t("base.navRail.settingsCenter.row.systemTrayDescription")} trailing={<Switch disabled checked aria-label={t("base.navRail.settingsCenter.row.systemTray")} />} />
+      <SettingsRow title={t(os === "macos" ? "base.navRail.settingsCenter.row.launchAtLogin" : "base.navRail.settingsCenter.row.launchAtStartup")} description={t(os === "macos" ? "base.navRail.settingsCenter.row.launchAtLoginDescription" : "base.navRail.settingsCenter.row.launchAtStartupDescription")} trailing={unavailable} />
+      <SettingsRow title={t(os === "macos" ? "base.navRail.settingsCenter.row.menuBar" : "base.navRail.settingsCenter.row.systemTray")} description={t(os === "macos" ? "base.navRail.settingsCenter.row.menuBarDescription" : "base.navRail.settingsCenter.row.systemTrayDescription")} trailing={unavailable} />
       <SettingsRow title={t("base.navRail.settingsCenter.row.keepAwake")} description={t("base.navRail.settingsCenter.row.keepAwakeDescription")} trailing={<Switch disabled={keepAwakeLoading || keepAwakeSaving} checked={keepAwake} onChange={(checked) => { void updateKeepAwake(checked); }} aria-label={t("base.navRail.settingsCenter.row.keepAwake")} />} />
-      <SettingsRow title={t("base.navRail.settingsCenter.row.closeWindowBehavior")} description={t("base.navRail.settingsCenter.row.closeWindowBehaviorDescription")} trailing={<select className="wk-settings-center__demo-select" disabled aria-label={t("base.navRail.settingsCenter.row.closeWindowBehavior")} defaultValue="background"><option value="background">{t("base.navRail.settingsCenter.value.continueInBackground")}</option><option value="quit">{t("base.navRail.settingsCenter.value.quitOcto")}</option></select>} />
+      <SettingsRow title={t("base.navRail.settingsCenter.row.closeWindowBehavior")} description={t("base.navRail.settingsCenter.row.closeWindowBehaviorDescription")} trailing={unavailable} />
     </SettingsSection>
   </SettingsPageFrame>;
 }
@@ -198,6 +205,151 @@ function AboutSettingsPage({ onAbout, onOpenOnboarding }: { onAbout?: () => void
 }
 function ChevronIcon() { return <svg className="wk-settings-center__chevron-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7" /></svg>; }
 function ShortcutRow({ label, keys }: { label: string; keys: string[] }) { return <div className="wk-settings-center__shortcut-row"><span>{label}</span><span className="wk-settings-center__shortcut-keys">{keys.map((key) => <kbd key={key}>{key}</kbd>)}</span></div>; }
+function useVoiceSettings() {
+  const [settings, setSettings] = React.useState<VoiceSettings>(() => voiceSettingsStore.get());
+  React.useEffect(() => voiceSettingsStore.subscribe(setSettings), []);
+  return settings;
+}
+function getVoiceOs(environment: import("../../Runtime").RuntimeEnvironment): "windows" | "macos" { return environment.os === "macos" || (environment.os === "unknown" && /Mac|iPhone|iPad/i.test(navigator.userAgent)) ? "macos" : "windows"; }
+function voiceShortcutLabel(shortcut: VoiceShortcut, os: "windows" | "macos") { return shortcut === "alt-right" ? t(os === "macos" ? "base.navRail.settingsCenter.value.rightOption" : "base.navRail.settingsCenter.value.rightAlt") : shortcut === "shift-right" ? t("base.navRail.settingsCenter.value.rightShift") : shortcut === "shift-left" ? t("base.navRail.settingsCenter.value.leftShift") : t("base.navRail.settingsCenter.value.disabled"); }
+function voiceModeLabel(mode: VoiceSettings["speakingMode"]) { return mode === "hold" ? "长按" : "点按"; }
+function VoiceInputSettingsPage({ environment }: { environment: import("../../Runtime").RuntimeEnvironment }) {
+  const settings = useVoiceSettings();
+  const [devices, setDevices] = React.useState<MediaDeviceInfo[]>([]);
+  const [showConsent, setShowConsent] = React.useState(false);
+  const [consentChecked, setConsentChecked] = React.useState(false);
+  const [consentContent, setConsentContent] = React.useState<string | null>(null);
+  const [consentLoading, setConsentLoading] = React.useState(false);
+  const [consentError, setConsentError] = React.useState(false);
+  const [permission, setPermission] = React.useState<"granted" | "prompt" | "denied" | "unsupported">("unsupported");
+  const [probeStatus, setProbeStatus] = React.useState<"idle" | "loading" | "success" | "failed">("idle");
+  const [localDraft, setLocalDraft] = React.useState(() => ({ timeout: String(settings.localTimeoutMs), probe: settings.localProbeUrl, transcribe: settings.localTranscribeUrl }));
+  const [localDirty, setLocalDirty] = React.useState(false);
+  const permissionStatusRef = React.useRef<PermissionStatus | null>(null);
+  const permissionChangeHandlerRef = React.useRef<() => void>(() => {});
+  const os = getVoiceOs(environment);
+  const refreshDevices = React.useCallback(async () => {
+    if (!navigator.mediaDevices?.enumerateDevices) return;
+    const list = await navigator.mediaDevices.enumerateDevices();
+    // enumerateDevices() exposes a synthetic `default` entry in addition to
+    // the physical default microphone. The UI already has its own
+    // “System default microphone” option, so showing that entry duplicates it.
+    const audioInputs = list.filter((device) => device.kind === "audioinput" && device.deviceId && device.deviceId !== "default");
+    setDevices(audioInputs);
+    const selectedId = voiceSettingsStore.get().microphoneDeviceId;
+    if (selectedId && !audioInputs.some((device) => device.deviceId === selectedId)) {
+      voiceSettingsStore.set({ microphoneDeviceId: "" });
+    }
+  }, []);
+  const refreshPermission = React.useCallback(async () => {
+    if (!navigator.mediaDevices?.getUserMedia) { setPermission("unsupported"); return; }
+    try {
+      const status = await navigator.permissions?.query({ name: "microphone" as PermissionName });
+      permissionStatusRef.current?.removeEventListener?.("change", permissionChangeHandlerRef.current);
+      permissionStatusRef.current = status ?? null;
+      permissionStatusRef.current?.addEventListener?.("change", permissionChangeHandlerRef.current);
+      const nextPermission = status?.state === "granted" ? "granted" : status?.state === "denied" ? "denied" : "prompt";
+      setPermission(nextPermission);
+      setMicrophonePermission(nextPermission);
+    } catch { setPermission("prompt"); setMicrophonePermission("prompt"); }
+  }, []);
+  React.useEffect(() => {
+    permissionChangeHandlerRef.current = () => { void refreshPermission(); };
+    void refreshDevices();
+    void refreshPermission();
+    const handleDeviceChange = () => { void refreshDevices(); };
+    navigator.mediaDevices?.addEventListener?.("devicechange", handleDeviceChange);
+    return () => {
+      navigator.mediaDevices?.removeEventListener?.("devicechange", handleDeviceChange);
+      permissionStatusRef.current?.removeEventListener?.("change", permissionChangeHandlerRef.current);
+      permissionStatusRef.current = null;
+    };
+  }, [refreshDevices, refreshPermission]);
+  React.useEffect(() => { setLocalDraft({ timeout: String(settings.localTimeoutMs), probe: settings.localProbeUrl, transcribe: settings.localTranscribeUrl }); setLocalDirty(false); }, [settings.localTimeoutMs, settings.localProbeUrl, settings.localTranscribeUrl]);
+  React.useEffect(() => {
+    if (!showConsent) return;
+    let cancelled = false;
+    setConsentLoading(true);
+    setConsentError(false);
+    setConsentContent(null);
+    getDocument("asr_service_doc")
+      .then((doc) => { if (!cancelled) setConsentContent(doc.content); })
+      .catch(() => { if (!cancelled) setConsentError(true); })
+      .finally(() => { if (!cancelled) setConsentLoading(false); });
+    return () => { cancelled = true; };
+  }, [showConsent]);
+  const toggle = (enabled: boolean) => {
+    if (!enabled) { voiceSettingsStore.set({ enabled: false }); return; }
+    if (settings.consent?.protocolVersion !== VOICE_PROTOCOL_VERSION) setShowConsent(true);
+    else voiceSettingsStore.set({ enabled: true });
+  };
+  const authorize = async () => { if (!navigator.mediaDevices?.getUserMedia) return; try { const stream = await navigator.mediaDevices.getUserMedia({ audio: true, ...(settings.microphoneDeviceId ? { deviceId: { exact: settings.microphoneDeviceId } } : {}) }); stream.getTracks().forEach((track) => track.stop()); await refreshDevices(); await refreshPermission(); } catch { await refreshPermission(); } };
+  const permissionLabel = permission === "granted" ? t("base.navRail.settingsCenter.value.granted") : permission === "denied" ? t("base.navRail.settingsCenter.value.denied") : permission === "prompt" ? t("base.navRail.settingsCenter.value.unauthorized") : t("base.navRail.settingsCenter.value.unsupported");
+  const permissionTone = permission === "granted" ? "success" : permission === "denied" ? "danger" : permission === "prompt" ? "attention" : "neutral";
+  const permissionDescription = permission === "granted"
+    ? t(environment.target === "web" ? "base.navRail.settingsCenter.row.microphoneGrantedWeb" : "base.navRail.settingsCenter.row.microphoneGrantedDesktop")
+    : permission === "denied"
+      ? t(environment.target === "web" ? "base.navRail.settingsCenter.row.microphoneDeniedWeb" : os === "windows" ? "base.navRail.settingsCenter.row.microphoneDeniedWindows" : "base.navRail.settingsCenter.row.microphoneDeniedMacos")
+      : permission === "unsupported"
+        ? t(environment.target === "web" ? "base.navRail.settingsCenter.row.microphoneUnsupportedWeb" : "base.navRail.settingsCenter.row.microphoneUnsupportedDesktop")
+        : t(environment.target === "web" ? "base.navRail.settingsCenter.row.microphonePromptWeb" : "base.navRail.settingsCenter.row.microphonePromptDesktop");
+  const showPermissionGuide = () => {
+    const key = environment.target === "web"
+      ? "base.navRail.settingsCenter.row.microphoneGuideWeb"
+      : os === "windows"
+        ? "base.navRail.settingsCenter.row.microphoneGuideWindows"
+        : "base.navRail.settingsCenter.row.microphoneGuideMacos";
+    Toast.info(t(key));
+  };
+  if (showConsent) return <div className="wk-settings-center__voice-consent-page">
+    <button type="button" className="wk-settings-center__voice-consent-back" onClick={() => setShowConsent(false)}>← {t("base.navRail.settingsCenter.voiceConsent.back")}</button>
+    <header className="wk-settings-center__page-header"><h2>{t("base.navRail.settingsCenter.voiceConsent.pageTitle")}</h2></header>
+    <div className="wk-settings-center__voice-consent-card">
+      {consentLoading && <div className="wk-settings-center__voice-consent-loading"><Spin /></div>}
+      {consentError && !consentLoading && <div className="wk-settings-center__voice-consent-error">{t("base.navRail.voiceNotice.loadFailed")}</div>}
+      {consentContent && <div className="wk-settings-center__voice-consent-document" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(consentContent) }} />}
+    </div>
+    <div className="wk-settings-center__voice-consent-footer">
+      <Checkbox checked={consentChecked} onChange={setConsentChecked}>{t("base.navRail.voiceNotice.feedbackConsent")}</Checkbox>
+      <div className="wk-settings-center__voice-consent-actions"><button type="button" className="wk-settings-center__manage-button" onClick={() => setShowConsent(false)}>{t("base.common.cancel")}</button><button type="button" className="wk-settings-center__manage-button wk-settings-center__manage-button--primary" disabled={consentLoading || consentError || !consentContent || !consentChecked} onClick={() => { voiceSettingsStore.acknowledge(); voiceSettingsStore.set({ enabled: true }); setShowConsent(false); }}>{t("base.navRail.voiceNotice.accept")}</button></div>
+    </div>
+  </div>;
+  const shortcut = getVoiceShortcut(settings, os);
+  const shortcutName = voiceShortcutLabel(shortcut, os);
+  const voiceDescription = !settings.enabled ? t("base.navRail.settingsCenter.row.voiceInputEnabledDescription") : shortcut === "disabled" ? t("base.navRail.settingsCenter.voiceDescription.button") : settings.speakingMode === "toggle" ? t("base.navRail.settingsCenter.voiceDescription.toggle", { values: { shortcut: shortcutName } }) : t("base.navRail.settingsCenter.voiceDescription.hold", { values: { shortcut: shortcutName } });
+  return <SettingsPageFrame title={t("base.navRail.settingsCenter.page.voice.title")}>
+    <SettingsSection title={t("base.navRail.settingsCenter.section.audioDevice")}>
+      <SettingsRow title={t("base.navRail.settingsCenter.row.microphoneInput")} description={t("base.navRail.settingsCenter.row.microphoneInputDescription")} trailing={<select className="wk-settings-center__demo-select" value={settings.microphoneDeviceId} onChange={(event) => voiceSettingsStore.set({ microphoneDeviceId: event.target.value })}><option value="">{t("base.navRail.settingsCenter.value.systemDefaultMicrophone")}</option>{devices.map((device) => <option key={device.deviceId} value={device.deviceId}>{device.label || t("base.navRail.settingsCenter.value.microphone")}</option>)}</select>} />
+      <SettingsRow title={t("base.navRail.settingsCenter.row.microphonePermission")} description={permissionDescription} trailing={<span className="wk-settings-center__row-actions"><SettingsStatusTag tone={permissionTone} label={permissionLabel} />{(permission === "prompt" || permission === "denied") && <button type="button" className="wk-settings-center__manage-button" onClick={() => { if (permission === "denied") showPermissionGuide(); else void authorize(); }}>{permission === "denied" ? t(environment.target === "web" ? "base.navRail.settingsCenter.action.viewHowToEnable" : "base.navRail.settingsCenter.action.openSystemSettings") : t("base.navRail.settingsCenter.action.authorize")}</button>}</span>} />
+    </SettingsSection>
+    <SettingsSection title={t("base.navRail.settingsCenter.section.voiceSettings")}>
+      <SettingsRow title={t("base.navRail.settingsCenter.row.voiceInputEnabled")} description={voiceDescription} trailing={<Switch checked={settings.enabled} onChange={toggle} />} />
+      {settings.enabled && <><SettingsRow title={t("base.navRail.settingsCenter.row.voiceShortcut")} trailing={<select className="wk-settings-center__demo-select" value={shortcut} onChange={(event) => voiceSettingsStore.set(os === "macos" ? { shortcutMacos: event.target.value as VoiceShortcut } : { shortcutWindows: event.target.value as VoiceShortcut })}><option value="alt-right">{voiceShortcutLabel("alt-right", os)}</option><option value="shift-right">{t("base.navRail.settingsCenter.value.rightShift")}</option><option value="shift-left">{t("base.navRail.settingsCenter.value.leftShift")}</option><option value="disabled">{t("base.navRail.settingsCenter.value.disabled")}</option></select>} /><SettingsRow title={t("base.navRail.settingsCenter.row.speakingMode")} trailing={<select disabled={shortcut === "disabled"} className="wk-settings-center__demo-select" value={settings.speakingMode} onChange={(event) => voiceSettingsStore.set({ speakingMode: event.target.value as VoiceSettings["speakingMode"] })}><option value="toggle">{t("base.navRail.settingsCenter.value.toggle")}</option><option value="hold">{t("base.navRail.settingsCenter.value.hold")}</option></select>} /><LocalVoiceSettings settings={settings} draft={localDraft} dirty={localDirty} setDraft={(next) => { setLocalDraft(next); setLocalDirty(true); }} probeStatus={probeStatus} setProbeStatus={setProbeStatus} onSave={() => { voiceSettingsStore.set({ localTimeoutMs: Number(localDraft.timeout) || 10000, localProbeUrl: localDraft.probe.trim(), localTranscribeUrl: localDraft.transcribe.trim() }); setLocalDirty(false); }} onReset={() => { setLocalDraft({ timeout: "10000", probe: "http://localhost:8787/", transcribe: "http://localhost:8787/v1/voice/transcribe" }); setLocalDirty(true); setProbeStatus("idle"); }} /></>}
+    </SettingsSection>
+  </SettingsPageFrame>;
+}
+function LocalVoiceSettingsLegacy({ settings, draft, dirty, setDraft, probeStatus, setProbeStatus, onSave, onReset }: { settings: VoiceSettings; draft: { timeout: string; probe: string; transcribe: string }; dirty: boolean; setDraft: (draft: { timeout: string; probe: string; transcribe: string }) => void; probeStatus: "idle" | "loading" | "success" | "failed"; setProbeStatus: (status: "idle" | "loading" | "success" | "failed") => void; onSave: () => void; onReset: () => void }) { const update = (patch: Partial<typeof draft>) => setDraft({ ...draft, ...patch }); const test = async () => { setProbeStatus("loading"); try { const controller = new AbortController(); const timer = window.setTimeout(() => controller.abort(), 3000); await fetch(draft.probe, { signal: controller.signal, redirect: "manual" }); window.clearTimeout(timer); setProbeStatus("success"); } catch { setProbeStatus("failed"); } }; return <><SettingsRow title={t("base.navRail.settingsCenter.row.localVoice")} description={t("base.navRail.settingsCenter.row.localVoiceDescription")} trailing={<Switch checked={settings.localEnabled} onChange={(checked) => voiceSettingsStore.set({ localEnabled: checked })} />} />{settings.localEnabled && <div className="wk-settings-center__local-config"><SettingsRow title={t("base.navRail.settingsCenter.row.localTimeout")} trailing={<input className="wk-settings-center__demo-select" type="number" value={draft.timeout} onChange={(event) => update({ timeout: event.target.value })} />} /><SettingsRow title={t("base.navRail.settingsCenter.row.localProbeUrl")} trailing={<input className="wk-settings-center__demo-select" value={draft.probe} onChange={(event) => update({ probe: event.target.value })} />} /><div className="wk-settings-center__row-actions"><button type="button" className="wk-settings-center__manage-button" disabled={probeStatus === "loading" || !draft.probe.trim()} onClick={() => { void test(); }}>{probeStatus === "loading" ? t("base.navRail.settingsCenter.value.testing") : probeStatus === "success" ? t("base.navRail.settingsCenter.value.connectionSuccess") : probeStatus === "failed" ? t("base.navRail.settingsCenter.value.connectionFailed") : t("base.navRail.settingsCenter.action.testConnection")}</button></div><SettingsRow title={t("base.navRail.settingsCenter.row.localTranscribeUrl")} trailing={<input className="wk-settings-center__demo-select" value={draft.transcribe} onChange={(event) => update({ transcribe: event.target.value })} />} /><div className="wk-settings-center__row-actions"><button type="button" className="wk-settings-center__manage-button" onClick={onReset}>{t("base.navRail.settingsCenter.action.restoreDefaults")}</button><button type="button" className="wk-settings-center__manage-button" disabled={!dirty} onClick={onSave}>{t("common.save")}</button></div></div>}</>; }
+function LocalVoiceSettings({ settings, draft, dirty, setDraft, probeStatus, setProbeStatus, onSave, onReset }: { settings: VoiceSettings; draft: { timeout: string; probe: string; transcribe: string }; dirty: boolean; setDraft: (draft: { timeout: string; probe: string; transcribe: string }) => void; probeStatus: "idle" | "loading" | "success" | "failed"; setProbeStatus: (status: "idle" | "loading" | "success" | "failed") => void; onSave: () => void; onReset: () => void }) {
+  const update = (patch: Partial<typeof draft>) => { setDraft({ ...draft, ...patch }); setProbeStatus("idle"); };
+  const test = async () => {
+    setProbeStatus("loading");
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => controller.abort(), 3000);
+    try { await fetch(draft.probe, { signal: controller.signal, redirect: "manual" }); setProbeStatus("success"); }
+    catch { setProbeStatus("failed"); }
+    finally { window.clearTimeout(timer); }
+  };
+  const statusLabel = probeStatus === "loading" ? t("base.navRail.settingsCenter.value.testing") : probeStatus === "success" ? t("base.navRail.settingsCenter.value.connectionSuccess") : probeStatus === "failed" ? t("base.navRail.settingsCenter.value.connectionFailed") : t("base.navRail.settingsCenter.value.notTested");
+  return <>
+    <SettingsRow title={t("base.navRail.settingsCenter.row.localVoice")} description={t("base.navRail.settingsCenter.row.localVoiceDescription")} trailing={<Switch checked={settings.localEnabled} onChange={(checked) => voiceSettingsStore.set({ localEnabled: checked })} />} />
+    {settings.localEnabled && <div className="wk-settings-center__local-config">
+      <label className="wk-settings-center__local-field"><span>{t("base.navRail.settingsCenter.row.localTimeout")}</span><input type="number" inputMode="numeric" value={draft.timeout} onChange={(event) => update({ timeout: event.target.value })} /></label>
+      <label className="wk-settings-center__local-field"><span>{t("base.navRail.settingsCenter.row.localProbeUrl")}</span><input value={draft.probe} onChange={(event) => update({ probe: event.target.value })} /><span className="wk-settings-center__local-probe-actions"><button type="button" className="wk-settings-center__manage-button" disabled={probeStatus === "loading" || !draft.probe.trim()} onClick={() => { void test(); }}>{t("base.navRail.settingsCenter.action.testConnection")}</button><span className={`wk-settings-center__local-status wk-settings-center__local-status--${probeStatus}`}>{statusLabel}</span></span></label>
+      <label className="wk-settings-center__local-field"><span>{t("base.navRail.settingsCenter.row.localTranscribeUrl")}</span><input value={draft.transcribe} onChange={(event) => update({ transcribe: event.target.value })} /></label>
+      <div className="wk-settings-center__local-actions"><button type="button" className="wk-settings-center__manage-button" onClick={onReset}>{t("base.navRail.settingsCenter.action.restoreDefaults")}</button><button type="button" className="wk-settings-center__manage-button wk-settings-center__manage-button--primary" disabled={!dirty} onClick={onSave}>{t("base.common.save")}</button></div>
+    </div>}
+  </>;
+}
 function ResourceSection({ title, category, children }: { title: string; category: ResourceGroup["category"]; children: React.ReactNode }) { return <section className={`wk-settings-center__resource-section wk-settings-center__resource-section--${category}`}><h3>{title}</h3><div className="wk-settings-center__resource-grid">{children}</div></section>; }
 function ResourceBrandIcon({ id }: { id: string }) {
   if (id === "windows") return <svg viewBox="0 0 21 21" aria-hidden="true"><rect x="1" y="1" width="9" height="9" fill="currentColor" /><rect x="1" y="11" width="9" height="9" fill="currentColor" /><rect x="11" y="1" width="9" height="9" fill="currentColor" /><rect x="11" y="11" width="9" height="9" fill="currentColor" /></svg>;
