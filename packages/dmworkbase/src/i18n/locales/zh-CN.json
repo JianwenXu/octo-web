@@ -1483,6 +1483,7 @@
   "navRail.voiceNotice.title": "🎙️ 开启语音转写服务",
   "voiceInput.action.stopRecording": "点击停止录音",
   "voiceInput.error.allowMicrophone": "请允许麦克风访问权限",
+  "voiceInput.error.disabled": "语音输入已关闭，请在设置中开启后再试。",
   "voiceInput.error.emptyCannotEdit": "输入框为空，无法使用语音编辑",
   "voiceInput.error.fileTooLarge": "录音文件过大",
   "voiceInput.error.genericFailure": "语音输入失败",

@@ -1,6 +1,5 @@
 import React, {
   useEffect,
-  useLayoutEffect,
   useRef,
   useState,
   useCallback,
@@ -15,11 +14,6 @@ import type {
   ChatComposerVoiceHost,
 } from "../../ports";
 import { VoiceMode } from "../../../../Service/VoiceService";
-import VoiceFeedbackNotice from "../../../voice-input/VoiceFeedbackNotice";
-import useSpaceFeedbackSetting, {
-  getSharedSpaceFeedbackState,
-  acceptVoiceInput,
-} from "../../../voice-input/useSpaceFeedbackSetting";
 import { useI18n } from "../../../../i18n";
 import { getVoiceShortcut, voiceSettingsStore } from "../../../../Service/VoiceSettingsStore";
 
@@ -92,8 +86,6 @@ export default function VoiceInputIndicator({
   useEffect(() => voiceSettingsStore.subscribe(setVoiceSettings), []);
   // Voice mode menu state (不保存选中的模式，每次都是临时选择)
   const [showModeMenu, setShowModeMenu] = useState(false);
-  const [showFeedbackNotice, setShowFeedbackNotice] = useState(false);
-  const { spaceSetting, loaded, voiceConfig } = useSpaceFeedbackSetting();
 
   // Long-press ShiftLeft state
   const shiftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -110,64 +102,6 @@ export default function VoiceInputIndicator({
   const savedSelectionRangeRef = useRef<SelectionRange | undefined>(undefined);
   // 记录当前录音使用的模式（用于 onTranscribed 回调）
   const recordingModeRef = useRef<VoiceMode>("append_only");
-  const pendingModeRef = useRef<VoiceMode>("append_only");
-  const mountedRef = useRef(true);
-  const consentEpochRef = useRef(0);
-  const consentGenerationRef = useRef(0);
-  const consentPendingRef = useRef(false);
-  const consentHostRef = useRef(voiceHost);
-  const pendingConsentRef = useRef<{
-    host: ChatComposerVoiceHost;
-    spaceId: string;
-    epoch: number;
-    generation: number;
-    mode: VoiceMode;
-  } | null>(null);
-  consentHostRef.current = voiceHost;
-
-  const openConsent = useCallback((mode: VoiceMode) => {
-    if (consentPendingRef.current) return;
-    const spaceId = voiceHost.getSpaceId();
-    if (!spaceId) return;
-    const generation = ++consentGenerationRef.current;
-    pendingModeRef.current = mode;
-    pendingConsentRef.current = {
-      host: voiceHost,
-      spaceId,
-      epoch: consentEpochRef.current,
-      generation,
-      mode,
-    };
-    setShowFeedbackNotice(true);
-  }, [voiceHost]);
-
-  useEffect(() => {
-    const invalidateConsent = () => {
-      consentEpochRef.current += 1;
-      consentGenerationRef.current += 1;
-      consentPendingRef.current = false;
-      pendingConsentRef.current = null;
-      pendingModeRef.current = "append_only";
-      setShowFeedbackNotice(false);
-    };
-    invalidateConsent();
-    const unsubscribe = voiceHost.subscribeSpaceChange(invalidateConsent);
-    return () => {
-      consentEpochRef.current += 1;
-      consentGenerationRef.current += 1;
-      unsubscribe();
-    };
-  }, [voiceHost]);
-
-  useLayoutEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-      consentEpochRef.current += 1;
-      consentGenerationRef.current += 1;
-    };
-  }, []);
-
   const {
     isRecording,
     isTranscribing,
@@ -557,11 +491,12 @@ export default function VoiceInputIndicator({
   const handleModeSelect = (selectedMode: VoiceMode) => {
     setShowModeMenu(false);
 
-    if (!loaded) {
+    if (!voiceSettings.enabled) {
+      Toast.warning(t("base.voiceInput.error.disabled"));
       return;
     }
-    if (spaceSetting?.voice_input_enabled !== 1) {
-      openConsent(selectedMode);
+    if (!isVoiceEnabled) {
+      Toast.warning(t("base.voiceInput.error.unavailable"));
       return;
     }
 
@@ -586,11 +521,12 @@ export default function VoiceInputIndicator({
       Toast.warning(t("base.voiceInput.error.networkUnavailable"));
       return;
     }
-    if (!loaded) {
+    if (!voiceSettings.enabled) {
+      Toast.warning(t("base.voiceInput.error.disabled"));
       return;
     }
-    if (spaceSetting?.voice_input_enabled !== 1) {
-      openConsent("append_only");
+    if (!isVoiceEnabled) {
+      Toast.warning(t("base.voiceInput.error.unavailable"));
       return;
     }
     // 点击麦克风 icon 固定使用语音输入模式
@@ -878,58 +814,6 @@ export default function VoiceInputIndicator({
           </div>
         </div>
       </Dropdown>
-      {showFeedbackNotice && (
-        <VoiceFeedbackNotice
-          onAccept={async (feedbackOn) => {
-            if (consentPendingRef.current) return;
-            const consent = pendingConsentRef.current;
-            if (!consent) return;
-            const isConsentCurrent = () =>
-              mountedRef.current &&
-              pendingConsentRef.current === consent &&
-              consentEpochRef.current === consent.epoch &&
-              consentGenerationRef.current === consent.generation &&
-              consentHostRef.current === consent.host &&
-              consent.host.getSpaceId() === consent.spaceId;
-            if (!isConsentCurrent()) return;
-            consentPendingRef.current = true;
-            setShowFeedbackNotice(false);
-            try {
-              await acceptVoiceInput(
-                consent.spaceId,
-                feedbackOn,
-                isConsentCurrent
-              );
-            } catch {
-              if (isConsentCurrent()) {
-                Toast.error(t("base.voiceInput.error.operationFailed"));
-              }
-              return;
-            } finally {
-              if (consentGenerationRef.current === consent.generation) {
-                consentPendingRef.current = false;
-              }
-            }
-            if (!isConsentCurrent()) return;
-            pendingConsentRef.current = null;
-            const selectedText = getSelectedText?.();
-            const selectionRange = getSelectionRange?.();
-            hadSelectionRef.current = !!selectedText;
-            savedSelectedTextRef.current = selectedText;
-            savedSelectionRangeRef.current = selectionRange;
-            recordingModeRef.current = consent.mode;
-            startRecording(consent.mode);
-          }}
-          onCancel={() => {
-            consentGenerationRef.current += 1;
-            pendingConsentRef.current = null;
-            pendingModeRef.current = "append_only";
-            setShowFeedbackNotice(false);
-          }}
-          feedbackPrivacyUrl={voiceConfig?.feedback_privacy_url}
-          feedbackUserAgreementUrl={voiceConfig?.feedback_user_agreement_url}
-        />
-      )}
     </>
   );
 }

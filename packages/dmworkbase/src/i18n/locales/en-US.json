@@ -1483,6 +1483,7 @@
   "navRail.voiceNotice.title": "🎙️ Enable voice transcription",
   "voiceInput.action.stopRecording": "Click to stop recording",
   "voiceInput.error.allowMicrophone": "Please allow microphone access",
+  "voiceInput.error.disabled": "Voice input is turned off. Please enable it in Settings and try again.",
   "voiceInput.error.emptyCannotEdit": "The input is empty, so voice editing is unavailable.",
   "voiceInput.error.fileTooLarge": "Recording file is too large",
   "voiceInput.error.genericFailure": "Voice input failed",
