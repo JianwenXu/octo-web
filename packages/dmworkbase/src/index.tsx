@@ -40,7 +40,7 @@ export * from './im-runtime/currentTaskRuntime'
 export * from './Components/WKLayout'
 
 export * from './Components/Conversation/context'
-export { MAX_MESSAGE_LENGTH } from './Components/MessageInput/constants'
+export * from './features/chat-composer'
 export type { default as ConversationContext} from './Components/Conversation/context'
 export { Conversation } from './Components/Conversation'
 export type { ConversationProps } from './Components/Conversation'
@@ -76,6 +76,8 @@ export { default as MessageBase } from "./Messages/Base"
 export  * from "./Messages/Image"
 export * from "./Messages/File"
 export * from "./Messages/Base"
+export * from "./Messages/SummaryNotify"
+export { isConversationDisbanded } from "./Utils/groupDisband"
 
 export * from "./Messages/MessageCell"
 
@@ -114,6 +116,9 @@ export { default as GroupAvatarPreview } from "./Components/GroupAvatarPreview"
 export type { GroupAvatarPreviewProps } from "./Components/GroupAvatarPreview"
 export { default as GroupAvatarEditModal } from "./Components/GroupAvatarEditModal"
 export type { GroupAvatarEditModalProps, GroupAvatarEditResult } from "./Components/GroupAvatarEditModal"
+export { ChannelAvatar } from "./Components/ChannelAvatar"
+export type { ChannelAvatarDraft, ChannelAvatarProps } from "./Components/ChannelAvatar"
+export { uploadGroupAvatar } from "./Service/ChannelSettingService"
 export { fetchGroupAvatarPalette, getCachedPalette, colorAt, paletteSize } from "./Components/GroupAvatarPreview/palette"
 export type { GroupColorHex } from "./Components/GroupAvatarPreview/palette"
 export { colorIndexForName } from "./Components/GroupAvatarPreview/text"
