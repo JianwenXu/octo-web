@@ -2,7 +2,7 @@ import { test, expect } from "../fixtures-authed";
 
 test.use({ video: "on", trace: "on" });
 
-test("@TES10 settings center shell interaction", async ({ authedPage }, testInfo) => {
+test("@p0 @TES10 settings center shell interaction", async ({ authedPage }, testInfo) => {
   const frame = (name: string) => testInfo.outputPath(`${name}.png`);
   await authedPage.screenshot({ path: frame("01-main"), fullPage: true });
   const quickMuteButton = authedPage.getByRole("button", { name: "提醒开启" });

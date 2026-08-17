@@ -6,6 +6,7 @@ import useTextareaVoice, { ReplaceMode, SelectionRange } from "./useTextareaVoic
 import type { ChatContextResult } from "../Conversation/chatContext";
 import type { VoiceMode } from "../../Service/VoiceService";
 import { getVoiceShortcut, voiceSettingsStore } from "../../Service/VoiceSettingsStore";
+import WKApp from "../../App";
 import { useI18n } from "../../i18n";
 import "./index.css";
 
@@ -20,6 +21,14 @@ const FLOATING_HORIZONTAL_MARGIN = 8;
 const INDICATOR_HEIGHT = 48;
 const PREPARING_DELAY_MS = 300;
 const RECORDING_DELAY_MS = 500;
+
+const voiceHost = {
+  getSpaceId: () => WKApp.shared.currentSpaceId,
+  subscribeSpaceChange: (listener: () => void) => {
+    WKApp.mittBus.on("space-changed", listener);
+    return () => WKApp.mittBus.off("space-changed", listener);
+  },
+};
 
 export interface VoiceInputButtonProps {
   inputRef: React.RefObject<HTMLInputElement | HTMLTextAreaElement | null>;
@@ -63,6 +72,7 @@ export default function VoiceInputButton({
     getCurrentText,
     enableEditMode: showModeMenu,
     getChatContext,
+    voiceHost,
   });
 
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -190,7 +200,7 @@ export default function VoiceInputButton({
   }, [isRecording, cancelRecording]);
 
   useEffect(() => {
-    if (!isVoiceEnabled) return;
+    if (!isVoiceEnabled || !voiceSettings.enabled) return;
     const configuredShortcut = getVoiceShortcut(voiceSettings, navigator.platform.toLowerCase().includes("mac") ? "macos" : "windows");
     if (configuredShortcut === "disabled") return;
     const shortcutCode = configuredShortcut === "alt-right" ? "AltRight" : configuredShortcut === "shift-right" ? "ShiftRight" : "ShiftLeft";

@@ -124,6 +124,7 @@ export class QuickMuteStore implements QuickMuteService {
   private refreshVersion = 0;
   private mutationVersion = 0;
   private loaded = false;
+  private loadAttempted = false;
   private inFlight?: Promise<QuickMuteState>;
   private serverOffset = 0;
   private expiryTimer?: ReturnType<typeof setTimeout>;
@@ -156,7 +157,7 @@ export class QuickMuteStore implements QuickMuteService {
   }
 
   async getState() {
-    if (!this.loaded) await this.refresh();
+    if (!this.loaded && !this.loadAttempted) await this.refresh();
     else this.state = { ...this.state, active: Boolean(this.state.active && (this.state.mode === "manual" || (this.state.endAt && this.state.endAt > Date.now() + this.serverOffset))) };
     return this.state;
   }
@@ -174,14 +175,18 @@ export class QuickMuteStore implements QuickMuteService {
 
   async refresh() {
     if (this.inFlight) return this.inFlight;
+    this.loadAttempted = true;
     const version = ++this.refreshVersion;
     const mutationVersion = this.mutationVersion;
     const request = this.service.getState().then((next) => {
       if (version === this.refreshVersion && mutationVersion === this.mutationVersion) this.apply(next);
       return this.state;
-    }).finally(() => { if (this.inFlight === request) this.inFlight = undefined; });
-    this.inFlight = request;
-    return request;
+    });
+    const safeRequest = request.catch(() => this.state).finally(() => {
+      if (this.inFlight === safeRequest) this.inFlight = undefined;
+    });
+    this.inFlight = safeRequest;
+    return safeRequest;
   }
 
   reset() {
@@ -190,6 +195,7 @@ export class QuickMuteStore implements QuickMuteService {
     if (this.expiryTimer) clearTimeout(this.expiryTimer);
     this.inFlight = undefined;
     this.loaded = false;
+    this.loadAttempted = false;
     this.state = { active: false, scope: getStoredScope(), revision: 0 };
     this.listeners.forEach((listener) => listener(this.state));
   }

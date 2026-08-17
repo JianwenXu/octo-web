@@ -160,7 +160,6 @@ export default class NavRail extends Component<NavRailProps> {
 }
 
 export { NavSpaceSwitcher, NavItem, NavBottom };
-export { default as NavLanguageSwitcher } from "./NavLanguageSwitcher";
 export type { NavItemProps } from "./NavItem";
 export type { NavSpaceSwitcherProps } from "./NavSpaceSwitcher";
 export type { NavBottomProps } from "./NavBottom";

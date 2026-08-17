@@ -5,7 +5,6 @@ import "./SettingsCenter.css";
 import { detectRuntimeEnvironment, type RuntimeEnvironment } from "../../Runtime";
 import { getAvailableSettingsGroups, type SettingsItem } from "./settingsRegistry";
 import { SettingsPage } from "./settingsPages";
-import WKApp from "../../App";
 import SecretsSettingsPanel from "../SecretsSettings/SecretsSettingsPanel";
 
 export interface OpenSecretsRequest {
@@ -15,7 +14,6 @@ export interface OpenSecretsRequest {
   sequence: number;
 }
 
-export type SettingsCenterCapability = "desktop" | "account";
 export interface SettingsCenterProps {
   visible: boolean;
   isDesktop?: boolean;
