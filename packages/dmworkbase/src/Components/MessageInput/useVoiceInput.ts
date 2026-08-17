@@ -6,16 +6,16 @@ import VoiceService, {
   VoiceMode,
 } from "../../Service/VoiceService";
 import VoiceFeedback, { type AsrParams } from "../../Service/VoiceFeedback";
-import LocalModelService, { LocalModelConfig } from "../../Service/LocalModelService";
+import LocalModelService from "../../Service/LocalModelService";
 import WKApp from "../../App";
 import { ChatContextResult } from "../Conversation/chatContext";
 import { t } from "../../i18n";
+import { getMicrophonePermission, setMicrophonePermission, voiceSettingsStore } from "../../Service/VoiceSettingsStore";
 import {
   fetchAndApplySpaceSetting,
   resetSharedSpaceSetting,
   setSharedVoiceConfig,
   getSharedSpaceFeedbackState,
-  getSharedVoiceConfig,
   subscribe as subscribeSpaceFeedback,
 } from "./useSpaceFeedbackSetting";
 
@@ -80,6 +80,9 @@ export default function useVoiceInput(
   const contextTextRef = useRef<string | undefined>(undefined);
   const recordingModeRef = useRef<VoiceMode>(mode);
   const utteranceIdRef = useRef("");
+  // 每次开始/取消都会推进代次；所有异步录音/识别结果必须属于当前代次才允许回写。
+  const sessionEpochRef = useRef(0);
+  const cancelRecordingRef = useRef<() => void>(() => {});
 
   const getChatContextRef = useRef(getChatContext);
   getChatContextRef.current = getChatContext;
@@ -106,7 +109,7 @@ export default function useVoiceInput(
       .getConfig()
       .then((config: VoiceConfig) => {
         if (cancelled) return;
-        setIsVoiceEnabled(config.enabled || config.local_enabled === true);
+        setIsVoiceEnabled(voiceSettingsStore.get().enabled);
         backendEnabledRef.current = config.enabled;
         maxFileSizeRef.current = config.max_file_size || 0;
         if (config.max_duration != null) {
@@ -130,15 +133,37 @@ export default function useVoiceInput(
       })
       .catch(() => {
         if (cancelled) return;
-        setIsVoiceEnabled(false);
+        setIsVoiceEnabled(voiceSettingsStore.get().enabled);
       });
 
     return () => { cancelled = true; };
   }, []);
 
+  useEffect(() => voiceSettingsStore.subscribe((settings) => {
+    setIsVoiceEnabled(settings.enabled);
+    if (!settings.enabled) cancelRecordingRef.current();
+  }), []);
+
+  useEffect(() => {
+    const applyLocalSettings = () => {
+      const settings = voiceSettingsStore.get();
+      LocalModelService.shared.updateConfig({
+        enabled: settings.localEnabled,
+        requestTimeoutMs: settings.localTimeoutMs,
+        ...(settings.localProbeUrl ? { probeUrl: settings.localProbeUrl } : {}),
+        ...(settings.localTranscribeUrl ? { transcribeUrl: settings.localTranscribeUrl } : {}),
+      }, localStorage);
+      if (settings.localEnabled) void LocalModelService.shared.probe().then(setLocalAvailable);
+      else setLocalAvailable(false);
+    };
+    applyLocalSettings();
+    return voiceSettingsStore.subscribe(applyLocalSettings);
+  }, []);
+
   // Listen for space changes: destroy + reinit VoiceFeedback
   useEffect(() => {
     const handler = () => {
+      cancelRecordingRef.current();
       const prevSpaceId = voiceContextSpaceIdRef.current;
       if (prevSpaceId) {
         VoiceService.shared.clearVoiceContextCache(prevSpaceId);
@@ -175,44 +200,6 @@ export default function useVoiceInput(
     });
   }, []);
 
-  useEffect(() => {
-    const prevRef = { enabled: false, probeUrl: '', transcribeUrl: '', timeoutMs: 0 };
-    return subscribeSpaceFeedback(() => {
-      const config = getSharedVoiceConfig();
-      if (!config) return;
-
-      const next = {
-        enabled: config.local_enabled === true,
-        probeUrl: config.local_probe_url ?? '',
-        transcribeUrl: config.local_transcribe_url ?? '',
-        timeoutMs: config.local_timeout_ms ?? 10000,
-      };
-
-      const changed = next.enabled !== prevRef.enabled
-        || next.probeUrl !== prevRef.probeUrl
-        || next.transcribeUrl !== prevRef.transcribeUrl
-        || next.timeoutMs !== prevRef.timeoutMs;
-
-      if (!changed) return;
-      Object.assign(prevRef, next);
-
-      // Assumption: fetchAndApplySpaceSetting does not mutate local_* fields.
-      if (next.enabled) {
-        const updateFields: Partial<LocalModelConfig> = {
-          enabled: true,
-          requestTimeoutMs: next.timeoutMs,
-        };
-        if (next.probeUrl) updateFields.probeUrl = next.probeUrl;
-        if (next.transcribeUrl) updateFields.transcribeUrl = next.transcribeUrl;
-        LocalModelService.shared.updateConfig(updateFields, localStorage);
-        LocalModelService.shared.probe().then(setLocalAvailable);
-      } else {
-        LocalModelService.shared.updateConfig({ enabled: false }, localStorage);
-        setLocalAvailable(false);
-      }
-    });
-  }, []);
-
   const cleanup = useCallback(() => {
     if (maxDurationTimeoutRef.current) {
       clearTimeout(maxDurationTimeoutRef.current);
@@ -226,14 +213,24 @@ export default function useVoiceInput(
     chunksRef.current = [];
   }, []);
 
+  const invalidateSession = useCallback(() => {
+    sessionEpochRef.current += 1;
+    voiceContextRef.current = null;
+    voiceContextPromiseRef.current = null;
+    voiceContextSpaceIdRef.current = "";
+    contextTextRef.current = undefined;
+  }, []);
+
   const startRecording = useCallback(
     async (overrideMode?: VoiceMode) => {
-      if (isRecording) {
+      if (isRecording || isTranscribing) {
         return;
       }
 
       recordingModeRef.current = overrideMode ?? mode;
       setCurrentMode(recordingModeRef.current);
+
+      const sessionEpoch = ++sessionEpochRef.current;
 
       utteranceIdRef.current =
         crypto.randomUUID?.() ??
@@ -248,7 +245,7 @@ export default function useVoiceInput(
         const promise = VoiceService.shared
           .getVoiceContext(spaceId)
           .then((resp) => {
-            if (voiceContextSpaceIdRef.current === spaceId) {
+            if (sessionEpochRef.current === sessionEpoch && voiceContextSpaceIdRef.current === spaceId) {
               voiceContextRef.current = resp;
             }
             return resp;
@@ -262,10 +259,32 @@ export default function useVoiceInput(
       }
 
       try {
+        // 聊天入口和快捷键只使用已授权的麦克风；权限申请必须由设置中心的“授权”按钮触发。
+        if (navigator.permissions?.query) {
+          const permission = await navigator.permissions.query({ name: "microphone" as PermissionName });
+          setMicrophonePermission(permission.state);
+          if (permission.state !== "granted") {
+            throw new Error("NotAllowedError: microphone permission is not granted");
+          }
+        } else if (getMicrophonePermission() !== "granted") {
+          throw new Error("NotAllowedError: microphone permission is not granted");
+        }
+        const microphoneDeviceId = voiceSettingsStore.get().microphoneDeviceId;
         const stream = await navigator.mediaDevices.getUserMedia({
-          audio: true,
+          audio: microphoneDeviceId ? { deviceId: { exact: microphoneDeviceId } } : true,
         });
+        if (sessionEpochRef.current !== sessionEpoch) {
+          stream.getTracks().forEach((track) => track.stop());
+          return;
+        }
         streamRef.current = stream;
+        stream.getTracks().forEach((track) => {
+          track.addEventListener("ended", () => {
+            if (sessionEpochRef.current !== sessionEpoch) return;
+            cancelRecordingRef.current();
+            onError?.(new Error("NotReadableError: microphone device ended"));
+          });
+        });
 
         const mimeType = getSupportedMimeType();
         const recorder = new MediaRecorder(stream, { mimeType });
@@ -295,10 +314,10 @@ export default function useVoiceInput(
           err instanceof Error ? err : new Error("Microphone access denied");
         if (onError) onError(error);
         cleanup();
-        if (onRecordingFailed) onRecordingFailed();
+        if (sessionEpochRef.current === sessionEpoch && onRecordingFailed) onRecordingFailed();
       }
     },
-    [isRecording, maxDuration, onError, onRecordingFailed, cleanup]
+    [isRecording, isTranscribing, maxDuration, onError, onRecordingFailed, cleanup]
   );
 
   const stopRecordingAndTranscribe = useCallback(
@@ -314,12 +333,15 @@ export default function useVoiceInput(
       }
 
       const capturedStartTime = startTimeRef.current;
+      const sessionEpoch = sessionEpochRef.current;
 
       recorder.onstop = async () => {
         const mimeType = getSupportedMimeType();
         const blob = new Blob(chunksRef.current, { type: mimeType });
         cleanup();
         setIsRecording(false);
+
+        if (sessionEpochRef.current !== sessionEpoch) return;
 
         const recordingDurationMs = Date.now() - capturedStartTime;
         if (recordingDurationMs < 1000) {
@@ -355,6 +377,7 @@ export default function useVoiceInput(
         const allowFeedback = voiceFeedbackOnRef.current === 1;
 
         try {
+          if (sessionEpochRef.current !== sessionEpoch) return;
           const localConfig = LocalModelService.shared.config;
           const useLocalFirst =
             localConfig.preferLocal &&
@@ -396,6 +419,7 @@ export default function useVoiceInput(
                 recordingModeRef.current,
                 selfName,
               );
+            if (sessionEpochRef.current !== sessionEpoch) return;
             if (localResult) {
               if (localResult.text) {
                 notifyFeedback(localResult.text, "local", undefined, {
@@ -432,6 +456,7 @@ export default function useVoiceInput(
               allowFeedback,
               selfName,
             );
+            if (sessionEpochRef.current !== sessionEpoch) return;
             if (result.text) {
               notifyFeedback(result.text, "remote", result.request_id);
               if (onTranscribed) onTranscribed(result.text);
@@ -473,16 +498,20 @@ export default function useVoiceInput(
             allowFeedback,
             selfName,
           );
+          if (sessionEpochRef.current !== sessionEpoch) return;
           if (result.text) {
             notifyFeedback(result.text, "remote", result.request_id);
             if (onTranscribed) onTranscribed(result.text);
           }
         } catch (err) {
+          if (sessionEpochRef.current !== sessionEpoch) return;
           Toast.error(t("base.voiceInput.error.transcriptionFailedRetry"));
           if (onError) onError(new Error("Transcription failed"));
         } finally {
-          setIsTranscribing(false);
-          contextTextRef.current = undefined;
+          if (sessionEpochRef.current === sessionEpoch) {
+            setIsTranscribing(false);
+            contextTextRef.current = undefined;
+          }
         }
       };
 
@@ -494,6 +523,7 @@ export default function useVoiceInput(
   stopFnRef.current = stopRecordingAndTranscribe;
 
   const cancelRecording = useCallback(() => {
+    invalidateSession();
     const recorder = mediaRecorderRef.current;
     if (recorder && recorder.state !== "inactive") {
       recorder.onstop = null;
@@ -501,14 +531,14 @@ export default function useVoiceInput(
     }
     cleanup();
     setIsRecording(false);
-    voiceContextRef.current = null;
-    voiceContextPromiseRef.current = null;
-    voiceContextSpaceIdRef.current = "";
-  }, [cleanup]);
+    setIsTranscribing(false);
+  }, [cleanup, invalidateSession]);
+  cancelRecordingRef.current = cancelRecording;
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
+      invalidateSession();
       if (
         mediaRecorderRef.current &&
         mediaRecorderRef.current.state !== "inactive"
@@ -518,7 +548,7 @@ export default function useVoiceInput(
       }
       cleanup();
     };
-  }, [cleanup]);
+  }, [cleanup, invalidateSession]);
 
   return {
     isRecording,

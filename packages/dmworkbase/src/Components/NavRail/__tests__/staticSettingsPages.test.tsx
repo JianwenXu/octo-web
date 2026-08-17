@@ -65,7 +65,7 @@ describe("static settings pages", () => {
   it("shows voice shortcuts only when voice input is available", () => {
     renderPage("shortcuts", { environment: { ...webEnvironment, os: "macos", capabilities: new Set(["voiceInput"]) } });
     expect(container.textContent).toContain("按住说话");
-    expect(container.textContent).toContain("Shift+Cmd+Space");
+    expect(container.textContent).toContain("右 Alt");
   });
 
   it("renders device resources and about page actions", async () => {

@@ -49,12 +49,12 @@ describe("secondary settings pages", () => {
     expect(onSecrets).toHaveBeenCalledTimes(1);
   });
 
-  it("delegates opening voice settings", () => {
-    const onVoice = vi.fn();
-    act(() => ReactDOM.render(<SettingsPage item={{ id: "voice", labelKey: "base.navRail.settingsCenter.item.voice" }} environment={environment} onVoice={onVoice} />, container));
-
-    act(() => container.querySelector(".wk-settings-center__link")?.dispatchEvent(new MouseEvent("click", { bubbles: true })));
-    expect(onVoice).toHaveBeenCalledTimes(1);
+  it("renders voice settings in the settings center", () => {
+    act(() => ReactDOM.render(<SettingsPage item={{ id: "voice", labelKey: "base.navRail.settingsCenter.item.voice" }} environment={environment} />, container));
+    expect(container.textContent).toContain("语音输入");
+    expect(container.textContent).toContain("音频设备");
+    expect(container.textContent).not.toContain("OctoASR");
+    expect(container.textContent).not.toContain("管理麦克风、快捷键和语音识别方式");
   });
 
   it("renders the fallback page for an unknown setting", () => {
