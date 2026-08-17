@@ -3,11 +3,9 @@ import { createPortal } from "react-dom";
 import { Toast, Dropdown } from "@douyinfe/semi-ui";
 import { Mic } from "lucide-react";
 import useTextareaVoice, { ReplaceMode, SelectionRange } from "./useTextareaVoice";
-import type { ChatComposerVoiceContext } from "../../features/chat-composer/ports";
+import type { ChatContextResult } from "../Conversation/chatContext";
 import type { VoiceMode } from "../../Service/VoiceService";
-import VoiceFeedbackNotice from "../../features/voice-input/VoiceFeedbackNotice";
-import useSpaceFeedbackSetting, { getSharedSpaceFeedbackState, acceptVoiceInput } from "../../features/voice-input/useSpaceFeedbackSetting";
-import WKApp from "../../App";
+import { getVoiceShortcut, voiceSettingsStore } from "../../Service/VoiceSettingsStore";
 import { useI18n } from "../../i18n";
 import "./index.css";
 
@@ -23,21 +21,13 @@ const INDICATOR_HEIGHT = 48;
 const PREPARING_DELAY_MS = 300;
 const RECORDING_DELAY_MS = 500;
 
-const voiceHost = {
-  getSpaceId: () => WKApp.shared.currentSpaceId,
-  subscribeSpaceChange: (listener: () => void) => {
-    WKApp.mittBus.on("space-changed", listener);
-    return () => WKApp.mittBus.off("space-changed", listener);
-  },
-};
-
 export interface VoiceInputButtonProps {
   inputRef: React.RefObject<HTMLInputElement | HTMLTextAreaElement | null>;
   onTranscribed: (text: string, replaceMode: ReplaceMode, savedSelectionRange?: SelectionRange) => void;
   getCurrentText?: () => string;
   showModeMenu?: boolean;
   size?: "sm" | "md";
-  getChatContext?: () => ChatComposerVoiceContext | Promise<ChatComposerVoiceContext>;
+  getChatContext?: () => ChatContextResult | Promise<ChatContextResult>;
   className?: string;
   /** Called right before recording starts (useful for cancelling pending blur commits) */
   onRecordingStart?: () => void;
@@ -55,45 +45,9 @@ export default function VoiceInputButton({
 }: VoiceInputButtonProps) {
   const { t } = useI18n();
   const [showMenu, setShowMenu] = useState(false);
-  const [showFeedbackNotice, setShowFeedbackNotice] = useState(false);
   const buttonRef = useRef<HTMLDivElement>(null);
-  const pendingModeRef = useRef<VoiceMode>("append_only");
-  const mountedRef = useRef(true);
-  const consentGenerationRef = useRef(0);
-  const consentPendingRef = useRef(false);
-  const pendingConsentRef = useRef<{
-    generation: number;
-    spaceId: string;
-    mode: VoiceMode;
-  } | null>(null);
-  const { spaceSetting, loaded, voiceConfig } = useSpaceFeedbackSetting();
-
-  const openConsent = useCallback((mode: VoiceMode) => {
-    if (consentPendingRef.current) return;
-    const spaceId = voiceHost.getSpaceId();
-    if (!spaceId) return;
-    const generation = ++consentGenerationRef.current;
-    pendingModeRef.current = mode;
-    pendingConsentRef.current = { generation, spaceId, mode };
-    setShowFeedbackNotice(true);
-  }, []);
-
-  useEffect(() => {
-    mountedRef.current = true;
-    const invalidateConsent = () => {
-      consentGenerationRef.current += 1;
-      consentPendingRef.current = false;
-      pendingConsentRef.current = null;
-      pendingModeRef.current = "append_only";
-      setShowFeedbackNotice(false);
-    };
-    const unsubscribe = voiceHost.subscribeSpaceChange(invalidateConsent);
-    return () => {
-      mountedRef.current = false;
-      invalidateConsent();
-      unsubscribe();
-    };
-  }, []);
+  const [voiceSettings, setVoiceSettings] = useState(() => voiceSettingsStore.get());
+  useEffect(() => voiceSettingsStore.subscribe(setVoiceSettings), []);
 
   const {
     isRecording,
@@ -104,7 +58,6 @@ export default function VoiceInputButton({
     isVoiceEnabled,
     localAvailable,
   } = useTextareaVoice({
-    voiceHost,
     inputRef,
     onTranscribed,
     getCurrentText,
@@ -189,13 +142,19 @@ export default function VoiceInputButton({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isRecording, cancelRecording]);
 
-  // Window blur: auto-stop recording
+  // Window/page lifecycle cancels the session; it must not transcribe after focus is lost.
   useEffect(() => {
     if (!isRecording) return;
-    const handleBlur = () => stopRecordingAndTranscribe();
-    window.addEventListener("blur", handleBlur);
-    return () => window.removeEventListener("blur", handleBlur);
-  }, [isRecording, stopRecordingAndTranscribe]);
+    const cancel = () => cancelRecording();
+    const handleVisibilityChange = () => { if (document.visibilityState === "hidden") cancel(); };
+    window.addEventListener("blur", cancel);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => { window.removeEventListener("blur", cancel); document.removeEventListener("visibilitychange", handleVisibilityChange); };
+  }, [isRecording, cancelRecording]);
+
+  useEffect(() => {
+    if (!voiceSettings.enabled && (isRecording || isTranscribing)) cancelRecording();
+  }, [voiceSettings.enabled, isRecording, isTranscribing, cancelRecording]);
 
   // Left Shift long-press to start/stop recording
   const shiftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -232,17 +191,29 @@ export default function VoiceInputButton({
 
   useEffect(() => {
     if (!isVoiceEnabled) return;
+    const configuredShortcut = getVoiceShortcut(voiceSettings, navigator.platform.toLowerCase().includes("mac") ? "macos" : "windows");
+    if (configuredShortcut === "disabled") return;
+    const shortcutCode = configuredShortcut === "alt-right" ? "AltRight" : configuredShortcut === "shift-right" ? "ShiftRight" : "ShiftLeft";
+    const modifiersValid = (event: KeyboardEvent) => shortcutCode === "AltRight"
+      ? !event.shiftKey && !event.ctrlKey && !event.metaKey && !event.getModifierState("AltGraph")
+      : !event.altKey && !event.ctrlKey && !event.metaKey;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (!inputRef.current || document.activeElement !== inputRef.current) return;
+      if (!inputRef.current || document.activeElement !== inputRef.current || document.querySelector('[data-testid="settings-center"]')) return;
 
       if (
-        e.code === "ShiftLeft" &&
+        e.code === shortcutCode &&
         !e.repeat &&
         !e.metaKey &&
         !e.ctrlKey &&
-        !e.altKey
+        modifiersValid(e)
       ) {
+        if (voiceSettings.speakingMode === "toggle") {
+          e.preventDefault();
+          if (isRecordingRef.current) stopRecordingRef.current();
+          else { onRecordingStart?.(); startRecordingRef.current("append_only"); }
+          return;
+        }
         if (
           !isRecordingRef.current &&
           !isTranscribingRef.current &&
@@ -258,14 +229,7 @@ export default function VoiceInputButton({
               Toast.warning(t("base.voiceInput.error.networkUnavailable"));
               return;
             }
-            const feedbackState = getSharedSpaceFeedbackState();
-            if (!feedbackState.loaded) {
-              return;
-            }
-            if (feedbackState.spaceSetting?.voice_input_enabled !== 1) {
-              openConsent("append_only");
-              return;
-            }
+            if (!voiceSettings.enabled) return;
             shiftRecordingRef.current = true;
             startRecordingRef.current("append_only");
           }, RECORDING_DELAY_MS);
@@ -273,7 +237,7 @@ export default function VoiceInputButton({
         return;
       }
 
-      if (shiftTimerRef.current !== null && e.code !== "ShiftLeft") {
+      if (shiftTimerRef.current !== null && e.code !== shortcutCode) {
         if (
           e.code.startsWith("Control") ||
           e.code.startsWith("Alt") ||
@@ -299,13 +263,13 @@ export default function VoiceInputButton({
 
       if (!isRecordingRef.current && !isInputFocused) return;
 
-      if (e.code === "ShiftLeft" && shiftTimerRef.current !== null) {
+      if (e.code === shortcutCode && shiftTimerRef.current !== null) {
         clearShiftTimer();
         return;
       }
 
       if (
-        e.code === "ShiftLeft" &&
+        e.code === shortcutCode &&
         shiftRecordingRef.current &&
         !isRecordingRef.current
       ) {
@@ -315,7 +279,7 @@ export default function VoiceInputButton({
       }
 
       if (
-        e.code === "ShiftLeft" &&
+        e.code === shortcutCode &&
         shiftRecordingRef.current &&
         isRecordingRef.current
       ) {
@@ -340,51 +304,7 @@ export default function VoiceInputButton({
       window.removeEventListener("blur", handleBlurClear);
       clearShiftTimer();
     };
-  }, [isVoiceEnabled, inputRef, clearShiftTimer, openConsent, t]);
-
-  // NOTE: these hooks MUST stay above the `if (!isVoiceEnabled) return null`
-  // early return below. isVoiceEnabled flips from false to true once the voice
-  // config loads, so any hook placed after the early return would only run on
-  // the re-render, violating the Rules of Hooks (React error #310 /
-  // "Rendered more hooks than during the previous render").
-  const handleConsentAccept = useCallback(async (feedbackOn: boolean) => {
-    if (consentPendingRef.current) return;
-    const consent = pendingConsentRef.current;
-    if (!consent) return;
-    const isConsentCurrent = () =>
-      mountedRef.current &&
-      pendingConsentRef.current === consent &&
-      consentGenerationRef.current === consent.generation &&
-      voiceHost.getSpaceId() === consent.spaceId;
-    if (!isConsentCurrent()) return;
-    consentPendingRef.current = true;
-    setShowFeedbackNotice(false);
-    try {
-      await acceptVoiceInput(consent.spaceId, feedbackOn, isConsentCurrent);
-    } catch {
-      if (isConsentCurrent()) {
-        Toast.error(t("base.voiceInput.error.operationFailed"));
-      }
-      return;
-    } finally {
-      if (consentGenerationRef.current === consent.generation) {
-        consentPendingRef.current = false;
-      }
-    }
-    if (!isConsentCurrent()) return;
-    pendingConsentRef.current = null;
-    onRecordingStart?.();
-    startRecording(consent.mode);
-  }, [onRecordingStart, startRecording, t]);
-
-  const handleConsentCancel = useCallback(() => {
-    consentGenerationRef.current += 1;
-    pendingConsentRef.current = null;
-    pendingModeRef.current = "append_only";
-    setShowFeedbackNotice(false);
-  }, []);
-
-  if (!isVoiceEnabled) return null;
+  }, [isVoiceEnabled, inputRef, clearShiftTimer, t, voiceSettings]);
 
   const handleVoiceClick = () => {
     setShowMenu(false);
@@ -393,11 +313,8 @@ export default function VoiceInputButton({
       return;
     }
     if (!inputRef.current) return;
-    if (!loaded) {
-      return;
-    }
-    if (spaceSetting?.voice_input_enabled !== 1) {
-      openConsent("append_only");
+    if (!voiceSettings.enabled) {
+      Toast.warning(t("base.voiceInput.error.unavailable"));
       return;
     }
     onRecordingStart?.();
@@ -407,11 +324,8 @@ export default function VoiceInputButton({
   const handleModeSelect = (selectedMode: VoiceMode) => {
     setShowMenu(false);
     if (!canRecord || !inputRef.current) return;
-    if (!loaded) {
-      return;
-    }
-    if (spaceSetting?.voice_input_enabled !== 1) {
-      openConsent(selectedMode);
+    if (!voiceSettings.enabled) {
+      Toast.warning(t("base.voiceInput.error.unavailable"));
       return;
     }
     onRecordingStart?.();
@@ -538,14 +452,6 @@ export default function VoiceInputButton({
             </div>
           </div>
         </Dropdown>
-        {showFeedbackNotice && (
-          <VoiceFeedbackNotice
-            onAccept={handleConsentAccept}
-            onCancel={handleConsentCancel}
-            feedbackPrivacyUrl={voiceConfig?.feedback_privacy_url}
-            feedbackUserAgreementUrl={voiceConfig?.feedback_user_agreement_url}
-          />
-        )}
       </>
     );
   }
@@ -569,14 +475,6 @@ export default function VoiceInputButton({
           <Mic size={iconSize} color="currentColor" />
         </div>
       </div>
-      {showFeedbackNotice && (
-        <VoiceFeedbackNotice
-          onAccept={handleConsentAccept}
-          onCancel={handleConsentCancel}
-          feedbackPrivacyUrl={voiceConfig?.feedback_privacy_url}
-          feedbackUserAgreementUrl={voiceConfig?.feedback_user_agreement_url}
-        />
-      )}
     </>
   );
 }

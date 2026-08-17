@@ -1,6 +1,8 @@
 import { contextBridge, ipcRenderer } from "electron";
 import {
   IPC_CONVERSATION_UNREAD_COUNT,
+  IPC_KEEP_AWAKE_GET,
+  IPC_KEEP_AWAKE_SET,
   IPC_OIDC_AUTHORIZE_START,
   IPC_OIDC_AUTHORIZE_END,
   IPC_OIDC_HTTP_REQUEST,
@@ -107,6 +109,8 @@ const ALLOWED_INVOKE_CHANNELS = [
   "close-all-native-notifications",
   "test-notification-icon",
   "is-window-focused",
+  IPC_KEEP_AWAKE_GET,
+  IPC_KEEP_AWAKE_SET,
   IPC_OIDC_AUTHORIZE_START,
   IPC_OIDC_AUTHORIZE_END,
   IPC_OIDC_HTTP_REQUEST,
