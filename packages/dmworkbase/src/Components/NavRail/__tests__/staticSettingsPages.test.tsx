@@ -58,8 +58,8 @@ describe("static settings pages", () => {
   it("renders downloads as unavailable controls on web", () => {
     renderPage("downloads");
     expect(container.textContent).toContain("下载目录");
-    expect(container.querySelector("button")?.hasAttribute("disabled")).toBe(true);
-    expect(container.querySelector("input[aria-label=\"每次询问保存位置\"]")?.hasAttribute("disabled")).toBe(true);
+    expect(container.textContent).toContain("即将上线");
+    expect(container.querySelector("button")).toBeNull();
   });
 
   it("shows voice shortcuts only when voice input is available", () => {
