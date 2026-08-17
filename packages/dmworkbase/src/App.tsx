@@ -1,11 +1,16 @@
 import mitt, { Emitter } from "mitt";
 import { getSessionSid, setSessionSid } from "./Service/SessionScope";
 import { replaceWithShellDocument } from "./Service/ShellDocument";
+import { runLogoutCleanup } from "./Service/logoutCleanup";
+
+const IPC_CLEAR_AUTH_SESSION = "octo:oidc:clear-auth-session";
 
 /** mittBus 全局事件类型表 */
 export type MittEvents = {
   "friend-applys-unread-count": number;
   "space-changed": unknown;
+  /** Initial Space resolution completed during app startup. */
+  "space-ready": unknown;
   "task-upload-failed": { channelKey: string };
   /** 内置表情清单(GET /v1/common/emojis)异步到达并发生变化:已渲染消息与表情选择器据此重渲染一次 */
   "emoji-manifest-updated": undefined;
@@ -366,6 +371,13 @@ export class WKRemoteConfig {
    */
   driveOn: boolean = false;
   /**
+   * Agent Mail 模块展示开关。后端字段 mail_on 为 true 时，前端在侧边栏 NavRail
+   * 展示邮件入口；false 或字段缺失时隐藏。
+   *
+   * 默认 false(fail-safe)，仅控制前端入口展示，不承担权限校验。
+   */
+  mailOn: boolean = false;
+  /**
    * OIDC provider 元数据数组, 由后端 /v1/common/appconfig 的 oidc_providers 字段下发。
    * OIDC 关闭时为空数组。前端不再硬编码具体 IdP, 部署 env 切 provider。
    * 顶层 oidc_account_url / oidc_reset_password_url 是后端兼容老前端用的,新前端只读这里。
@@ -475,6 +487,7 @@ export class WKRemoteConfig {
       const previousDmloopOn = this.dmloopOn;
       const previousDmpersonalOn = this.dmpersonalOn;
       const previousDriveOn = this.driveOn;
+      const previousMailOn = this.mailOn;
       const previousRequestFailed = this.requestFailed;
       const previousOidcProviders = this.oidcProviders;
       this.requestSuccess = true;
@@ -502,6 +515,7 @@ export class WKRemoteConfig {
       this.dmloopOn = parseRemoteBool(result["dmloop_on"]);
       this.dmpersonalOn = parseRemoteBool(result["dmpersonal_on"]);
       this.driveOn = parseRemoteBool(result["drive_on"]);
+      this.mailOn = parseRemoteBool(result["mail_on"]);
       this.oidcProviders = parseOidcProviders(result["oidc_providers"]);
       // 仅首次成功通知, 后续重新拉取(重连/手动刷新)不重复打扰订阅方。
       if (!wasSuccessful) this.notifyListeners();
@@ -522,6 +536,7 @@ export class WKRemoteConfig {
         previousDmloopOn !== this.dmloopOn ||
         previousDmpersonalOn !== this.dmpersonalOn ||
         previousDriveOn !== this.driveOn ||
+        previousMailOn !== this.mailOn ||
         previousRequestFailed !== this.requestFailed ||
         !oidcProvidersEqual(previousOidcProviders, this.oidcProviders)
       ) {
@@ -946,7 +961,7 @@ export default class WKApp extends ProviderListener {
   // app启动
   startup() {
     if (consumeOidcPostLogoutCleanup()) {
-      this.clearLocalLoginState();
+      void this.clearLocalLoginState();
     }
     WKApp.loginInfo.load(); // 加载登录信息
 
@@ -1197,7 +1212,7 @@ export default class WKApp extends ProviderListener {
   isLogined() {
     return WKApp.loginInfo.isLogined();
   }
-  private clearLocalLoginState() {
+  private async clearLocalLoginState() {
     WKApp.loginInfo.logout();
     clearAuthStorage();
     setSessionSid("");
@@ -1208,13 +1223,33 @@ export default class WKApp extends ProviderListener {
     WKApp.mittBus.emit("wk:auth-state-changed");
   }
 
+  private async clearElectronAuthSession() {
+    if (
+      (window as any).__POWERED_ELECTRON__ &&
+      typeof (window as any).ipc?.invoke === "function"
+    ) {
+      try {
+        const result = await (window as any).ipc.invoke(IPC_CLEAR_AUTH_SESSION);
+        if (result?.ok !== true || result?.partial === true) {
+          console.warn("[auth] Electron auth-session cleanup was incomplete", result);
+        }
+      } catch {
+        // Local storage cleanup must still complete if the main process is
+        // unavailable; callers await this before reloading the shell.
+      }
+    }
+  }
+
   // 登出
-  logout() {
+  async logout() {
     // 幂等守卫：并发 401 会重复调用本方法，只允许第一次真正执行清理与跳转，
     // 后续重入直接返回，避免 window.location.replace 被连发导致的反复跳转/刷屏。
     if (this._loggingOut) return;
     this._loggingOut = true;
-    this.clearLocalLoginState();
+    await runLogoutCleanup(
+      () => this.clearLocalLoginState(),
+      () => this.clearElectronAuthSession(),
+    );
     // Packaged Electron shell loads via `file://` and has no `/login` route
     // on disk, so `location.replace("/login")` navigates to
     // `file:///login` and hangs on ERR_FILE_NOT_FOUND — the interceptor's
@@ -1264,6 +1299,7 @@ export default class WKApp extends ProviderListener {
         ? import.meta.env.VITE_OIDC_POST_LOGOUT_REDIRECT_URI
         : undefined,
       clearLocalLoginState: () => this.clearLocalLoginState(),
+      clearElectronAuthSession: () => this.clearElectronAuthSession(),
       reloadShell: replaceWithShellDocument,
       navigateExternal: (url) => { window.location.href = url; },
       markPostLogoutCleanup: () => { markOidcPostLogoutCleanup(); },

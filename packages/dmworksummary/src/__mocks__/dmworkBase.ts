@@ -70,13 +70,13 @@ export const titleContextStore = {
 };
 
 export const WKApp = {
-  loginInfo: { token: 'test-token-abc', uid: 'test-uid' },
+  loginInfo: { token: 'test-token-abc', uid: 'test-uid', isLogined: () => true },
   shared: { currentSpaceId: 'space-123', deviceId: 'test-device-uuid', logout: () => {}, avatarUser: () => '' },
   routeRight: { push: () => {}, replaceToRoot: () => {}, popToRoot: () => {} },
   mittBus: { on: () => {}, off: () => {}, emit: () => {} },
   apiClient: {},
   endpoints: { showConversation: () => {} },
-  menus: { menusList: () => [] },
+  menus: { menusList: () => [], refresh: () => {} },
 };
 
 export default WKApp;
@@ -99,3 +99,10 @@ export const Dap = {
 export const buildAcceptLanguage = () => 'zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7';
 
 export const isSafeUrl = (url: string) => /^https?:\/\//.test(url);
+
+export class SummaryNotifyContent {
+  fromUID = '';
+  fromName = '';
+}
+
+export const isConversationDisbanded = () => false;
