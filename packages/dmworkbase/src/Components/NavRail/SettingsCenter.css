@@ -1,7 +1,7 @@
 .wk-settings-center-modal .wk-modal-shell { padding: 0; overflow: hidden; }
 .wk-settings-center-modal .wk-modal-custom-close-btn { display: none; }
 .wk-settings-center-modal .wk-modal-body { overflow: hidden; border-radius: 16px; }
-.wk-settings-center { display: grid; grid-template-columns: 264px minmax(0, 1fr); width: 100%; min-width: 712px; min-height: 560px; height: min(760px, calc(100vh - 120px)); overflow: hidden; color: var(--wk-text-primary); background: var(--wk-bg-surface); box-shadow: var(--wk-shadow-lg); }
+.wk-settings-center { position: relative; display: grid; grid-template-columns: 264px minmax(0, 1fr); width: 100%; min-width: 712px; min-height: 560px; height: min(760px, calc(100vh - 120px)); overflow: hidden; color: var(--wk-text-primary); background: var(--wk-bg-surface); box-shadow: var(--wk-shadow-lg); }
 .wk-settings-center__sidebar { display: flex; min-width: 0; flex-direction: column; padding: 24px 16px 16px; overflow: hidden; background: var(--wk-bg-base); border-right: 1px solid var(--wk-border-subtle); }
 .wk-settings-center__sidebar > h1 { margin: 0 12px 24px; font-size: 22px; font-weight: 700; line-height: 1.3; }
 .wk-settings-center__navigation { flex: 1; min-height: 0; overflow: auto; }
@@ -17,7 +17,7 @@
 .wk-settings-center__footer button:hover { background: var(--wk-bg-item-hover); }
 .wk-settings-center__footer button.is-danger { color: var(--wk-color-danger, #d14343); }
 .wk-settings-center__content { position: relative; min-width: 0; overflow: auto; background: var(--wk-bg-surface); }
-.wk-settings-center__close { position: absolute; top: 16px; right: 16px; z-index: 1; display: inline-flex; width: 32px; height: 32px; align-items: center; justify-content: center; padding: 0; border: 0; border-radius: 8px; background: transparent; color: var(--wk-text-tertiary); cursor: pointer; font-size: 24px; line-height: 1; }
+.wk-settings-center__close { position: absolute; top: 16px; right: 16px; z-index: 3; display: inline-flex; width: 32px; height: 32px; align-items: center; justify-content: center; padding: 0; border: 0; border-radius: 8px; background: transparent; color: var(--wk-text-tertiary); cursor: pointer; font-size: 24px; line-height: 1; }
 .wk-settings-center__close:hover { background: var(--wk-bg-item-hover); color: var(--wk-text-primary); }
 .wk-settings-center__close::before, .wk-settings-center__close::after { position: absolute; width: 16px; height: 1.5px; border-radius: 1px; background: currentColor; content: ""; }
 .wk-settings-center__close::before { transform: rotate(45deg); }
