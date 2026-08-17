@@ -16,6 +16,7 @@
 .wk-settings-center__footer button { display: flex; width: 100%; min-height: 36px; align-items: center; gap: 8px; padding: 0 12px; border: 0; border-radius: 8px; background: transparent; color: var(--wk-text-secondary); cursor: pointer; font-size: 14px; text-align: left; }
 .wk-settings-center__footer button:hover { background: var(--wk-bg-item-hover); }
 .wk-settings-center__footer button.is-danger { color: var(--wk-color-danger, #d14343); }
+.wk-settings-center__footer button svg { width: 18px; height: 18px; flex: 0 0 18px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.8; }
 .wk-settings-center__content { position: relative; min-width: 0; overflow: auto; background: var(--wk-bg-surface); }
 .wk-settings-center__close { position: absolute; top: 16px; right: 16px; z-index: 3; display: inline-flex; width: 32px; height: 32px; align-items: center; justify-content: center; padding: 0; border: 0; border-radius: 8px; background: transparent; color: var(--wk-text-tertiary); cursor: pointer; font-size: 24px; line-height: 1; }
 .wk-settings-center__close:hover { background: var(--wk-bg-item-hover); color: var(--wk-text-primary); }
