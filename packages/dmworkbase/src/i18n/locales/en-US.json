@@ -1428,6 +1428,7 @@
   "navRail.settingsCenter.value.unauthorized": "Not authorized",
   "navRail.settingsCenter.value.unsupported": "Unsupported",
   "navRail.settingsCenter.value.testing": "Testing",
+  "navRail.settingsCenter.value.notTested": "Not tested",
   "navRail.settingsCenter.value.connectionSuccess": "Connected",
   "navRail.settingsCenter.value.connectionFailed": "Connection failed",
   "navRail.settingsPanel.accountCenter": "Account center",

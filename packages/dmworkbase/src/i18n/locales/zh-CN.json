@@ -1428,6 +1428,7 @@
   "navRail.settingsCenter.value.unauthorized": "尚未授权",
   "navRail.settingsCenter.value.unsupported": "当前不支持",
   "navRail.settingsCenter.value.testing": "测试中",
+  "navRail.settingsCenter.value.notTested": "未测试",
   "navRail.settingsCenter.value.connectionSuccess": "连接成功",
   "navRail.settingsCenter.value.connectionFailed": "连接失败",
   "navRail.settingsPanel.accountCenter": "账户中心",
