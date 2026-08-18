@@ -28,22 +28,11 @@ export default class MainVM extends ProviderListener {
 
   private _historyRoutePaths: string[] = [];
 
-  private _showNewVersion!: boolean;
-
   private _hasNewVersion!: boolean; // 是否有新版本
 
   lastVersionInfo?: VersionInfo; // 最新版本信息
 
   private _showMeInfo: boolean; // 是否显示我的信息
-
-  set showNewVersion(v: boolean) {
-    this._showNewVersion = v;
-    this.notifyListener();
-  }
-
-  get showNewVersion() {
-    return this._showNewVersion;
-  }
 
   set hasNewVersion(v: boolean) {
     this._hasNewVersion = v;

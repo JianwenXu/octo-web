@@ -102,7 +102,7 @@ export type MittEvents = {
   /**
    * 打开「密钥 / Secrets」管理面板（YUJ-3539）。由聊天反向跳转（bot 消息里的
    * 「去添加密钥」按钮）或输入框防手滑提示触发；payload 可携带预填名字 / 明文，
-   * 接收方 NavSecretsSettingsItem 据此打开面板并预填新增弹窗（绝不自动发送/保存）。
+   * 设置中心据此打开密钥二级页并预填新增弹窗（绝不自动发送/保存）。
    */
   'wk:open-secrets': {
     create?: boolean;
@@ -1025,6 +1025,9 @@ export default class WKApp extends ProviderListener {
     });
 
     if (WKApp.loginInfo.isLogined()) {
+      // Module init runs before loginInfo.load(). Re-emit the auth lifecycle
+      // after restore so user-scoped stores bind to the loaded uid too.
+      WKApp.mittBus.emit("wk:auth-state-changed");
       this.startMain();
     }
 
@@ -1343,7 +1346,7 @@ export default class WKApp extends ProviderListener {
       if (spaceId && uid.startsWith(`s${spaceId}_`)) {
         uid = uid.substring(spaceId.length + 2);
       }
-      if (!uid) uid = channel.channelID; // fallback
+      if (!uid) return "";
       return `${baseURL}users/${uid}/avatar?v=${avatarTag}`;
     } else if (channel.channelType === ChannelTypeGroup) {
       return `${baseURL}groups/${channel.channelID}/avatar?v=${avatarTag}`;
@@ -1358,6 +1361,7 @@ export default class WKApp extends ProviderListener {
   }
 
   avatarUser(uid: string) {
+    if (!uid) return "";
     const c = new Channel(uid, ChannelTypePerson);
     return this.avatarChannel(c);
   }

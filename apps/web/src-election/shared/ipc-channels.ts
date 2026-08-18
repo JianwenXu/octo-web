@@ -9,6 +9,10 @@
 /** Renderer → Main: sync the current unread-message count to the tray. */
 export const IPC_CONVERSATION_UNREAD_COUNT = "conversation-manager-unread-count";
 
+/** Renderer ↔ Main: persist and apply the Desktop keep-awake preference. */
+export const IPC_KEEP_AWAKE_GET = "keep-awake-get";
+export const IPC_KEEP_AWAKE_SET = "keep-awake-set";
+
 /** Renderer → Main: desktop system capabilities. */
 export const IPC_SCREENSHOTS_START = "screenshots-start";
 export const IPC_SCREENSHOTS_OK = "screenshots-ok";
