@@ -22,6 +22,7 @@ import WKApp, { FriendApply, FriendApplyState, ThemeMode } from "./App";
 import { isChannelSearchEnabled } from "./features/channelSearch/feature";
 import { voiceSettingsStore } from "./Service/VoiceSettingsStore";
 import ChatSearchEntryButton from "./features/channelSearch/ChatSearchEntryButton";
+import { isElectronPowered } from "./electron/desktopBridge";
 import { ChannelSettingRouteData } from "./Components/ChannelSetting/context";
 import { InputEdit } from "./Components/InputEdit";
 import { ListItem, ListItemTip } from "./Components/ListItem";
@@ -740,7 +741,7 @@ export default class BaseModule implements IModule {
    * processMessageAttention.
    */
   private isElectronEnvironment(): boolean {
-    return !!(window as any).__POWERED_ELECTRON__;
+    return isElectronPowered();
   }
 
   private scheduleMessageAttention(

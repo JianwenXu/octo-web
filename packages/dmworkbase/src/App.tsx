@@ -2,8 +2,13 @@ import mitt, { Emitter } from "mitt";
 import { getSessionSid, setSessionSid } from "./Service/SessionScope";
 import { replaceWithShellDocument } from "./Service/ShellDocument";
 import { runLogoutCleanup } from "./Service/logoutCleanup";
-
-const IPC_CLEAR_AUTH_SESSION = "octo:oidc:clear-auth-session";
+import {
+  clearElectronAuthSession as clearElectronAuthSessionBridge,
+  getElectronIpcBridge,
+  getOctoElectronBridge,
+  isElectronPowered,
+  isElectronShellBridgeAvailable,
+} from "./electron/desktopBridge";
 
 /** mittBus 全局事件类型表 */
 export type MittEvents = {
@@ -967,7 +972,7 @@ export default class WKApp extends ProviderListener {
 
     // 是否是PC端
     if (
-      (window as any)?.__POWERED_ELECTRON__ ||
+      isElectronPowered() ||
       (window as any).__TAURI_IPC__
     ) {
       this.isPC = true;
@@ -1227,13 +1232,12 @@ export default class WKApp extends ProviderListener {
   }
 
   private async clearElectronAuthSession() {
-    if (
-      (window as any).__POWERED_ELECTRON__ &&
-      typeof (window as any).ipc?.invoke === "function"
-    ) {
+    if (isElectronPowered()) {
       try {
-        const result = await (window as any).ipc.invoke(IPC_CLEAR_AUTH_SESSION);
-        if (result?.ok !== true || result?.partial === true) {
+        const result = (await clearElectronAuthSessionBridge()) as
+          | { ok?: boolean; partial?: boolean }
+          | undefined;
+        if (result && (result.ok !== true || result.partial === true)) {
           console.warn("[auth] Electron auth-session cleanup was incomplete", result);
         }
       } catch {
@@ -1277,10 +1281,7 @@ export default class WKApp extends ProviderListener {
    * logout through the web redirect path.
    */
   private isElectronShell() {
-    return Boolean(
-      (window as any).__POWERED_ELECTRON__ &&
-      typeof (window as any).ipc?.invoke === "function",
-    );
+    return isElectronShellBridgeAvailable();
   }
 
   async logoutUserInitiated() {
@@ -1292,7 +1293,7 @@ export default class WKApp extends ProviderListener {
       loginProvider: WKApp.loginInfo.loginProvider,
       token: WKApp.loginInfo.token || "",
       apiURL: WKApp.apiClient.config.apiURL || "",
-      ipc: (window as any).ipc,
+      ipc: getOctoElectronBridge()?.oidc ?? getElectronIpcBridge(),
       env: this.isElectronShell() ? "desktop-shell" : "web",
       // Only forward the dev override when actually in a dev build; in
       // production `import.meta.env.DEV` is false and we must not read the
