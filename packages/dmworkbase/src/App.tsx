@@ -1342,7 +1342,7 @@ export default class WKApp extends ProviderListener {
       if (spaceId && uid.startsWith(`s${spaceId}_`)) {
         uid = uid.substring(spaceId.length + 2);
       }
-      if (!uid) uid = channel.channelID; // fallback
+      if (!uid) return "";
       return `${baseURL}users/${uid}/avatar?v=${avatarTag}`;
     } else if (channel.channelType === ChannelTypeGroup) {
       return `${baseURL}groups/${channel.channelID}/avatar?v=${avatarTag}`;
