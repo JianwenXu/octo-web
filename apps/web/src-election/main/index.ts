@@ -91,7 +91,8 @@ function writeKeepAwakePreference(enabled: boolean) {
     }
     settings = raw;
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    // A truncated/corrupt preference must not prevent the user from saving a
+    // new value; the next atomic write replaces it.
   }
   settings.keepAwake = enabled;
   const tempPath = `${path}.${process.pid}.tmp`;

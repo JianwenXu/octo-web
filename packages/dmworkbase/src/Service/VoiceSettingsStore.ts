@@ -69,7 +69,7 @@ function read(key = storageKey): VoiceSettings {
     return {
       ...defaults,
       ...value,
-      enabled: value.enabled === true,
+      enabled: value.enabled === true && value.consent?.protocolVersion === VOICE_PROTOCOL_VERSION,
       shortcutWindows: validShortcuts.has(value.shortcutWindows as VoiceShortcut) ? value.shortcutWindows! : defaults.shortcutWindows,
       shortcutMacos: validShortcuts.has(value.shortcutMacos as VoiceShortcut) ? value.shortcutMacos! : defaults.shortcutMacos,
       speakingMode: validModes.has(value.speakingMode as VoiceSpeakingMode) ? value.speakingMode! : defaults.speakingMode,

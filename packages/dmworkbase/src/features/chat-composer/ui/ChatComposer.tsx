@@ -129,9 +129,10 @@ const VOICE_OS = /Mac|iPhone|iPad/i.test(navigator.userAgent) ? "macos" : "windo
 
 /** 根据频道类型和名称生成 placeholder 文本 */
 function buildPlaceholder(isDirect: boolean, name: string, t: typeof translate, settings: VoiceSettings): string {
+  const taskShortcut = VOICE_OS === "macos" ? "⌥" : "Alt";
   const base = isDirect
     ? (name ? t("base.messageInput.placeholder.directWithName", { values: { name } }) : t("base.messageInput.placeholder.direct"))
-    : (name ? t("base.messageInput.placeholder.replyWithName", { values: { name } }) : t("base.messageInput.placeholder.reply"));
+    : (name ? t("base.messageInput.placeholder.replyWithName", { values: { name, shortcut: taskShortcut } }) : t("base.messageInput.placeholder.reply", { values: { shortcut: taskShortcut } }));
   const shortcut = getVoiceShortcut(settings, VOICE_OS);
   if (!settings.enabled || shortcut === "disabled") return base;
   const label = shortcut === "alt-right"

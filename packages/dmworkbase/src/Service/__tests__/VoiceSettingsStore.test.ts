@@ -18,6 +18,15 @@ describe("voiceSettingsStore", () => {
     expect(voiceSettingsStore.get().consent?.protocolVersion).toBe(VOICE_PROTOCOL_VERSION);
   });
 
+  it("does not restore enabled voice input after a consent protocol change", () => {
+    localStorage.setItem(VOICE_SETTINGS_KEY, JSON.stringify({
+      enabled: true,
+      consent: { protocolVersion: "old", ackedAt: new Date().toISOString() },
+    }));
+    voiceSettingsStore.setUserId("");
+    expect(voiceSettingsStore.get().enabled).toBe(false);
+  });
+
   it("migrates server local voice settings only when no local settings exist", () => {
     const migrated = voiceSettingsStore.migrateServerConfig({
       local_enabled: true,
@@ -53,6 +62,7 @@ describe("voiceSettingsStore", () => {
   it("restores persisted values and normalizes invalid enum values", async () => {
     localStorage.setItem(VOICE_SETTINGS_KEY, JSON.stringify({
       enabled: true,
+      consent: { protocolVersion: VOICE_PROTOCOL_VERSION, ackedAt: new Date().toISOString() },
       shortcutWindows: "old-shortcut",
       speakingMode: "old-mode",
     }));

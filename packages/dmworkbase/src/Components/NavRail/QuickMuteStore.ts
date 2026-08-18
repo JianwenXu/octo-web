@@ -28,10 +28,15 @@ interface NotificationPauseResponse {
 }
 
 const QUICK_MUTE_SCOPE_KEY = "octo.quickMute.scope";
+let quickMuteUserId = "";
 
-function getStoredScope(): QuickMuteState["scope"] {
+function scopeStorageKey(userId = quickMuteUserId) {
+  return userId ? `${QUICK_MUTE_SCOPE_KEY}.${encodeURIComponent(userId)}` : QUICK_MUTE_SCOPE_KEY;
+}
+
+function getStoredScope(userId = quickMuteUserId): QuickMuteState["scope"] {
   try {
-    return window.localStorage.getItem(QUICK_MUTE_SCOPE_KEY) === "sound"
+    return window.localStorage.getItem(scopeStorageKey(userId)) === "sound"
       ? "sound"
       : "sound-and-popup";
   } catch {
@@ -39,9 +44,9 @@ function getStoredScope(): QuickMuteState["scope"] {
   }
 }
 
-function storeScope(scope: QuickMuteState["scope"]) {
+function storeScope(scope: QuickMuteState["scope"], userId = quickMuteUserId) {
   try {
-    window.localStorage.setItem(QUICK_MUTE_SCOPE_KEY, scope);
+    window.localStorage.setItem(scopeStorageKey(userId), scope);
   } catch {
     // Local storage can be unavailable in private browsing or test runtimes.
   }
@@ -158,7 +163,7 @@ export class QuickMuteStore implements QuickMuteService {
   }
 
   async getState() {
-    if (!this.loaded && (!this.loadAttempted || this.inFlight)) await this.refresh();
+    if (!this.loaded && !this.inFlight) await this.refresh();
     else {
       const active = Boolean(this.state.active && (this.state.mode === "manual" || (this.state.endAt && this.state.endAt > Date.now() + this.serverOffset)));
       if (active !== this.state.active) {
@@ -179,7 +184,7 @@ export class QuickMuteStore implements QuickMuteService {
       else void this.refresh().catch(() => {
         this.state = { ...this.state, active: false, endAt: undefined };
         this.listeners.forEach((listener) => listener(this.state));
-        this.expiryTimer = setTimeout(() => this.scheduleExpiry(endAt), 5_000);
+        this.expiryTimer = setTimeout(() => { void this.refresh(); }, 5_000);
       });
     }, Math.min(Math.max(remaining, 0), 60 * 60_000));
   }
@@ -207,8 +212,17 @@ export class QuickMuteStore implements QuickMuteService {
     this.inFlight = undefined;
     this.loaded = false;
     this.loadAttempted = false;
-    this.state = { active: false, scope: getStoredScope(), revision: 0 };
+    this.state = { active: false, scope: getStoredScope(this.userId), revision: 0 };
     this.listeners.forEach((listener) => listener(this.state));
+  }
+
+  private userId = "";
+
+  setUserId(userId: string) {
+    this.userId = userId;
+    quickMuteUserId = userId;
+    this.reset();
+    return this.state;
   }
 
   applyRemoteCMD(param: unknown) {
@@ -233,7 +247,7 @@ export class QuickMuteStore implements QuickMuteService {
   }
 
   setScope(scope: QuickMuteState["scope"]) {
-    storeScope(scope);
+    storeScope(scope, this.userId);
     this.state = { ...this.state, scope };
     this.listeners.forEach((listener) => listener(this.state));
     return this.state;

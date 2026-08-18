@@ -270,16 +270,19 @@ export default class BaseModule implements IModule {
     // 校准，CMD 只作为低延迟更新，不承担最终一致性。
     const refreshQuickMute = () => { void quickMuteStore.refresh().catch(() => undefined); };
     voiceSettingsStore.setUserId(WKApp.loginInfo.uid || "");
+    quickMuteStore.setUserId(WKApp.loginInfo.uid || "");
     WKApp.mittBus.on("wk:app-foreground", refreshQuickMute);
     WKApp.mittBus.on("wk:auth-state-changed", () => {
       quickMuteStore.reset();
       voiceSettingsStore.setUserId(WKApp.loginInfo.uid || "");
+      quickMuteStore.setUserId(WKApp.loginInfo.uid || "");
       refreshQuickMute();
     });
     if (typeof window !== "undefined") window.addEventListener("online", refreshQuickMute);
     WKSDK.shared().connectManager.addConnectStatusListener((status) => {
       if (status === ConnectStatus.Connected) refreshQuickMute();
     });
+    refreshQuickMute();
 
     WKApp.endpointManager.setMethod(
       EndpointID.emojiService,

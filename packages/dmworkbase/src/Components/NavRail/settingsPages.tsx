@@ -15,9 +15,11 @@ import { MeInfo } from "../MeInfo";
 import octoLogo from "../../assets/settings-center/octo-logo.png";
 import mininglampLogo from "../../assets/settings-center/mininglamp-logo.png";
 import { quickMuteStore } from "./QuickMuteStore";
-import { getVoiceShortcut, setMicrophonePermission, VOICE_PROTOCOL_VERSION, VOICE_SETTINGS_DEFAULTS, voiceSettingsStore, type VoiceSettings, type VoiceShortcut } from "../../Service/VoiceSettingsStore";
+import { getMicrophonePermission, getVoiceShortcut, setMicrophonePermission, VOICE_PROTOCOL_VERSION, VOICE_SETTINGS_DEFAULTS, voiceSettingsStore, type VoiceSettings, type VoiceShortcut } from "../../Service/VoiceSettingsStore";
 import { getDocument } from "../../Service/DocumentService";
 import Checkbox from "../Checkbox";
+import { acceptVoiceInput } from "../../features/voice-input/useSpaceFeedbackSetting";
+import { Dap } from "../../Service/Dap";
 
 export function SettingsRow({ title, description, trailing, children }: { title: string; description?: string; trailing?: React.ReactNode; children?: React.ReactNode }) { return <div className="wk-settings-center__row"><div className="wk-settings-center__row-main"><div className="wk-settings-center__row-title">{title}</div>{description && <div className="wk-settings-center__row-description">{description}</div>}</div>{children ?? trailing}</div>; }
 
@@ -84,7 +86,7 @@ function useMobileDownloadUrl(resourceId: string) {
   return url;
 }
 
-export function SettingsPage({ item, environment, accountCenterUrl, onSecrets, onAbout, onOpenOnboarding }: { item?: SettingsItem; environment: import("../../Runtime").RuntimeEnvironment; accountCenterUrl?: string; onSecrets?: () => void; onAbout?: () => void; onOpenOnboarding?: () => void }) {
+export function SettingsPage({ item, environment, accountCenterUrl, onSecrets, onAbout, onChangelog, onOpenOnboarding }: { item?: SettingsItem; environment: import("../../Runtime").RuntimeEnvironment; accountCenterUrl?: string; onSecrets?: () => void; onAbout?: () => void; onChangelog?: () => void; onOpenOnboarding?: () => void }) {
   if (item?.id === "general") return <SettingsPageFrame title={t("base.navRail.settingsCenter.page.general.title")}><SettingsSection title={t("base.navRail.settingsCenter.section.displayLanguage")}><SettingsRow title={t("base.navRail.settingsCenter.row.language")} description={t("base.navRail.settingsCenter.row.languageDescription")} trailing={<select className="wk-settings-center__demo-select" aria-label={t("base.navRail.settingsCenter.row.language")} value={i18n.getLocale()} onChange={(event) => { const locale = event.target.value as Locale; i18n.setLocale(locale); if (WKApp.shared.isLogined()) void updateUserLanguagePreference(locale).catch(() => Toast.error(t("base.navRail.settingsCenter.value.saveFailed"))); }}><option value="zh-CN">{t("base.navRail.settingsCenter.language.zh")}</option><option value="en-US">{t("base.navRail.settingsCenter.language.en")}</option></select>} /><SettingsRow title={t("base.navRail.settingsCenter.row.darkMode")} description={t("base.navRail.settingsCenter.row.darkModeDescription")} trailing={<SettingsStatusTag tone="neutral" label={t("base.navRail.settingsCenter.value.comingSoon")} />} /></SettingsSection></SettingsPageFrame>;
   if (item?.id === "account") return <AccountSettingsPage accountCenterUrl={accountCenterUrl} onSecrets={onSecrets} />;
   if (item?.id === "notifications") {
@@ -95,14 +97,14 @@ export function SettingsPage({ item, environment, accountCenterUrl, onSecrets, o
   if (item?.id === "voice") return <VoiceInputSettingsPage environment={environment} />;
   if (item?.id === "shortcuts") return <ShortcutsSettingsPage environment={environment} />;
   if (item?.id === "devices") return <SettingsPageFrame title={t("base.navRail.settingsCenter.page.devices.title")}><div className="wk-settings-center__resource-sections">{settingsResourceGroups.map((group) => <ResourceSection key={group.titleKey} title={t(group.titleKey)} category={group.category}>{group.resources.map((resource) => <ResourceCard key={resource.id} {...resource} description={t(resource.descriptionKey)} statusLabel={t(resource.statusKey)} category={group.category} action={resource.url && resource.actionKey ? <a className="wk-settings-center__resource-action" href={resource.url} target="_blank" rel="noreferrer">↗ {t(resource.actionKey)}</a> : undefined} />)}</ResourceSection>)}</div></SettingsPageFrame>;
-  if (item?.id === "about") return <AboutSettingsPage onAbout={onAbout} onOpenOnboarding={onOpenOnboarding} />;
+  if (item?.id === "about") return <AboutSettingsPage onAbout={onAbout} onChangelog={onChangelog} onOpenOnboarding={onOpenOnboarding} />;
   return <SettingsPageFrame title={t("base.navRail.settingsCenter.page.fallback.title")} description={t("base.navRail.settingsCenter.page.fallback.description")}><SettingsRow title={t("base.navRail.settingsCenter.row.placeholder")} description={t("base.navRail.settingsCenter.placeholder")} /></SettingsPageFrame>;
 }
 
 function ShortcutsSettingsPage({ environment }: { environment: import("../../Runtime").RuntimeEnvironment }) {
   const settings = useVoiceSettings();
   const os = getVoiceOs(environment);
-  return <SettingsPageFrame title={t("base.navRail.settingsCenter.page.shortcuts.title")}><div className="wk-settings-center__shortcut-catalog">{environment.capabilities.has("voiceInput") && <section className="wk-settings-center__shortcut-group"><h3>{t("base.navRail.settingsCenter.shortcut.voice")}</h3><ShortcutRow label={t("base.navRail.settingsCenter.shortcut.holdToTalk")} keys={[voiceShortcutLabel(getVoiceShortcut(settings, os), os), voiceModeLabel(settings.speakingMode)]} /><ShortcutRow label={t("base.navRail.settingsCenter.shortcut.cancelVoice")} keys={["Esc"]} /></section>}</div></SettingsPageFrame>;
+  return <SettingsPageFrame title={t("base.navRail.settingsCenter.page.shortcuts.title")}><div className="wk-settings-center__shortcut-catalog"><section className="wk-settings-center__shortcut-group"><h3>{t("base.navRail.settingsCenter.shortcut.voice")}</h3><ShortcutRow label={t("base.navRail.settingsCenter.shortcut.holdToTalk")} keys={[voiceShortcutLabel(getVoiceShortcut(settings, os), os), voiceModeLabel(settings.speakingMode)]} /><ShortcutRow label={t("base.navRail.settingsCenter.shortcut.cancelVoice")} keys={["Esc"]} /></section></div></SettingsPageFrame>;
 }
 
 function AccountSettingsPage({ accountCenterUrl, onSecrets }: { accountCenterUrl?: string; onSecrets?: () => void }) {
@@ -189,7 +191,7 @@ function NotificationsSettingsPage({ environment }: { environment: import("../..
   </SettingsPageFrame>;
 }
 function SettingsPageFrame({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) { return <div className="wk-settings-center__page"><header className="wk-settings-center__page-header"><h2>{title}</h2>{description && <p>{description}</p>}</header><section className="wk-settings-center__section-content">{children}</section></div>; }
-function AboutSettingsPage({ onAbout, onOpenOnboarding }: { onAbout?: () => void; onOpenOnboarding?: () => void }) {
+function AboutSettingsPage({ onAbout, onChangelog, onOpenOnboarding }: { onAbout?: () => void; onChangelog?: () => void; onOpenOnboarding?: () => void }) {
   const externalLink = (label: string, href: string) => <a className="wk-settings-center__external-link" href={href} target="_blank" rel="noreferrer" aria-label={label}>↗</a>;
   return <SettingsPageFrame title={t("base.navRail.settingsCenter.page.about.title")}>
     <div className="wk-settings-center__about-identity">
@@ -199,6 +201,7 @@ function AboutSettingsPage({ onAbout, onOpenOnboarding }: { onAbout?: () => void
     </div>
     <SettingsSection title={t("base.navRail.settingsCenter.section.help")}>
       <SettingsRow title={t("base.navRail.settingsCenter.row.guide")} trailing={onOpenOnboarding ? <button type="button" className="wk-settings-center__about-icon-button" onClick={onOpenOnboarding} aria-label={t("base.navRail.settingsCenter.row.guide")}><ChevronIcon /></button> : undefined} />
+      <SettingsRow title={t("base.navRail.settingsCenter.row.changelog")} description={t("base.navRail.settingsCenter.row.changelogDescription")} trailing={onChangelog ? <button type="button" className="wk-settings-center__about-icon-button" onClick={onChangelog} aria-label={t("base.navRail.settingsCenter.row.changelog")}><ChevronIcon /></button> : undefined} />
       <SettingsRow title={t("base.navRail.settingsCenter.row.feedback")} trailing={externalLink(t("base.navRail.settingsCenter.row.feedback"), "https://github.com/Mininglamp-OSS/octo-web/issues/new")} />
     </SettingsSection>
     <SettingsSection title={t("base.navRail.settingsCenter.section.productInfo")}>
@@ -244,7 +247,7 @@ function VoiceInputSettingsPage({ environment }: { environment: import("../../Ru
     const audioInputs = list.filter((device) => device.kind === "audioinput" && device.deviceId && device.deviceId !== "default");
     setDevices(audioInputs);
     const selectedId = voiceSettingsStore.get().microphoneDeviceId;
-    if (selectedId && !audioInputs.some((device) => device.deviceId === selectedId)) {
+    if (getMicrophonePermission() === "granted" && selectedId && !audioInputs.some((device) => device.deviceId === selectedId)) {
       voiceSettingsStore.set({ microphoneDeviceId: "" });
     }
   }, []);
@@ -270,8 +273,7 @@ function VoiceInputSettingsPage({ environment }: { environment: import("../../Ru
   React.useEffect(() => {
     permissionMountedRef.current = true;
     permissionChangeHandlerRef.current = () => { void refreshPermission(); };
-    void refreshDevices();
-    void refreshPermission();
+    void refreshPermission().then(() => refreshDevices());
     const handleDeviceChange = () => { void refreshDevices(); };
     navigator.mediaDevices?.addEventListener?.("devicechange", handleDeviceChange);
     return () => {
@@ -295,6 +297,7 @@ function VoiceInputSettingsPage({ environment }: { environment: import("../../Ru
     return () => { cancelled = true; };
   }, [showConsent]);
   const toggle = (enabled: boolean) => {
+    Dap.shared.track("settings_voice_toggled", { enabled });
     if (!enabled) { voiceSettingsStore.set({ enabled: false }); return; }
     if (settings.consent?.protocolVersion !== VOICE_PROTOCOL_VERSION) setShowConsent(true);
     else voiceSettingsStore.set({ enabled: true });
@@ -337,7 +340,7 @@ function VoiceInputSettingsPage({ environment }: { environment: import("../../Ru
     </div>
     <div className="wk-settings-center__voice-consent-footer">
       <Checkbox checked={consentChecked} onChange={setConsentChecked}>{t("base.navRail.voiceNotice.feedbackConsent")}</Checkbox>
-      <div className="wk-settings-center__voice-consent-actions"><button type="button" className="wk-settings-center__manage-button" onClick={() => setShowConsent(false)}>{t("base.common.cancel")}</button><button type="button" className="wk-settings-center__manage-button wk-settings-center__manage-button--primary" disabled={consentLoading || consentError || !consentContent || !consentChecked} onClick={() => { voiceSettingsStore.acknowledge(); voiceSettingsStore.set({ enabled: true }); setShowConsent(false); }}>{t("base.navRail.voiceNotice.accept")}</button></div>
+      <div className="wk-settings-center__voice-consent-actions"><button type="button" className="wk-settings-center__manage-button" onClick={() => setShowConsent(false)}>{t("base.common.cancel")}</button><button type="button" className="wk-settings-center__manage-button wk-settings-center__manage-button--primary" disabled={consentLoading || consentError || !consentContent} onClick={() => { void (async () => { const spaceId = WKApp.shared.currentSpaceId; if (spaceId) await acceptVoiceInput(spaceId, consentChecked, () => WKApp.shared.currentSpaceId === spaceId); voiceSettingsStore.acknowledge(); voiceSettingsStore.set({ enabled: true }); setShowConsent(false); })().catch(() => Toast.error(t("base.navRail.settingsCenter.value.saveFailed"))); }}>{t("base.navRail.voiceNotice.accept")}</button></div>
     </div>
   </div>;
   const shortcut = getVoiceShortcut(settings, os);

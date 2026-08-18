@@ -45,7 +45,7 @@ describe("QuickMuteStore", () => {
     expect(parseQuickMuteCMD(null)).toBeNull();
   });
 
-  it("fails open after an initial load error without retrying every read", async () => {
+  it("retries after an initial load error", async () => {
     const service: QuickMuteService = {
       getState: vi.fn().mockRejectedValue(new Error("offline")),
       setMute: vi.fn(),
@@ -54,6 +54,6 @@ describe("QuickMuteStore", () => {
     const store = new QuickMuteStore(service);
     await store.getState();
     await store.getState();
-    expect(service.getState).toHaveBeenCalledTimes(1);
+    expect(service.getState).toHaveBeenCalledTimes(2);
   });
 });

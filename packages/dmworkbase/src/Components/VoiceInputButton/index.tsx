@@ -209,7 +209,7 @@ export default function VoiceInputButton({
       : !event.altKey && !event.ctrlKey && !event.metaKey;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (!inputRef.current || document.activeElement !== inputRef.current || document.querySelector(".wk-settings-center-modal")) return;
+      if (!inputRef.current || document.activeElement !== inputRef.current) return;
 
       if (
         e.code === shortcutCode &&
