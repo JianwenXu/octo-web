@@ -119,6 +119,9 @@ export default function useVoiceInput(
 
   const syncLocalSettings = useCallback(() => {
     const settings = voiceSettingsStore.get();
+    const signature = [settings.localEnabled, settings.localProbeUrl, settings.localTranscribeUrl, settings.localTimeoutMs].join("\u0000");
+    if (localSettingsSignatureRef.current === signature) return;
+    localSettingsSignatureRef.current = signature;
     setIsVoiceEnabled(settings.localEnabled || backendEnabledRef.current);
     const generation = ++localProbeGenerationRef.current;
     LocalModelService.shared.updateConfig(
@@ -127,7 +130,7 @@ export default function useVoiceInput(
         probeUrl: settings.localProbeUrl,
         transcribeUrl: settings.localTranscribeUrl,
         requestTimeoutMs: settings.localTimeoutMs,
-        preferLocal: true,
+        preferLocal: settings.localEnabled || LocalModelService.shared.config.preferLocal,
       },
       localStorage,
     );
@@ -148,6 +151,7 @@ export default function useVoiceInput(
   const lifecycleEpochRef = useRef(0);
   const settingGenerationRef = useRef(0);
   const localProbeGenerationRef = useRef(0);
+  const localSettingsSignatureRef = useRef("");
   const operationRef = useRef<VoiceOperation | null>(null);
 
   const isOperationActive = useCallback((operation: VoiceOperation) => {
@@ -250,7 +254,7 @@ export default function useVoiceInput(
       })
       .catch(() => {
         if (cancelled || !mountedRef.current) return;
-        setIsVoiceEnabled(false);
+        setIsVoiceEnabled(voiceSettingsStore.get().localEnabled);
       });
 
     return () => {
@@ -341,8 +345,9 @@ export default function useVoiceInput(
       }
 
       try {
+        const microphoneDeviceId = voiceSettingsStore.get().microphoneDeviceId;
         const stream = await navigator.mediaDevices.getUserMedia({
-          audio: true,
+          audio: microphoneDeviceId ? { deviceId: { exact: microphoneDeviceId } } : true,
         });
         if (!isOperationActive(operation)) {
           stream.getTracks().forEach((track) => track.stop());

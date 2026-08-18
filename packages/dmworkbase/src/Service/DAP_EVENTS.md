@@ -29,7 +29,7 @@ events by the negative `channelUniqueness` / FetchRules guards asserting they mu
 appear in the path channel. Genuinely unpinned positive fires are the honest gap this
 table surfaces for follow-up.
 
-Total wired octo-web-native events: **133** (+4 infra). Out of scope: 24 octo-docs, 133 octo-fleet.
+Total wired octo-web-native events: **132** (+4 infra). Out of scope: 24 octo-docs, 133 octo-fleet.
 
 
 ## 1. `fetch` + `body` channels (path / request-body → event)
@@ -201,4 +201,4 @@ Total wired octo-web-native events: **133** (+4 infra). Out of scope: 24 octo-do
 
 ---
 
-_Generated from the round-6 source of truth (rule tables + data-track attrs + imperative call sites). 133 event rows._
+_Generated from the round-6 source of truth (rule tables + data-track attrs + imperative call sites). 132 event rows._

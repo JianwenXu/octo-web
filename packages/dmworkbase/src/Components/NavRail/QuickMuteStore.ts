@@ -159,7 +159,13 @@ export class QuickMuteStore implements QuickMuteService {
 
   async getState() {
     if (!this.loaded && (!this.loadAttempted || this.inFlight)) await this.refresh();
-    else this.state = { ...this.state, active: Boolean(this.state.active && (this.state.mode === "manual" || (this.state.endAt && this.state.endAt > Date.now() + this.serverOffset))) };
+    else {
+      const active = Boolean(this.state.active && (this.state.mode === "manual" || (this.state.endAt && this.state.endAt > Date.now() + this.serverOffset)));
+      if (active !== this.state.active) {
+        this.state = { ...this.state, active };
+        this.listeners.forEach((listener) => listener(this.state));
+      }
+    }
     return this.state;
   }
 

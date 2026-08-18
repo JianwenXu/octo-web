@@ -201,7 +201,7 @@ export default function VoiceInputButton({
 
   useEffect(() => {
     if (!isVoiceEnabled || !voiceSettings.enabled) return;
-    const configuredShortcut = getVoiceShortcut(voiceSettings, navigator.platform.toLowerCase().includes("mac") ? "macos" : "windows");
+    const configuredShortcut = getVoiceShortcut(voiceSettings, /Mac|iPhone|iPad/i.test(navigator.userAgent) ? "macos" : "windows");
     if (configuredShortcut === "disabled") return;
     const shortcutCode = configuredShortcut === "alt-right" ? "AltRight" : configuredShortcut === "shift-right" ? "ShiftRight" : "ShiftLeft";
     const modifiersValid = (event: KeyboardEvent) => shortcutCode === "AltRight"
@@ -209,7 +209,7 @@ export default function VoiceInputButton({
       : !event.altKey && !event.ctrlKey && !event.metaKey;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (!inputRef.current || document.activeElement !== inputRef.current || document.querySelector('[data-testid="settings-center"]')) return;
+      if (!inputRef.current || document.activeElement !== inputRef.current || document.querySelector(".wk-settings-center-modal")) return;
 
       if (
         e.code === shortcutCode &&
@@ -318,6 +318,11 @@ export default function VoiceInputButton({
 
   const handleVoiceClick = () => {
     setShowMenu(false);
+
+    if (!isVoiceEnabled) {
+      Toast.warning(t("base.voiceInput.error.unavailable"));
+      return;
+    }
     if (!canRecord) {
       Toast.warning(t("base.voiceInput.error.networkUnavailable"));
       return;
@@ -333,6 +338,10 @@ export default function VoiceInputButton({
 
   const handleModeSelect = (selectedMode: VoiceMode) => {
     setShowMenu(false);
+    if (!isVoiceEnabled) {
+      Toast.warning(t("base.voiceInput.error.unavailable"));
+      return;
+    }
     if (!canRecord || !inputRef.current) return;
     if (!voiceSettings.enabled) {
       Toast.warning(t("base.voiceInput.error.unavailable"));
@@ -412,6 +421,8 @@ export default function VoiceInputButton({
   }
 
   // Default idle state
+  if (!isVoiceEnabled) return null;
+
   if (showModeMenu) {
     const currentText = getCurrentText?.() ?? "";
     const hasContent = currentText.trim().length > 0;

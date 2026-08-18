@@ -82,9 +82,12 @@ function writeKeepAwakePreference(enabled: boolean) {
   let settings: Record<string, unknown> = {};
   try {
     const raw = JSON.parse(fs.readFileSync(path, "utf8"));
-    if (raw && typeof raw === "object") settings = raw;
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+      throw new Error("Invalid keep-awake settings file");
+    }
+    settings = raw;
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== "ENOENT" && !(error instanceof SyntaxError)) throw error;
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
   }
   settings.keepAwake = enabled;
   const tempPath = `${path}.${process.pid}.tmp`;

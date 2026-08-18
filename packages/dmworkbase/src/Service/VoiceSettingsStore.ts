@@ -17,7 +17,7 @@ export interface VoiceSettings {
 export const VOICE_SETTINGS_KEY = "octo.voice-input.v1";
 export const VOICE_PROTOCOL_VERSION = "1.12";
 
-const defaults: VoiceSettings = {
+export const VOICE_SETTINGS_DEFAULTS: VoiceSettings = {
   enabled: false,
   shortcutWindows: "alt-right",
   shortcutMacos: "alt-right",
@@ -28,6 +28,8 @@ const defaults: VoiceSettings = {
   localProbeUrl: "http://localhost:8787/",
   localTranscribeUrl: "http://localhost:8787/v1/voice/transcribe",
 };
+
+const defaults = VOICE_SETTINGS_DEFAULTS;
 
 const validShortcuts = new Set<VoiceShortcut>(["alt-right", "shift-right", "shift-left", "disabled"]);
 const validModes = new Set<VoiceSpeakingMode>(["toggle", "hold"]);
@@ -47,9 +49,21 @@ export function subscribeMicrophonePermission(listener: (permission: PermissionS
   return () => microphonePermissionListeners.delete(listener);
 }
 
-function read(): VoiceSettings {
+function normalizeLocalUrl(value: unknown, fallback: string): string {
+  if (typeof value !== "string" || !value.trim()) return fallback;
   try {
-    const value = JSON.parse(window.localStorage.getItem(VOICE_SETTINGS_KEY) || "null") as Partial<VoiceSettings> | null;
+    const url = new URL(value.trim());
+    return url.protocol === "http:" || url.protocol === "https:" ? url.toString() : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+let storageKey = VOICE_SETTINGS_KEY;
+
+function read(key = storageKey): VoiceSettings {
+  try {
+    const value = JSON.parse(window.localStorage.getItem(key) || "null") as Partial<VoiceSettings> | null;
     if (!value || typeof value !== "object") return { ...defaults };
     return {
       ...defaults,
@@ -61,8 +75,8 @@ function read(): VoiceSettings {
       localTimeoutMs: typeof value.localTimeoutMs === "number" && value.localTimeoutMs > 0 ? value.localTimeoutMs : defaults.localTimeoutMs,
       microphoneDeviceId: typeof value.microphoneDeviceId === "string" ? value.microphoneDeviceId : "",
       localEnabled: value.localEnabled === true,
-      localProbeUrl: typeof value.localProbeUrl === "string" ? value.localProbeUrl : defaults.localProbeUrl,
-      localTranscribeUrl: typeof value.localTranscribeUrl === "string" ? value.localTranscribeUrl : defaults.localTranscribeUrl,
+      localProbeUrl: normalizeLocalUrl(value.localProbeUrl, defaults.localProbeUrl),
+      localTranscribeUrl: normalizeLocalUrl(value.localTranscribeUrl, defaults.localTranscribeUrl),
     };
   } catch {
     return { ...defaults };
@@ -75,9 +89,14 @@ export const voiceSettingsStore = {
   get(): VoiceSettings { return { ...current }; },
   set(patch: Partial<VoiceSettings>): VoiceSettings {
     const previous = current;
-    const next = { ...current, ...patch };
+    const next = {
+      ...current,
+      ...patch,
+      localProbeUrl: patch.localProbeUrl === undefined ? current.localProbeUrl : normalizeLocalUrl(patch.localProbeUrl, current.localProbeUrl),
+      localTranscribeUrl: patch.localTranscribeUrl === undefined ? current.localTranscribeUrl : normalizeLocalUrl(patch.localTranscribeUrl, current.localTranscribeUrl),
+    };
     try {
-      window.localStorage.setItem(VOICE_SETTINGS_KEY, JSON.stringify(next));
+      window.localStorage.setItem(storageKey, JSON.stringify(next));
       current = next;
       listeners.forEach((listener) => listener({ ...current }));
       return { ...current };
@@ -91,7 +110,13 @@ export const voiceSettingsStore = {
   },
   reset(): VoiceSettings {
     current = { ...defaults };
-    try { window.localStorage.removeItem(VOICE_SETTINGS_KEY); } catch { /* unavailable storage */ }
+    try { window.localStorage.removeItem(storageKey); } catch { /* unavailable storage */ }
+    listeners.forEach((listener) => listener({ ...current }));
+    return { ...current };
+  },
+  setUserId(userId: string): VoiceSettings {
+    storageKey = userId ? `${VOICE_SETTINGS_KEY}.${encodeURIComponent(userId)}` : VOICE_SETTINGS_KEY;
+    current = read();
     listeners.forEach((listener) => listener({ ...current }));
     return { ...current };
   },

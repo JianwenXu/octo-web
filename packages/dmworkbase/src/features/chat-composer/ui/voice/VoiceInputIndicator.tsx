@@ -163,6 +163,11 @@ export default function VoiceInputIndicator({
       setIsPreparing(false);
     },
   });
+  useEffect(() => {
+    if (!voiceSettings.enabled && (isRecording || isTranscribing)) {
+      cancelRecording();
+    }
+  }, [voiceSettings.enabled, isRecording, isTranscribing, cancelRecording]);
 
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const isOnlineRef = useRef(isOnline);
@@ -305,7 +310,19 @@ export default function VoiceInputIndicator({
         if (voiceSettings.speakingMode === "toggle") {
           e.preventDefault();
           if (isRecordingRef.current) stopRecordingRef.current();
-          else if (!isTranscribingRef.current) startRecordingRef.current("append_only");
+          else if (!isTranscribingRef.current) {
+            if (!isOnlineRef.current && !localAvailableRef.current) {
+              Toast.warning(t("base.voiceInput.error.networkUnavailable"));
+              return;
+            }
+            const selectedText = getSelectedText?.();
+            const selectionRange = getSelectionRange?.();
+            hadSelectionRef.current = !!selectedText;
+            savedSelectedTextRef.current = selectedText;
+            savedSelectionRangeRef.current = selectionRange;
+            recordingModeRef.current = "append_only";
+            startRecordingRef.current("append_only");
+          }
           return;
         }
       }

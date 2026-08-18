@@ -136,11 +136,11 @@ export function startVersionCheck(options: VersionCheckOptions): () => void {
  * 供 NavSettingsPanel 等按需触发的场景使用
  * 返回 serverVersion（有新版本时）或 null（无新版本 / 检测失败）
  */
-export type VersionCheckResult = { status: "latest" | "update" | "failed"; version?: string };
+export type VersionCheckResult = { status: "latest" | "update" | "failed" | "skipped"; version?: string };
 
 export async function checkVersionOnceWithStatus(): Promise<VersionCheckResult> {
   const currentVersion = import.meta.env.VITE_APP_VERSION as string | undefined
-    if (!currentVersion || currentVersion === 'dev') return { status: "latest" }
+    if (!currentVersion || currentVersion === 'dev') return { status: "skipped" }
 
     try {
         const res = await fetch('/version.json?_=' + Date.now(), {

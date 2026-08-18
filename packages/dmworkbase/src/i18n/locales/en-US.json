@@ -1149,7 +1149,7 @@
   "followSidebar.loadFailed": "Failed to load following list",
   "navRail.spaceSwitcher.joinedSpaces": "Joined organizations",
   "navRail.spaceSwitcher.joinNewSpace": "Join new organization",
-  "navRail.spaceSwitcher.spaceManagement": "Organization manage",
+  "navRail.spaceSwitcher.spaceManagement": "Organization management",
   "navRail.spaceSwitcher.memberCount": "{{count}} members",
   "navRail.spaceSwitcher.memberCountWithLimit": "{{count}}/{{max}} members",
   "navRail.spaceSwitcher.switch": "Switch organization",
