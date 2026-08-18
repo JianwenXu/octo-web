@@ -103,15 +103,6 @@ export const chatBaselineHandlers = [
   http.get("*/user/notification-pause", () =>
     HttpResponse.json({ paused: false, paused_until: null, revision: 0, server_time: new Date().toISOString() })
   ),
-  // APIClient uses the /api/v1 prefix in the web build; keep the explicit
-  // route because MSW wildcard matching does not treat the prefix uniformly
-  // across browser and Node runtimes.
-  http.get("*/api/v1/user/notification-pause", () =>
-    HttpResponse.json({ paused: false, paused_until: null, revision: 0, server_time: new Date().toISOString() })
-  ),
-  http.get("/api/v1/user/notification-pause", () =>
-    HttpResponse.json({ paused: false, paused_until: null, revision: 0, server_time: new Date().toISOString() })
-  ),
   http.put("*/user/language", () => HttpResponse.json({})),
 
   // === Contacts / friends ===
