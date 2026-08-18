@@ -18,6 +18,24 @@ describe("voiceSettingsStore", () => {
     expect(voiceSettingsStore.get().consent?.protocolVersion).toBe(VOICE_PROTOCOL_VERSION);
   });
 
+  it("migrates server local voice settings only when no local settings exist", () => {
+    const migrated = voiceSettingsStore.migrateServerConfig({
+      local_enabled: true,
+      local_timeout_ms: 4500,
+      local_probe_url: "http://localhost:9999",
+      local_transcribe_url: "http://localhost:9999/transcribe",
+    });
+
+    expect(migrated.localEnabled).toBe(true);
+    expect(migrated.localTimeoutMs).toBe(4500);
+    expect(migrated.localProbeUrl).toBe("http://localhost:9999/");
+
+    voiceSettingsStore.set({ localProbeUrl: "http://localhost:7777" });
+    const unchanged = voiceSettingsStore.migrateServerConfig({ local_enabled: false, local_probe_url: "http://localhost:8888" });
+    expect(unchanged.localEnabled).toBe(true);
+    expect(unchanged.localProbeUrl).toBe("http://localhost:7777/");
+  });
+
   it("restores persisted values and normalizes invalid enum values", async () => {
     localStorage.setItem(VOICE_SETTINGS_KEY, JSON.stringify({
       enabled: true,

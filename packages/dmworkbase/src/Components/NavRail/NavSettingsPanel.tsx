@@ -112,6 +112,7 @@ export default class NavSettingsPanel extends Component<NavSettingsPanelProps, N
         const result = await checkVersionOnceWithStatus();
         if (result.status === "update") Toast.info(`${t("base.navRail.settingsPanel.versionAvailable")}: ${result.version}`);
         else if (result.status === "latest") Toast.success(t("base.navRail.settingsCenter.value.latestVersion"));
+        else if (result.status === "skipped") return;
         else Toast.error(t("base.navRail.settingsCenter.value.updateCheckFailed"));
     };
 }

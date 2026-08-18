@@ -66,15 +66,19 @@ let isWindowFocusHandlerRegistered = false;
 let keepAwakeBlockerId: number | null = null;
 let keepAwakeEnabled = false;
 
-const keepAwakeSettingsPath = () => join(app.getPath("userData"), "settings.json");
+const keepAwakeSettingsPath = () => join(app.getPath("userData"), "keep-awake.json");
+const legacyKeepAwakeSettingsPath = () => join(app.getPath("userData"), "settings.json");
 
 function readKeepAwakePreference(): boolean {
-  try {
-    const raw = JSON.parse(fs.readFileSync(keepAwakeSettingsPath(), "utf8"));
-    return raw?.keepAwake === true;
-  } catch {
-    return false;
+  for (const path of [keepAwakeSettingsPath(), legacyKeepAwakeSettingsPath()]) {
+    try {
+      const raw = JSON.parse(fs.readFileSync(path, "utf8"));
+      return raw?.keepAwake === true;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") return false;
+    }
   }
+  return false;
 }
 
 function writeKeepAwakePreference(enabled: boolean) {

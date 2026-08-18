@@ -91,6 +91,7 @@ export default function useVoiceInput(
   const [isVoiceEnabled, setIsVoiceEnabled] = useState(false);
   const [currentMode, setCurrentMode] = useState<VoiceMode>(mode);
   const [localAvailable, setLocalAvailable] = useState(false);
+  const localEnabled = voiceSettingsStore.get().localEnabled;
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -239,9 +240,10 @@ export default function useVoiceInput(
       .getConfig()
       .then((config: VoiceConfig) => {
         if (cancelled || !mountedRef.current) return;
+        const migratedSettings = voiceSettingsStore.migrateServerConfig?.(config) ?? voiceSettingsStore.get();
         setIsVoiceEnabled(
           config.enabled ||
-            voiceSettingsStore.get().localEnabled,
+            migratedSettings.localEnabled,
         );
         backendEnabledRef.current = config.enabled;
         maxFileSizeRef.current = config.max_file_size || 0;
@@ -263,6 +265,17 @@ export default function useVoiceInput(
   }, [reconcileSpaceSetting, syncLocalSettings]);
 
   useEffect(() => voiceSettingsStore.subscribe(syncLocalSettings), [syncLocalSettings]);
+
+  useEffect(() => {
+    if (!localEnabled) return;
+    const retryProbe = () => {
+      void LocalModelService.shared.probe().then((available) => {
+        if (mountedRef.current) setLocalAvailable(available);
+      });
+    };
+    const timer = window.setInterval(retryProbe, 5000);
+    return () => window.clearInterval(timer);
+  }, [localEnabled]);
 
   useEffect(() => {
     const previousHost = subscribedVoiceHostRef.current;
@@ -346,9 +359,16 @@ export default function useVoiceInput(
 
       try {
         const microphoneDeviceId = voiceSettingsStore.get().microphoneDeviceId;
-        const stream = await navigator.mediaDevices.getUserMedia({
-          audio: microphoneDeviceId ? { deviceId: { exact: microphoneDeviceId } } : true,
-        });
+        let stream: MediaStream;
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            audio: microphoneDeviceId ? { deviceId: { exact: microphoneDeviceId } } : true,
+          });
+        } catch (errorValue) {
+          if (!microphoneDeviceId || (errorValue as { name?: string })?.name !== "OverconstrainedError") throw errorValue;
+          voiceSettingsStore.set({ microphoneDeviceId: "" });
+          stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        }
         if (!isOperationActive(operation)) {
           stream.getTracks().forEach((track) => track.stop());
           return;

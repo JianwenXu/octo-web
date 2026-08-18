@@ -16,6 +16,7 @@ export interface VoiceSettings {
 
 export const VOICE_SETTINGS_KEY = "octo.voice-input.v1";
 export const VOICE_PROTOCOL_VERSION = "1.12";
+const LEGACY_SERVER_MIGRATION = "legacy-server-config-migrated";
 
 export const VOICE_SETTINGS_DEFAULTS: VoiceSettings = {
   enabled: false,
@@ -83,6 +84,10 @@ function read(key = storageKey): VoiceSettings {
   }
 }
 
+function hasStoredSettings(): boolean {
+  try { return window.localStorage.getItem(storageKey) !== null; } catch { return false; }
+}
+
 let current = read();
 
 export const voiceSettingsStore = {
@@ -118,6 +123,24 @@ export const voiceSettingsStore = {
     storageKey = userId ? `${VOICE_SETTINGS_KEY}.${encodeURIComponent(userId)}` : VOICE_SETTINGS_KEY;
     current = read();
     listeners.forEach((listener) => listener({ ...current }));
+    return { ...current };
+  },
+  migrateServerConfig(config: {
+    local_enabled?: boolean;
+    local_timeout_ms?: number;
+    local_probe_url?: string;
+    local_transcribe_url?: string;
+  }): VoiceSettings {
+    try {
+      if (hasStoredSettings() || window.localStorage.getItem(`${storageKey}.${LEGACY_SERVER_MIGRATION}`) === "1") return { ...current };
+      const patch: Partial<VoiceSettings> = {};
+      if (typeof config.local_enabled === "boolean") patch.localEnabled = config.local_enabled;
+      if (typeof config.local_timeout_ms === "number" && config.local_timeout_ms > 0) patch.localTimeoutMs = config.local_timeout_ms;
+      if (config.local_probe_url) patch.localProbeUrl = config.local_probe_url;
+      if (config.local_transcribe_url) patch.localTranscribeUrl = config.local_transcribe_url;
+      if (Object.keys(patch).length > 0) current = this.set(patch);
+      window.localStorage.setItem(`${storageKey}.${LEGACY_SERVER_MIGRATION}`, "1");
+    } catch { /* migration must not block voice input */ }
     return { ...current };
   },
   subscribe(listener: (settings: VoiceSettings) => void): () => void {

@@ -221,7 +221,14 @@ export default function VoiceInputButton({
         if (voiceSettings.speakingMode === "toggle") {
           e.preventDefault();
           if (isRecordingRef.current) stopRecordingRef.current();
-          else { onRecordingStart?.(); startRecordingRef.current("append_only"); }
+          else if (!isTranscribingRef.current) {
+            if (!isOnlineRef.current && !localAvailableRef.current) {
+              Toast.warning(t("base.voiceInput.error.networkUnavailable"));
+              return;
+            }
+            onRecordingStart?.();
+            startRecordingRef.current("append_only");
+          }
           return;
         }
         if (

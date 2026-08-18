@@ -304,6 +304,16 @@ function VoiceInputSettingsPage({ environment }: { environment: import("../../Ru
       : permission === "unsupported"
         ? t(environment.target === "web" ? "base.navRail.settingsCenter.row.microphoneUnsupportedWeb" : "base.navRail.settingsCenter.row.microphoneUnsupportedDesktop")
         : t(environment.target === "web" ? "base.navRail.settingsCenter.row.microphonePromptWeb" : "base.navRail.settingsCenter.row.microphonePromptDesktop");
+  const saveLocalSettings = () => {
+    const timeout = Number(localDraft.timeout);
+    const saved = voiceSettingsStore.set({
+      localTimeoutMs: Number.isFinite(timeout) && timeout > 0 ? timeout : VOICE_SETTINGS_DEFAULTS.localTimeoutMs,
+      localProbeUrl: localDraft.probe.trim(),
+      localTranscribeUrl: localDraft.transcribe.trim(),
+    });
+    setLocalDraft({ timeout: String(saved.localTimeoutMs), probe: saved.localProbeUrl, transcribe: saved.localTranscribeUrl });
+    setLocalDirty(false);
+  };
   const showPermissionGuide = () => {
     const key = environment.target === "web"
       ? "base.navRail.settingsCenter.row.microphoneGuideWeb"
@@ -335,7 +345,7 @@ function VoiceInputSettingsPage({ environment }: { environment: import("../../Ru
     </SettingsSection>
     <SettingsSection title={t("base.navRail.settingsCenter.section.voiceSettings")}>
       <SettingsRow title={t("base.navRail.settingsCenter.row.voiceInputEnabled")} description={voiceDescription} trailing={<Switch checked={settings.enabled} onChange={toggle} />} />
-      {settings.enabled && <><SettingsRow title={t("base.navRail.settingsCenter.row.voiceShortcut")} trailing={<select className="wk-settings-center__demo-select" value={shortcut} onChange={(event) => voiceSettingsStore.set(os === "macos" ? { shortcutMacos: event.target.value as VoiceShortcut } : { shortcutWindows: event.target.value as VoiceShortcut })}><option value="alt-right">{voiceShortcutLabel("alt-right", os)}</option><option value="shift-right">{t("base.navRail.settingsCenter.value.rightShift")}</option><option value="shift-left">{t("base.navRail.settingsCenter.value.leftShift")}</option><option value="disabled">{t("base.navRail.settingsCenter.value.disabled")}</option></select>} /><SettingsRow title={t("base.navRail.settingsCenter.row.speakingMode")} trailing={<select disabled={shortcut === "disabled"} className="wk-settings-center__demo-select" value={settings.speakingMode} onChange={(event) => voiceSettingsStore.set({ speakingMode: event.target.value as VoiceSettings["speakingMode"] })}><option value="toggle">{t("base.navRail.settingsCenter.value.toggle")}</option><option value="hold">{t("base.navRail.settingsCenter.value.hold")}</option></select>} /><LocalVoiceSettings settings={settings} draft={localDraft} dirty={localDirty} setDraft={(next) => { setLocalDraft(next); setLocalDirty(true); }} probeStatus={probeStatus} setProbeStatus={setProbeStatus} onSave={() => { voiceSettingsStore.set({ localTimeoutMs: Number(localDraft.timeout) || VOICE_SETTINGS_DEFAULTS.localTimeoutMs, localProbeUrl: localDraft.probe.trim(), localTranscribeUrl: localDraft.transcribe.trim() }); setLocalDirty(false); }} onReset={() => { setLocalDraft({ timeout: String(VOICE_SETTINGS_DEFAULTS.localTimeoutMs), probe: VOICE_SETTINGS_DEFAULTS.localProbeUrl, transcribe: VOICE_SETTINGS_DEFAULTS.localTranscribeUrl }); setLocalDirty(true); setProbeStatus("idle"); }} /></>}
+      {settings.enabled && <><SettingsRow title={t("base.navRail.settingsCenter.row.voiceShortcut")} trailing={<select className="wk-settings-center__demo-select" value={shortcut} onChange={(event) => voiceSettingsStore.set(os === "macos" ? { shortcutMacos: event.target.value as VoiceShortcut } : { shortcutWindows: event.target.value as VoiceShortcut })}><option value="alt-right">{voiceShortcutLabel("alt-right", os)}</option><option value="shift-right">{t("base.navRail.settingsCenter.value.rightShift")}</option><option value="shift-left">{t("base.navRail.settingsCenter.value.leftShift")}</option><option value="disabled">{t("base.navRail.settingsCenter.value.disabled")}</option></select>} /><SettingsRow title={t("base.navRail.settingsCenter.row.speakingMode")} trailing={<select disabled={shortcut === "disabled"} className="wk-settings-center__demo-select" value={settings.speakingMode} onChange={(event) => voiceSettingsStore.set({ speakingMode: event.target.value as VoiceSettings["speakingMode"] })}><option value="toggle">{t("base.navRail.settingsCenter.value.toggle")}</option><option value="hold">{t("base.navRail.settingsCenter.value.hold")}</option></select>} /><LocalVoiceSettings settings={settings} draft={localDraft} dirty={localDirty} setDraft={(next) => { setLocalDraft(next); setLocalDirty(true); }} probeStatus={probeStatus} setProbeStatus={setProbeStatus} onSave={saveLocalSettings} onReset={() => { setLocalDraft({ timeout: String(VOICE_SETTINGS_DEFAULTS.localTimeoutMs), probe: VOICE_SETTINGS_DEFAULTS.localProbeUrl, transcribe: VOICE_SETTINGS_DEFAULTS.localTranscribeUrl }); setLocalDirty(true); setProbeStatus("idle"); }} /></>}
     </SettingsSection>
   </SettingsPageFrame>;
 }
