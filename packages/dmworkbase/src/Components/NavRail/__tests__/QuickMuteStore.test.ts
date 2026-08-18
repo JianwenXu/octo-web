@@ -58,4 +58,23 @@ describe("QuickMuteStore", () => {
     await store.refresh();
     expect(service.getState).toHaveBeenCalledTimes(2);
   });
+
+  it("awaits an in-flight initial refresh before returning state", async () => {
+    let resolve: (value: QuickMuteState) => void = () => undefined;
+    const service: QuickMuteService = {
+      getState: vi.fn(() => new Promise<QuickMuteState>((done) => { resolve = done; })),
+      setMute: vi.fn(),
+      resume: vi.fn(),
+    };
+    const store = new QuickMuteStore(service);
+    const refresh = store.refresh();
+    let settled = false;
+    const read = store.getState().then(() => { settled = true; });
+    await Promise.resolve();
+    expect(settled).toBe(false);
+    resolve(state(1, true));
+    await Promise.all([refresh, read]);
+    expect(settled).toBe(true);
+    expect((await store.getState()).active).toBe(true);
+  });
 });

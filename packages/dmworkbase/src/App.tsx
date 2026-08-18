@@ -1020,6 +1020,9 @@ export default class WKApp extends ProviderListener {
     });
 
     if (WKApp.loginInfo.isLogined()) {
+      // Module init runs before loginInfo.load(). Re-emit the auth lifecycle
+      // after restore so user-scoped stores bind to the loaded uid too.
+      WKApp.mittBus.emit("wk:auth-state-changed");
       this.startMain();
     }
 

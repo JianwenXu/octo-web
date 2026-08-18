@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import type { RuntimeEnvironment } from "../../Runtime";
 
-export type SettingsCenterCapability = "desktop" | "account";
+export type SettingsCenterCapability = "desktop";
 export type SettingsItem = { id: string; labelKey: string; capabilities?: SettingsCenterCapability[] };
 export type SettingsGroup = { titleKey: string; items: SettingsItem[] };
 
@@ -13,7 +13,6 @@ export const settingsGroups: SettingsGroup[] = [
 
 export interface SettingsRegistryContext {
   environment: RuntimeEnvironment;
-  hasAccountCenter: boolean;
 }
 
 export function getAvailableSettingsGroups(context: SettingsRegistryContext): SettingsGroup[] {
@@ -21,11 +20,7 @@ export function getAvailableSettingsGroups(context: SettingsRegistryContext): Se
     .map((group) => ({
       ...group,
       items: group.items.filter((item) =>
-        (item.capabilities ?? []).every((capability) =>
-          capability === "desktop"
-            ? context.environment.target === "desktop"
-            : context.hasAccountCenter,
-        ),
+        (item.capabilities ?? []).every((capability) => capability === "desktop" && context.environment.target === "desktop"),
       ),
     }))
     .filter((group) => group.items.length > 0);

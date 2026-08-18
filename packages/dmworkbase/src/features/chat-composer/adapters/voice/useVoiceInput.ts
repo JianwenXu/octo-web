@@ -270,7 +270,7 @@ export default function useVoiceInput(
   useEffect(() => voiceSettingsStore.subscribe(syncLocalSettings), [syncLocalSettings]);
 
   useEffect(() => {
-    if (!localEnabled) return;
+    if (!localEnabled || localAvailable) return;
     const retryProbe = () => {
       const generation = localProbeGenerationRef.current;
       void LocalModelService.shared.probe().then((available) => {
@@ -279,7 +279,7 @@ export default function useVoiceInput(
     };
     const timer = window.setInterval(retryProbe, 5000);
     return () => window.clearInterval(timer);
-  }, [localEnabled]);
+  }, [localAvailable, localEnabled]);
 
   useEffect(() => {
     const previousHost = subscribedVoiceHostRef.current;

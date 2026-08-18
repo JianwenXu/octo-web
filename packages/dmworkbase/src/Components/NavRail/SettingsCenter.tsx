@@ -45,11 +45,11 @@ function SettingsIcon({ name }: { name: string }) {
 function LogoutIcon() {
   return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m16 17 5-5-5-5" /><path d="M21 12H9" /><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /></svg>;
 }
-export default function SettingsCenter({ visible, isDesktop = false, environment, hasAccountCenter = false, accountCenterUrl, onClose, onLogout, onSecretsClosed, onAbout, onChangelog, onOpenOnboarding, openSecretsRequest }: SettingsCenterProps) {
+export default function SettingsCenter({ visible, isDesktop = false, environment, accountCenterUrl, onClose, onLogout, onSecretsClosed, onAbout, onChangelog, onOpenOnboarding, openSecretsRequest }: SettingsCenterProps) {
   const runtimeEnvironment = React.useMemo(() => environment ?? detectRuntimeEnvironment(isDesktop), [environment, isDesktop]);
   const availableGroups = useMemo(
-    () => getAvailableSettingsGroups({ environment: runtimeEnvironment, hasAccountCenter }),
-    [hasAccountCenter, runtimeEnvironment],
+    () => getAvailableSettingsGroups({ environment: runtimeEnvironment }),
+    [runtimeEnvironment],
   );
   const [selectedId, setSelectedId] = useState("general");
   const [secondaryPage, setSecondaryPage] = useState<"secrets" | null>(null);

@@ -73,9 +73,10 @@ function readKeepAwakePreference(): boolean {
   for (const path of [keepAwakeSettingsPath(), legacyKeepAwakeSettingsPath()]) {
     try {
       const raw = JSON.parse(fs.readFileSync(path, "utf8"));
-      return raw?.keepAwake === true;
+      if (typeof raw?.keepAwake === "boolean") return raw.keepAwake;
     } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== "ENOENT") return false;
+      const code = (error as NodeJS.ErrnoException).code;
+      if (code !== "ENOENT" && !(error instanceof SyntaxError)) return false;
     }
   }
   return false;
@@ -97,7 +98,12 @@ function writeKeepAwakePreference(enabled: boolean) {
   settings.keepAwake = enabled;
   const tempPath = `${path}.${process.pid}.tmp`;
   fs.writeFileSync(tempPath, JSON.stringify(settings, null, 2));
-  fs.renameSync(tempPath, path);
+  try {
+    fs.renameSync(tempPath, path);
+  } catch (error) {
+    try { fs.unlinkSync(tempPath); } catch { /* best effort cleanup */ }
+    throw error;
+  }
 }
 
 function applyKeepAwake(enabled: boolean): boolean {

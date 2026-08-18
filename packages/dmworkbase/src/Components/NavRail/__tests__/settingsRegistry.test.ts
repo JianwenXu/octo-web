@@ -8,13 +8,13 @@ const environment = (target: "web" | "desktop") => ({
   capabilities: new Set(["voiceInput" as const]),
 });
 
-const itemIds = (target: "web" | "desktop", hasAccountCenter: boolean) =>
-  getAvailableSettingsGroups({ environment: environment(target), hasAccountCenter })
+const itemIds = (target: "web" | "desktop") =>
+  getAvailableSettingsGroups({ environment: environment(target) })
     .flatMap((group) => group.items.map((item) => item.id));
 
 describe("settings registry", () => {
   it("keeps web settings focused on supported pages", () => {
-    expect(itemIds("web", false)).toEqual([
+    expect(itemIds("web")).toEqual([
       "general",
       "account",
       "notifications",
@@ -26,12 +26,11 @@ describe("settings registry", () => {
   });
 
   it("keeps account settings available with or without an external account center", () => {
-    expect(itemIds("web", true)).toContain("account");
-    expect(itemIds("web", false)).toContain("account");
+    expect(itemIds("web")).toContain("account");
   });
 
   it("adds desktop behavior and downloads only for desktop runtime", () => {
-    expect(itemIds("desktop", false)).toEqual([
+    expect(itemIds("desktop")).toEqual([
       "general",
       "account",
       "notifications",

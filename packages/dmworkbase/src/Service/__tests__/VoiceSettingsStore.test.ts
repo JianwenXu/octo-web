@@ -27,7 +27,8 @@ describe("voiceSettingsStore", () => {
     expect(voiceSettingsStore.get().enabled).toBe(false);
   });
 
-  it("migrates server local voice settings only when no local settings exist", () => {
+  it("migrates server local voice settings until the migration marker is set", () => {
+    voiceSettingsStore.set({ enabled: true });
     const migrated = voiceSettingsStore.migrateServerConfig({
       local_enabled: true,
       local_timeout_ms: 4500,
@@ -39,10 +40,9 @@ describe("voiceSettingsStore", () => {
     expect(migrated.localTimeoutMs).toBe(4500);
     expect(migrated.localProbeUrl).toBe("http://localhost:9999/");
 
-    voiceSettingsStore.set({ localProbeUrl: "http://localhost:7777" });
     const unchanged = voiceSettingsStore.migrateServerConfig({ local_enabled: false, local_probe_url: "http://localhost:8888" });
     expect(unchanged.localEnabled).toBe(true);
-    expect(unchanged.localProbeUrl).toBe("http://localhost:7777/");
+    expect(unchanged.localProbeUrl).toBe("http://localhost:9999/");
   });
 
   it("isolates settings and consent by user id", () => {
