@@ -3,8 +3,8 @@ import { Spin, Switch, Toast } from "@douyinfe/semi-ui";
 import DOMPurify from "dompurify";
 import { QRCodeSVG } from "qrcode.react";
 import WKApp, { ThemeMode } from "../../App";
-import APIClient from "../../Service/APIClient";
-import { sanitizeHttpUrl } from "../../Service/OidcConfig";
+import { apiFetchJson } from "../../Service/apiFetch";
+import { useMobileDownloadUrl } from "../../Service/mobileDownloadUpdater";
 import { updateUserLanguagePreference } from "../../Service/UserLanguageService";
 import { i18n, t } from "../../i18n";
 import { Locale } from "../../i18n/types";
@@ -69,22 +69,7 @@ const mobileUpdaterPaths: Record<string, string> = {
   iphone: "common/updater/ios/1.0.0",
 };
 
-function useMobileDownloadUrl(resourceId: string) {
-  const [url, setUrl] = useState<string>();
-  const path = mobileUpdaterPaths[resourceId];
-
-  React.useEffect(() => {
-    if (!path) return;
-    let active = true;
-    void APIClient.shared.get<{ url?: unknown }>(`/${path}`).then((result) => {
-      const safeUrl = sanitizeHttpUrl(result?.url);
-      if (active && safeUrl) setUrl(safeUrl);
-    }).catch(() => { if (active) setUrl(undefined); });
-    return () => { active = false; };
-  }, [path]);
-
-  return url;
-}
+const fetchMobileUpdater = (url: string) => apiFetchJson(url);
 
 export function SettingsPage({ item, environment, accountCenterUrl, onSecrets, onAbout, onChangelog, onOpenOnboarding }: { item?: SettingsItem; environment: import("../../Runtime").RuntimeEnvironment; accountCenterUrl?: string; onSecrets?: () => void; onAbout?: () => void; onChangelog?: () => void; onOpenOnboarding?: () => void }) {
   if (item?.id === "general") return <SettingsPageFrame title={t("base.navRail.settingsCenter.page.general.title")}><SettingsSection title={t("base.navRail.settingsCenter.section.displayLanguage")}><SettingsRow title={t("base.navRail.settingsCenter.row.language")} description={t("base.navRail.settingsCenter.row.languageDescription")} trailing={<select className="wk-settings-center__demo-select" aria-label={t("base.navRail.settingsCenter.row.language")} value={i18n.getLocale()} onChange={(event) => { const locale = event.target.value as Locale; i18n.setLocale(locale); if (WKApp.shared.isLogined()) void updateUserLanguagePreference(locale).catch(() => Toast.error(t("base.navRail.settingsCenter.value.saveFailed"))); }}><option value="zh-CN">{t("base.navRail.settingsCenter.language.zh")}</option><option value="en-US">{t("base.navRail.settingsCenter.language.en")}</option></select>} /><SettingsRow title={t("base.navRail.settingsCenter.row.darkMode")} description={t("base.navRail.settingsCenter.row.darkModeDescription")} trailing={<SettingsStatusTag tone="neutral" label={t("base.navRail.settingsCenter.value.comingSoon")} />} /></SettingsSection></SettingsPageFrame>;
@@ -395,12 +380,12 @@ function ResourceBrandIcon({ id }: { id: string }) {
 }
 function ResourceCard({ id, title, description, status, statusLabel, category, action }: ResourceDefinition & { description: string; statusLabel: string; category: ResourceGroup["category"]; action?: React.ReactNode }) {
   const tone = status === "available" ? "success" : status === "unavailable" ? "danger" : "neutral";
-  const qrUrl = useMobileDownloadUrl(id);
+  const qrState = useMobileDownloadUrl(mobileUpdaterPaths[id], fetchMobileUpdater, WKApp.apiClient.config.apiURL);
   const isMobile = category === "clients" && (id === "android" || id === "iphone");
   if (category === "clients") {
     return <article className="wk-settings-center__resource-card wk-settings-center__resource-card--clients" data-resource-status={status}>
       <div className="wk-settings-center__client-head"><span className="wk-settings-center__resource-icon" aria-hidden="true"><ResourceBrandIcon id={id} /></span><h4>{title}</h4></div>
-      {isMobile ? <div className="wk-settings-center__resource-qr" aria-label={`${title} QR code`}>{qrUrl ? <QRCodeSVG value={qrUrl} size={104} /> : <span className="wk-settings-center__resource-qr-placeholder" aria-hidden="true" />}</div> : <div className="wk-settings-center__client-status">{description}</div>}
+      {isMobile ? <div className="wk-settings-center__resource-qr" aria-label={`${title} QR code`} aria-busy={qrState.status === "loading"}>{qrState.status === "ready" ? <QRCodeSVG value={qrState.downloadUrl} size={104} /> : qrState.status === "loading" ? <Spin /> : <span className="wk-settings-center__resource-qr-placeholder" aria-hidden="true" />}</div> : <div className="wk-settings-center__client-status">{description}</div>}
       {action && <div className="wk-settings-center__resource-actions">{action}</div>}
     </article>;
   }
