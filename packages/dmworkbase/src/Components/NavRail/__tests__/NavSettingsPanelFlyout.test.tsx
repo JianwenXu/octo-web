@@ -22,7 +22,7 @@ vi.mock("../../../Utils/versionChecker", () => ({ checkVersionOnce: vi.fn().mock
 vi.mock("@douyinfe/semi-ui", () => ({ Button: ({ children, ...props }: { children: React.ReactNode }) => <button {...props}>{children}</button>, Progress: () => <div /> }));
 vi.mock("../ChangelogMarkdown", () => ({ default: () => <div /> }));
 vi.mock("../../WKModal", () => ({ default: ({ children, visible }: { children: React.ReactNode; visible: boolean }) => visible ? <div>{children}</div> : null }));
-vi.mock("../SettingsCenter", () => ({ default: (props: { visible: boolean; onClose: () => void; openSecretsRequest?: unknown }) => props.visible ? <div data-testid="settings-center"><button onClick={props.onClose}>close</button><span data-testid="secrets-request">{JSON.stringify(props.openSecretsRequest ?? null)}</span></div> : null }));
+vi.mock("../SettingsCenter", () => ({ default: (props: { visible: boolean; onClose: () => void; onOpenOnboarding?: () => void; openSecretsRequest?: unknown }) => props.visible ? <div data-testid="settings-center"><button onClick={props.onClose}>close</button><button data-testid="open-onboarding" onClick={props.onOpenOnboarding}>onboarding</button><span data-testid="secrets-request">{JSON.stringify(props.openSecretsRequest ?? null)}</span></div> : null }));
 
 import NavSettingsPanel from "../NavSettingsPanel";
 
@@ -51,8 +51,8 @@ afterEach(() => {
     container.remove();
 });
 
-function render(onToggleSetting = vi.fn(), settingSelected = true) {
-    act(() => ReactDOM.render(<NavSettingsPanel {...baseProps} settingSelected={settingSelected} onToggleSetting={onToggleSetting} />, container));
+function render(onToggleSetting = vi.fn(), settingSelected = true, onOpenOnboarding = vi.fn()) {
+    act(() => ReactDOM.render(<NavSettingsPanel {...baseProps} settingSelected={settingSelected} onToggleSetting={onToggleSetting} onOpenOnboarding={onOpenOnboarding} />, container));
     return onToggleSetting;
 }
 
@@ -79,5 +79,14 @@ describe("NavSettingsPanel", () => {
         const onToggleSetting = render(vi.fn(), false);
         act(() => hoisted.bus.emit("wk:open-secrets", { create: true }));
         expect(onToggleSetting).toHaveBeenCalledTimes(1);
+    });
+
+    it("closes the settings center before opening onboarding", () => {
+        const onToggleSetting = vi.fn();
+        const onOpenOnboarding = vi.fn();
+        render(onToggleSetting, true, onOpenOnboarding);
+        act(() => (container.querySelector('[data-testid="open-onboarding"]') as HTMLButtonElement).click());
+        expect(onToggleSetting).toHaveBeenCalledTimes(1);
+        expect(onOpenOnboarding).toHaveBeenCalledTimes(1);
     });
 });

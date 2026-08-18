@@ -163,7 +163,10 @@ export class QuickMuteStore implements QuickMuteService {
   }
 
   async getState() {
-    if (!this.loaded && !this.inFlight) await this.refresh();
+    // A failed lazy read must not turn every attention check into another
+    // request. Explicit lifecycle refreshes (foreground/online/reconnect)
+    // reset this gate by calling refresh() directly.
+    if (!this.loaded && !this.inFlight && !this.loadAttempted) await this.refresh();
     else {
       const active = Boolean(this.state.active && (this.state.mode === "manual" || (this.state.endAt && this.state.endAt > Date.now() + this.serverOffset)));
       if (active !== this.state.active) {

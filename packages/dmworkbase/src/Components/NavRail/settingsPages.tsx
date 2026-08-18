@@ -297,10 +297,16 @@ function VoiceInputSettingsPage({ environment }: { environment: import("../../Ru
     return () => { cancelled = true; };
   }, [showConsent]);
   const toggle = (enabled: boolean) => {
-    Dap.shared.track("settings_voice_toggled", { enabled });
-    if (!enabled) { voiceSettingsStore.set({ enabled: false }); return; }
+    if (!enabled) {
+      voiceSettingsStore.set({ enabled: false });
+      Dap.shared.track("settings_voice_toggled", { enabled: false });
+      return;
+    }
     if (settings.consent?.protocolVersion !== VOICE_PROTOCOL_VERSION) setShowConsent(true);
-    else voiceSettingsStore.set({ enabled: true });
+    else {
+      voiceSettingsStore.set({ enabled: true });
+      Dap.shared.track("settings_voice_toggled", { enabled: true });
+    }
   };
   const authorize = async () => { if (!navigator.mediaDevices?.getUserMedia) return; try { const stream = await navigator.mediaDevices.getUserMedia({ audio: settings.microphoneDeviceId ? { deviceId: { exact: settings.microphoneDeviceId } } : true }); stream.getTracks().forEach((track) => track.stop()); await refreshDevices(); await refreshPermission(); } catch { await refreshPermission(); } };
   const permissionLabel = permission === "granted" ? t("base.navRail.settingsCenter.value.granted") : permission === "denied" ? t("base.navRail.settingsCenter.value.denied") : permission === "prompt" ? t("base.navRail.settingsCenter.value.unauthorized") : t("base.navRail.settingsCenter.value.unsupported");
@@ -340,7 +346,7 @@ function VoiceInputSettingsPage({ environment }: { environment: import("../../Ru
     </div>
     <div className="wk-settings-center__voice-consent-footer">
       <Checkbox checked={consentChecked} onChange={setConsentChecked}>{t("base.navRail.voiceNotice.feedbackConsent")}</Checkbox>
-      <div className="wk-settings-center__voice-consent-actions"><button type="button" className="wk-settings-center__manage-button" onClick={() => setShowConsent(false)}>{t("base.common.cancel")}</button><button type="button" className="wk-settings-center__manage-button wk-settings-center__manage-button--primary" disabled={consentLoading || consentError || !consentContent} onClick={() => { void (async () => { const spaceId = WKApp.shared.currentSpaceId; if (spaceId) await acceptVoiceInput(spaceId, consentChecked, () => WKApp.shared.currentSpaceId === spaceId); voiceSettingsStore.acknowledge(); voiceSettingsStore.set({ enabled: true }); setShowConsent(false); })().catch(() => Toast.error(t("base.navRail.settingsCenter.value.saveFailed"))); }}>{t("base.navRail.voiceNotice.accept")}</button></div>
+      <div className="wk-settings-center__voice-consent-actions"><button type="button" className="wk-settings-center__manage-button" onClick={() => setShowConsent(false)}>{t("base.common.cancel")}</button><button type="button" className="wk-settings-center__manage-button wk-settings-center__manage-button--primary" disabled={consentLoading || consentError || !consentContent} onClick={() => { void (async () => { const spaceId = WKApp.shared.currentSpaceId; if (spaceId) await acceptVoiceInput(spaceId, consentChecked, () => WKApp.shared.currentSpaceId === spaceId); voiceSettingsStore.acknowledge(); voiceSettingsStore.set({ enabled: true }); Dap.shared.track("settings_voice_toggled", { enabled: true }); setShowConsent(false); })().catch(() => Toast.error(t("base.navRail.settingsCenter.value.saveFailed"))); }}>{t("base.navRail.voiceNotice.accept")}</button></div>
     </div>
   </div>;
   const shortcut = getVoiceShortcut(settings, os);

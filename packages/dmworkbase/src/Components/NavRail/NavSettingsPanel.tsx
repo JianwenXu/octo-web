@@ -55,6 +55,11 @@ export default class NavSettingsPanel extends Component<NavSettingsPanelProps, N
         if (this.props.settingSelected) this.props.onToggleSetting();
     };
 
+    openOnboarding = () => {
+        if (this.props.settingSelected) this.props.onToggleSetting();
+        this.props.onOpenOnboarding?.();
+    };
+
     showChangelog = async () => {
         this.setState({ showChangelog: true, changelogLoading: true });
         try {
@@ -97,7 +102,7 @@ export default class NavSettingsPanel extends Component<NavSettingsPanelProps, N
                     onSecretsClosed={() => this.setState({ secretsRequest: null })}
                     onAbout={() => { void this.checkVersion(); }}
                     onChangelog={() => { void this.showChangelog(); }}
-                    onOpenOnboarding={onOpenOnboarding}
+                    onOpenOnboarding={this.openOnboarding}
                     openSecretsRequest={this.state.secretsRequest}
                 />
 
