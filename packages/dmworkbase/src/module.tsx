@@ -20,6 +20,7 @@ import { Smile, Scissors, ImagePlus, Paperclip, AtSign } from "lucide-react";
 import { Howl, Howler } from "howler";
 import WKApp, { FriendApply, FriendApplyState, ThemeMode } from "./App";
 import { isChannelSearchEnabled } from "./features/channelSearch/feature";
+import { voiceSettingsStore } from "./Service/VoiceSettingsStore";
 import ChatSearchEntryButton from "./features/channelSearch/ChatSearchEntryButton";
 import { ChannelSettingRouteData } from "./Components/ChannelSetting/context";
 import { InputEdit } from "./Components/InputEdit";
@@ -271,6 +272,7 @@ export default class BaseModule implements IModule {
     WKApp.mittBus.on("wk:app-foreground", refreshQuickMute);
     WKApp.mittBus.on("wk:auth-state-changed", () => {
       quickMuteStore.reset();
+      voiceSettingsStore.reset();
       refreshQuickMute();
     });
     if (typeof window !== "undefined") window.addEventListener("online", refreshQuickMute);

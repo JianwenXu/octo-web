@@ -6,22 +6,33 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   startRecording: vi.fn(),
+  stopRecording: vi.fn(),
   toastError: vi.fn(),
   toastWarning: vi.fn(),
   voiceEnabled: false,
+  speakingMode: "toggle" as "toggle" | "hold",
 }));
 
 vi.mock("../../adapters/voice/useVoiceInput", () => ({
-  default: () => ({
-    isRecording: false,
-    isTranscribing: false,
-    startRecording: (...args: unknown[]) => mocks.startRecording(...args),
-    stopRecordingAndTranscribe: vi.fn(),
-    cancelRecording: vi.fn(),
-    isVoiceEnabled: true,
-    currentMode: "append_only",
-    localAvailable: false,
-  }),
+  default: () => {
+    const [isRecording, setIsRecording] = React.useState(false);
+    return {
+      isRecording,
+      isTranscribing: false,
+      startRecording: (...args: unknown[]) => {
+        mocks.startRecording(...args);
+        setIsRecording(true);
+      },
+      stopRecordingAndTranscribe: (...args: unknown[]) => {
+        mocks.stopRecording(...args);
+        setIsRecording(false);
+      },
+      cancelRecording: vi.fn(),
+      isVoiceEnabled: true,
+      currentMode: "append_only",
+      localAvailable: false,
+    };
+  },
 }));
 
 vi.mock("../../../../i18n", () => ({
@@ -31,7 +42,7 @@ vi.mock("../../../../i18n", () => ({
 vi.mock("../../../../Service/VoiceSettingsStore", () => ({
   getVoiceShortcut: () => "alt-right",
   voiceSettingsStore: {
-    get: () => ({ enabled: mocks.voiceEnabled, shortcutWindows: "alt-right", shortcutMacos: "alt-right", speakingMode: "toggle" }),
+    get: () => ({ enabled: mocks.voiceEnabled, shortcutWindows: "alt-right", shortcutMacos: "alt-right", speakingMode: mocks.speakingMode }),
     subscribe: () => () => {},
   },
 }));
@@ -75,6 +86,7 @@ const voiceHost: ChatComposerVoiceHost = {
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.voiceEnabled = false;
+  mocks.speakingMode = "toggle";
   Object.defineProperty(navigator, "onLine", { configurable: true, value: true });
   container = document.createElement("div");
   document.body.appendChild(container);
@@ -119,5 +131,25 @@ describe("VoiceInputIndicator click behavior", () => {
     });
 
     expect(mocks.startRecording).toHaveBeenCalledWith("edit_only");
+  });
+
+  it("starts and stops hold-mode shortcut recording after the long press", async () => {
+    mocks.voiceEnabled = true;
+    mocks.speakingMode = "hold";
+    vi.useFakeTimers();
+    await act(async () => {
+      ReactDOM.render(
+        <VoiceInputIndicator voiceHost={voiceHost} onTranscribed={() => undefined} />,
+        container,
+      );
+    });
+
+    act(() => window.dispatchEvent(new KeyboardEvent("keydown", { code: "AltRight" })));
+    expect(mocks.startRecording).not.toHaveBeenCalled();
+    act(() => vi.advanceTimersByTime(500));
+    expect(mocks.startRecording).toHaveBeenCalledWith("append_only");
+    act(() => window.dispatchEvent(new KeyboardEvent("keyup", { code: "AltRight" })));
+    expect(mocks.stopRecording).toHaveBeenCalledWith(undefined);
+    vi.useRealTimers();
   });
 });

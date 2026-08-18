@@ -59,12 +59,13 @@ export function defaultQuickMuteTime(): string {
   return formatLocalDateTime(date);
 }
 
-function toState(response: NotificationPauseResponse, serverOffset = 0): QuickMuteState {
+function toState(response: NotificationPauseResponse, serverOffset?: number): QuickMuteState {
+  const effectiveServerOffset = serverOffset ?? 0;
   const endAt = response.paused_until ? Date.parse(response.paused_until) : undefined;
   const serverNow = response.server_time ? Date.parse(response.server_time) : NaN;
   const mode = response.mode ?? (response.paused === true && !Number.isFinite(endAt) ? "manual" : endAt ? "timed" : undefined);
   return {
-    active: response.paused === true && (mode === "manual" || (endAt !== undefined && Number.isFinite(endAt) && endAt > Date.now() + serverOffset)),
+    active: response.paused === true && (mode === "manual" || (endAt !== undefined && Number.isFinite(endAt) && endAt > Date.now() + effectiveServerOffset)),
     mode,
     endAt,
     scope: getStoredScope(),
@@ -157,7 +158,7 @@ export class QuickMuteStore implements QuickMuteService {
   }
 
   async getState() {
-    if (!this.loaded && !this.loadAttempted) await this.refresh();
+    if (!this.loaded && (!this.loadAttempted || this.inFlight)) await this.refresh();
     else this.state = { ...this.state, active: Boolean(this.state.active && (this.state.mode === "manual" || (this.state.endAt && this.state.endAt > Date.now() + this.serverOffset))) };
     return this.state;
   }

@@ -57,6 +57,12 @@ export const chatBaselineHandlers = [
   http.get("*/voice/config", () =>
     HttpResponse.json({ enable: 0, provider: "", config: {} })
   ),
+  http.get("*/api/v1/common/updater/android/1.0", () =>
+    HttpResponse.json({ url: "https://example.com/download/android" })
+  ),
+  http.get("*/api/v1/common/updater/ios/1.0.0", () =>
+    HttpResponse.json({ url: "https://example.com/download/ios" })
+  ),
   http.get("*/message/prohibit_words/sync", () =>
     HttpResponse.json({ version: 0, words: [] })
   ),

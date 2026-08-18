@@ -308,29 +308,13 @@ export default function VoiceInputIndicator({
           else if (!isTranscribingRef.current) startRecordingRef.current("append_only");
           return;
         }
-        if (!isRecordingRef.current && !isTranscribingRef.current) {
-          if (!isOnlineRef.current && !localAvailableRef.current) {
-            Toast.warning(t("base.voiceInput.error.networkUnavailable"));
-            return;
-          }
-          const selectedText = getSelectedText?.();
-          const selectionRange = getSelectionRange?.();
-          hadSelectionRef.current = !!selectedText;
-          savedSelectedTextRef.current = selectedText;
-          savedSelectionRangeRef.current = selectionRange;
-          recordingModeRef.current = "append_only";
-          startRecordingRef.current("append_only");
-        }
-        return;
       }
 
       // Long-press configured shortcut: start after 500ms.
       if (
         e.code === shortcutCode &&
         !e.repeat &&
-        !e.metaKey &&
-        !e.ctrlKey &&
-        !e.altKey
+        modifiersValid(e)
       ) {
         if (
           !isRecordingRef.current &&

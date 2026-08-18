@@ -152,7 +152,7 @@ function DesktopBehaviorSettingsPage({ environment }: { environment: import("../
     <SettingsSection title={t("base.navRail.settingsCenter.section.system")}>
       <SettingsRow title={t(os === "macos" ? "base.navRail.settingsCenter.row.launchAtLogin" : "base.navRail.settingsCenter.row.launchAtStartup")} description={t(os === "macos" ? "base.navRail.settingsCenter.row.launchAtLoginDescription" : "base.navRail.settingsCenter.row.launchAtStartupDescription")} trailing={unavailable} />
       <SettingsRow title={t(os === "macos" ? "base.navRail.settingsCenter.row.menuBar" : "base.navRail.settingsCenter.row.systemTray")} description={t(os === "macos" ? "base.navRail.settingsCenter.row.menuBarDescription" : "base.navRail.settingsCenter.row.systemTrayDescription")} trailing={unavailable} />
-      <SettingsRow title={t("base.navRail.settingsCenter.row.keepAwake")} description={t("base.navRail.settingsCenter.row.keepAwakeDescription")} trailing={<Switch disabled={keepAwakeLoading || keepAwakeSaving} checked={keepAwake} onChange={(checked) => { void updateKeepAwake(checked); }} aria-label={t("base.navRail.settingsCenter.row.keepAwake")} />} />
+      <SettingsRow title={t("base.navRail.settingsCenter.row.keepAwake")} description={t("base.navRail.settingsCenter.row.keepAwakeDescription")} trailing={<Switch disabled={!keepAwakeAdapter || keepAwakeLoading || keepAwakeSaving} checked={keepAwake} onChange={(checked) => { void updateKeepAwake(checked); }} aria-label={t("base.navRail.settingsCenter.row.keepAwake")} />} />
       <SettingsRow title={t("base.navRail.settingsCenter.row.closeWindowBehavior")} description={t("base.navRail.settingsCenter.row.closeWindowBehaviorDescription")} trailing={unavailable} />
     </SettingsSection>
   </SettingsPageFrame>;
@@ -160,9 +160,9 @@ function DesktopBehaviorSettingsPage({ environment }: { environment: import("../
 
 function NotificationsSettingsPage({ environment }: { environment: import("../../Runtime").RuntimeEnvironment }) {
   const [notificationsEnabled, setNotificationsEnabled] = useState(() => !WKApp.shared.notificationIsClose);
-  const [muteScope, setMuteScope] = useState<"sound" | "sound-and-popup">("sound");
-  const [permission, setPermission] = useState(() => createNotificationAdapter(environment).getPermission());
-  const notificationAdapter = createNotificationAdapter(environment);
+  const notificationAdapter = React.useMemo(() => createNotificationAdapter(environment), [environment]);
+  const [muteScope, setMuteScope] = useState<"sound" | "sound-and-popup">("sound-and-popup");
+  const [permission, setPermission] = useState(() => notificationAdapter.getPermission());
   const isDesktop = environment.target === "desktop";
   const permissionLabel = permission === "unsupported" ? t("base.navRail.settingsCenter.value.unsupported") : permission === "denied" ? t("base.navRail.settingsCenter.value.denied") : permission === "granted" ? t("base.navRail.settingsCenter.value.granted") : t("base.navRail.settingsCenter.value.unauthorized");
   const permissionTone: "success" | "attention" | "danger" | "neutral" = permission === "granted" ? "success" : permission === "denied" ? "danger" : permission === "default" ? "attention" : "neutral";
@@ -197,7 +197,6 @@ function AboutSettingsPage({ onAbout, onOpenOnboarding }: { onAbout?: () => void
       <SettingsRow title={t("base.navRail.settingsCenter.row.feedback")} trailing={externalLink(t("base.navRail.settingsCenter.row.feedback"), "https://github.com/Mininglamp-OSS/octo-web/issues/new")} />
     </SettingsSection>
     <SettingsSection title={t("base.navRail.settingsCenter.section.productInfo")}>
-      <SettingsRow title={t("base.navRail.settingsCenter.row.changelog")} trailing={onAbout ? <button type="button" className="wk-settings-center__about-icon-button" onClick={onAbout} aria-label={t("base.navRail.settingsCenter.row.changelog")}><ChevronIcon /></button> : undefined} />
       <SettingsRow title={t("base.navRail.settingsCenter.row.officialWebsite")} trailing={externalLink(t("base.navRail.settingsCenter.row.officialWebsite"), "https://www.mininglamp.com/")} />
       <SettingsRow title={t("base.navRail.settingsCenter.row.openSource")} trailing={externalLink(t("base.navRail.settingsCenter.row.openSource"), "https://github.com/Mininglamp-OSS")} />
       <SettingsRow title={t("base.navRail.settingsCenter.row.license")} trailing={externalLink(t("base.navRail.settingsCenter.row.license"), "https://github.com/Mininglamp-OSS/octo-web/blob/main/LICENSE")} />
@@ -229,6 +228,7 @@ function VoiceInputSettingsPage({ environment }: { environment: import("../../Ru
   const [localDirty, setLocalDirty] = React.useState(false);
   const permissionStatusRef = React.useRef<PermissionStatus | null>(null);
   const permissionChangeHandlerRef = React.useRef<() => void>(() => {});
+  const permissionMountedRef = React.useRef(true);
   const os = getVoiceOs(environment);
   const refreshDevices = React.useCallback(async () => {
     if (!navigator.mediaDevices?.enumerateDevices) return;
@@ -244,24 +244,33 @@ function VoiceInputSettingsPage({ environment }: { environment: import("../../Ru
     }
   }, []);
   const refreshPermission = React.useCallback(async () => {
+    if (!permissionMountedRef.current) return;
     if (!navigator.mediaDevices?.getUserMedia) { setPermission("unsupported"); return; }
     try {
       const status = await navigator.permissions?.query({ name: "microphone" as PermissionName });
+      if (!permissionMountedRef.current) return;
       permissionStatusRef.current?.removeEventListener?.("change", permissionChangeHandlerRef.current);
       permissionStatusRef.current = status ?? null;
       permissionStatusRef.current?.addEventListener?.("change", permissionChangeHandlerRef.current);
       const nextPermission = status?.state === "granted" ? "granted" : status?.state === "denied" ? "denied" : "prompt";
       setPermission(nextPermission);
       setMicrophonePermission(nextPermission);
-    } catch { setPermission("prompt"); setMicrophonePermission("prompt"); }
+    } catch {
+      if (permissionMountedRef.current) {
+        setPermission("prompt");
+        setMicrophonePermission("prompt");
+      }
+    }
   }, []);
   React.useEffect(() => {
+    permissionMountedRef.current = true;
     permissionChangeHandlerRef.current = () => { void refreshPermission(); };
     void refreshDevices();
     void refreshPermission();
     const handleDeviceChange = () => { void refreshDevices(); };
     navigator.mediaDevices?.addEventListener?.("devicechange", handleDeviceChange);
     return () => {
+      permissionMountedRef.current = false;
       navigator.mediaDevices?.removeEventListener?.("devicechange", handleDeviceChange);
       permissionStatusRef.current?.removeEventListener?.("change", permissionChangeHandlerRef.current);
       permissionStatusRef.current = null;

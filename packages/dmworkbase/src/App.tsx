@@ -1357,6 +1357,7 @@ export default class WKApp extends ProviderListener {
   }
 
   avatarUser(uid: string) {
+    if (!uid) return "";
     const c = new Channel(uid, ChannelTypePerson);
     return this.avatarChannel(c);
   }
