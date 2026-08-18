@@ -11,14 +11,21 @@ const mocks = vi.hoisted(() => ({
   toastWarning: vi.fn(),
   voiceEnabled: false,
   speakingMode: "toggle" as "toggle" | "hold",
+  isRecording: false,
+  isTranscribing: false,
+  cancelRecording: vi.fn(),
+  settingsListeners: new Set<(settings: unknown) => void>(),
+  transcribed: null as null | ((text: string) => void),
+  inputTranscribed: null as null | ((text: string) => void),
 }));
 
 vi.mock("../../adapters/voice/useVoiceInput", () => ({
-  default: () => {
-    const [isRecording, setIsRecording] = React.useState(false);
+  default: (options: { onTranscribed: (text: string) => void }) => {
+    mocks.inputTranscribed = options.onTranscribed;
+    const [isRecording, setIsRecording] = React.useState(mocks.isRecording);
     return {
       isRecording,
-      isTranscribing: false,
+      isTranscribing: mocks.isTranscribing,
       startRecording: (...args: unknown[]) => {
         mocks.startRecording(...args);
         setIsRecording(true);
@@ -27,7 +34,7 @@ vi.mock("../../adapters/voice/useVoiceInput", () => ({
         mocks.stopRecording(...args);
         setIsRecording(false);
       },
-      cancelRecording: vi.fn(),
+      cancelRecording: mocks.cancelRecording,
       isVoiceEnabled: true,
       currentMode: "append_only",
       localAvailable: false,
@@ -43,7 +50,7 @@ vi.mock("../../../../Service/VoiceSettingsStore", () => ({
   getVoiceShortcut: () => "alt-right",
   voiceSettingsStore: {
     get: () => ({ enabled: mocks.voiceEnabled, shortcutWindows: "alt-right", shortcutMacos: "alt-right", speakingMode: mocks.speakingMode }),
-    subscribe: () => () => {},
+    subscribe: (listener: (settings: unknown) => void) => { mocks.settingsListeners.add(listener); return () => mocks.settingsListeners.delete(listener); },
   },
 }));
 
@@ -87,6 +94,11 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.voiceEnabled = false;
   mocks.speakingMode = "toggle";
+  mocks.isRecording = false;
+  mocks.isTranscribing = false;
+  mocks.cancelRecording.mockReset();
+  mocks.settingsListeners.clear();
+  mocks.inputTranscribed = null;
   Object.defineProperty(navigator, "onLine", { configurable: true, value: true });
   container = document.createElement("div");
   document.body.appendChild(container);
@@ -151,5 +163,38 @@ describe("VoiceInputIndicator click behavior", () => {
     act(() => window.dispatchEvent(new KeyboardEvent("keyup", { code: "AltRight" })));
     expect(mocks.stopRecording).toHaveBeenCalledWith(undefined);
     vi.useRealTimers();
+  });
+
+  it("cancels an active recording when voice input is disabled", async () => {
+    mocks.voiceEnabled = true;
+    mocks.isRecording = true;
+    await act(async () => {
+      ReactDOM.render(<VoiceInputIndicator voiceHost={voiceHost} onTranscribed={() => undefined} />, container);
+    });
+
+    mocks.voiceEnabled = false;
+    act(() => { mocks.settingsListeners.forEach((listener) => listener({ enabled: false })); });
+    expect(mocks.cancelRecording).toHaveBeenCalled();
+  });
+
+  it("uses append mode for toggle shortcuts even when text is selected", async () => {
+    mocks.voiceEnabled = true;
+    const onTranscribed = vi.fn();
+    await act(async () => {
+      ReactDOM.render(
+        <VoiceInputIndicator
+          voiceHost={voiceHost}
+          onTranscribed={onTranscribed}
+          getSelectedText={() => "selected"}
+          getSelectionRange={() => ({ from: 3, to: 11 })}
+        />,
+        container,
+      );
+    });
+
+    act(() => window.dispatchEvent(new KeyboardEvent("keydown", { code: "AltRight" })));
+    expect(mocks.startRecording).toHaveBeenCalledWith("append_only");
+    act(() => mocks.inputTranscribed?.("new text"));
+    expect(onTranscribed).toHaveBeenCalledWith("new text", "insert");
   });
 });

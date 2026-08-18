@@ -18,6 +18,7 @@ const mocks = vi.hoisted(() => ({
   updateLocalConfig: vi.fn(),
   probeLocal: vi.fn(),
   transcribeLocal: vi.fn(),
+  setVoiceSettings: vi.fn(),
   getUserMedia: vi.fn(),
   toastWarning: vi.fn(),
   toastError: vi.fn(),
@@ -37,6 +38,7 @@ const mocks = vi.hoisted(() => ({
     loadedSpaceId: null as string | null,
   },
   localVoiceSettings: {
+    microphoneDeviceId: "",
     localEnabled: false,
     localProbeUrl: "http://localhost:8787/",
     localTranscribeUrl: "http://localhost:8787/v1/voice/transcribe",
@@ -88,6 +90,7 @@ vi.mock("../../../../Service/LocalModelService", () => ({
 vi.mock("../../../../Service/VoiceSettingsStore", () => ({
   voiceSettingsStore: {
     get: () => mocks.localVoiceSettings,
+    set: (patch: Record<string, unknown>) => { Object.assign(mocks.localVoiceSettings, patch); mocks.setVoiceSettings(patch); return mocks.localVoiceSettings; },
     subscribe: () => () => {},
   },
 }));
@@ -193,6 +196,7 @@ beforeEach(() => {
     loadedSpaceId: null,
   };
   Object.assign(mocks.localVoiceSettings, {
+    microphoneDeviceId: "",
     localEnabled: false,
     localProbeUrl: "http://localhost:8787/",
     localTranscribeUrl: "http://localhost:8787/v1/voice/transcribe",
@@ -251,6 +255,55 @@ describe("useVoiceInput space lifecycle", () => {
       }),
       localStorage,
     );
+  });
+
+  it("passes the selected microphone constraint to getUserMedia", async () => {
+    mocks.localVoiceSettings.microphoneDeviceId = "mic-1";
+    mocks.getUserMedia.mockResolvedValue({ getTracks: () => [{ stop: vi.fn() }] } as unknown as MediaStream);
+    const current = createHost("space-a");
+
+    await act(async () => {
+      ReactDOM.render(<Probe host={current.host} onTranscribed={() => undefined} />, container);
+    });
+    act(() => { latest.startRecording(); });
+    await flush();
+
+    expect(mocks.getUserMedia).toHaveBeenCalledWith({ audio: { deviceId: { exact: "mic-1" } } });
+  });
+
+  it("retries local availability after the service starts later", async () => {
+    vi.useFakeTimers();
+    mocks.localVoiceSettings.localEnabled = true;
+    mocks.probeLocal.mockResolvedValueOnce(false).mockResolvedValue(true);
+    const current = createHost("space-a");
+
+    await act(async () => {
+      ReactDOM.render(<Probe host={current.host} onTranscribed={() => undefined} />, container);
+      await Promise.resolve();
+    });
+    mocks.probeLocal.mockClear();
+    act(() => { vi.advanceTimersByTime(5000); });
+    await flush();
+
+    expect(mocks.probeLocal).toHaveBeenCalled();
+    vi.useRealTimers();
+  });
+
+  it("falls back to the default microphone when the selected device disappears", async () => {
+    mocks.localVoiceSettings.microphoneDeviceId = "missing-mic";
+    mocks.getUserMedia
+      .mockRejectedValueOnce(Object.assign(new Error("missing"), { name: "OverconstrainedError" }))
+      .mockResolvedValueOnce({ getTracks: () => [{ stop: vi.fn() }] } as unknown as MediaStream);
+    const current = createHost("space-a");
+
+    await act(async () => {
+      ReactDOM.render(<Probe host={current.host} onTranscribed={() => undefined} />, container);
+    });
+    act(() => { latest.startRecording(); });
+    await flush();
+
+    expect(mocks.setVoiceSettings).toHaveBeenCalledWith({ microphoneDeviceId: "" });
+    expect(mocks.getUserMedia).toHaveBeenLastCalledWith({ audio: true });
   });
 
   it("does not tear down shared voice feedback on a plain mount", async () => {

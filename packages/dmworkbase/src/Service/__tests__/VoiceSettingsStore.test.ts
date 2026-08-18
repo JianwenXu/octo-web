@@ -36,6 +36,20 @@ describe("voiceSettingsStore", () => {
     expect(unchanged.localProbeUrl).toBe("http://localhost:7777/");
   });
 
+  it("isolates settings and consent by user id", () => {
+    voiceSettingsStore.setUserId("user-a");
+    voiceSettingsStore.set({ enabled: true });
+    voiceSettingsStore.acknowledge();
+
+    voiceSettingsStore.setUserId("user-b");
+    expect(voiceSettingsStore.get().enabled).toBe(false);
+    expect(voiceSettingsStore.get().consent).toBeUndefined();
+
+    voiceSettingsStore.setUserId("user-a");
+    expect(voiceSettingsStore.get().enabled).toBe(true);
+    expect(voiceSettingsStore.get().consent?.protocolVersion).toBe(VOICE_PROTOCOL_VERSION);
+  });
+
   it("restores persisted values and normalizes invalid enum values", async () => {
     localStorage.setItem(VOICE_SETTINGS_KEY, JSON.stringify({
       enabled: true,
