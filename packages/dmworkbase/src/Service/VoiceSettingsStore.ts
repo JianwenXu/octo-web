@@ -84,8 +84,13 @@ function read(key = storageKey): VoiceSettings {
   }
 }
 
-function hasStoredSettings(): boolean {
-  try { return window.localStorage.getItem(storageKey) !== null; } catch { return false; }
+function hasStoredLocalSettings(): boolean {
+  try {
+    const raw = window.localStorage.getItem(storageKey);
+    if (!raw) return false;
+    const value = JSON.parse(raw) as Record<string, unknown>;
+    return ["localEnabled", "localTimeoutMs", "localProbeUrl", "localTranscribeUrl"].some((key) => key in value);
+  } catch { return false; }
 }
 
 let current = read();
@@ -132,7 +137,7 @@ export const voiceSettingsStore = {
     local_transcribe_url?: string;
   }): VoiceSettings {
     try {
-      if (hasStoredSettings() || window.localStorage.getItem(`${storageKey}.${LEGACY_SERVER_MIGRATION}`) === "1") return { ...current };
+      if (hasStoredLocalSettings() || window.localStorage.getItem(`${storageKey}.${LEGACY_SERVER_MIGRATION}`) === "1") return { ...current };
       const patch: Partial<VoiceSettings> = {};
       if (typeof config.local_enabled === "boolean") patch.localEnabled = config.local_enabled;
       if (typeof config.local_timeout_ms === "number" && config.local_timeout_ms > 0) patch.localTimeoutMs = config.local_timeout_ms;

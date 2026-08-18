@@ -3,7 +3,8 @@ import { Spin, Switch, Toast } from "@douyinfe/semi-ui";
 import DOMPurify from "dompurify";
 import { QRCodeSVG } from "qrcode.react";
 import WKApp, { ThemeMode } from "../../App";
-import { apiFetchJson } from "../../Service/apiFetch";
+import APIClient from "../../Service/APIClient";
+import { sanitizeHttpUrl } from "../../Service/OidcConfig";
 import { updateUserLanguagePreference } from "../../Service/UserLanguageService";
 import { i18n, t } from "../../i18n";
 import { Locale } from "../../i18n/types";
@@ -73,17 +74,18 @@ function useMobileDownloadUrl(resourceId: string) {
   React.useEffect(() => {
     if (!path) return;
     let active = true;
-    void apiFetchJson<{ url?: unknown }>(`${WKApp.apiClient.config.apiURL.replace(/\/?$/, "/")}${path}`).then((result) => {
-      if (active && typeof result?.url === "string" && result.url.trim()) setUrl(result.url.trim());
-    }).catch(() => undefined);
+    void APIClient.shared.get<{ url?: unknown }>(`/${path}`).then((result) => {
+      const safeUrl = sanitizeHttpUrl(result?.url);
+      if (active && safeUrl) setUrl(safeUrl);
+    }).catch(() => { if (active) setUrl(undefined); });
     return () => { active = false; };
   }, [path]);
 
   return url;
 }
 
-export function SettingsPage({ item, environment, accountCenterUrl, onSecrets, onVoice, onAbout, onOpenOnboarding }: { item?: SettingsItem; environment: import("../../Runtime").RuntimeEnvironment; accountCenterUrl?: string; onSecrets?: () => void; onVoice?: () => void; onAbout?: () => void; onOpenOnboarding?: () => void }) {
-  if (item?.id === "general") return <SettingsPageFrame title={t("base.navRail.settingsCenter.page.general.title")}><SettingsSection title={t("base.navRail.settingsCenter.section.displayLanguage")}><SettingsRow title={t("base.navRail.settingsCenter.row.language")} description={t("base.navRail.settingsCenter.row.languageDescription")} trailing={<select className="wk-settings-center__demo-select" aria-label={t("base.navRail.settingsCenter.row.language")} value={i18n.getLocale()} onChange={(event) => { const locale = event.target.value as Locale; i18n.setLocale(locale); if (WKApp.shared.isLogined()) void updateUserLanguagePreference(locale); }}><option value="zh-CN">{t("base.navRail.settingsCenter.language.zh")}</option><option value="en-US">{t("base.navRail.settingsCenter.language.en")}</option></select>} /><SettingsRow title={t("base.navRail.settingsCenter.row.darkMode")} description={t("base.navRail.settingsCenter.row.darkModeDescription")} trailing={<SettingsStatusTag tone="neutral" label={t("base.navRail.settingsCenter.value.comingSoon")} />} /></SettingsSection></SettingsPageFrame>;
+export function SettingsPage({ item, environment, accountCenterUrl, onSecrets, onAbout, onOpenOnboarding }: { item?: SettingsItem; environment: import("../../Runtime").RuntimeEnvironment; accountCenterUrl?: string; onSecrets?: () => void; onAbout?: () => void; onOpenOnboarding?: () => void }) {
+  if (item?.id === "general") return <SettingsPageFrame title={t("base.navRail.settingsCenter.page.general.title")}><SettingsSection title={t("base.navRail.settingsCenter.section.displayLanguage")}><SettingsRow title={t("base.navRail.settingsCenter.row.language")} description={t("base.navRail.settingsCenter.row.languageDescription")} trailing={<select className="wk-settings-center__demo-select" aria-label={t("base.navRail.settingsCenter.row.language")} value={i18n.getLocale()} onChange={(event) => { const locale = event.target.value as Locale; i18n.setLocale(locale); if (WKApp.shared.isLogined()) void updateUserLanguagePreference(locale).catch(() => Toast.error(t("base.navRail.settingsCenter.value.saveFailed"))); }}><option value="zh-CN">{t("base.navRail.settingsCenter.language.zh")}</option><option value="en-US">{t("base.navRail.settingsCenter.language.en")}</option></select>} /><SettingsRow title={t("base.navRail.settingsCenter.row.darkMode")} description={t("base.navRail.settingsCenter.row.darkModeDescription")} trailing={<SettingsStatusTag tone="neutral" label={t("base.navRail.settingsCenter.value.comingSoon")} />} /></SettingsSection></SettingsPageFrame>;
   if (item?.id === "account") return <AccountSettingsPage accountCenterUrl={accountCenterUrl} onSecrets={onSecrets} />;
   if (item?.id === "notifications") {
     return <NotificationsSettingsPage environment={environment} />;
@@ -166,7 +168,10 @@ function NotificationsSettingsPage({ environment }: { environment: import("../..
   const isDesktop = environment.target === "desktop";
   const permissionLabel = permission === "unsupported" ? t("base.navRail.settingsCenter.value.unsupported") : permission === "denied" ? t("base.navRail.settingsCenter.value.denied") : permission === "granted" ? t("base.navRail.settingsCenter.value.granted") : t("base.navRail.settingsCenter.value.unauthorized");
   const permissionTone: "success" | "attention" | "danger" | "neutral" = permission === "granted" ? "success" : permission === "denied" ? "danger" : permission === "default" ? "attention" : "neutral";
-  const requestPermission = async () => setPermission(await notificationAdapter.requestPermission());
+  const requestPermission = async () => {
+    try { setPermission(await notificationAdapter.requestPermission()); }
+    catch { Toast.error(t("base.navRail.settingsCenter.value.saveFailed")); }
+  };
   React.useEffect(() => {
     let mounted = true;
     void quickMuteStore.getState().then((next) => { if (mounted) setMuteScope(next.scope); }).catch(() => undefined);
@@ -355,7 +360,7 @@ function LocalVoiceSettings({ settings, draft, dirty, setDraft, probeStatus, set
     setProbeStatus("loading");
     const controller = new AbortController();
     const timer = window.setTimeout(() => controller.abort(), 3000);
-    try { await fetch(draft.probe, { signal: controller.signal, redirect: "manual" }); setProbeStatus("success"); }
+    try { const response = await fetch(draft.probe, { signal: controller.signal, redirect: "manual" }); setProbeStatus(response.ok ? "success" : "failed"); }
     catch { setProbeStatus("failed"); }
     finally { window.clearTimeout(timer); }
   };

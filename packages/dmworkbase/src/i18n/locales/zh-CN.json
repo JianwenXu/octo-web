@@ -1437,6 +1437,7 @@
   "navRail.settingsCenter.value.notTested": "未测试",
   "navRail.settingsCenter.value.connectionSuccess": "连接成功",
   "navRail.settingsCenter.value.connectionFailed": "连接失败",
+  "navRail.settingsCenter.value.saveFailed": "保存失败，请稍后重试",
   "navRail.settingsPanel.accountCenter": "账户中心",
   "navRail.settingsPanel.changelog": "更新日志",
   "navRail.settingsPanel.changelogLoadFailed": "获取更新日志失败",

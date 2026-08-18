@@ -433,6 +433,7 @@ export default function VoiceInputIndicator({
       }
 
       if (!isRecordingRef.current) return;
+      if (voiceSettings.speakingMode !== "hold") return;
       // Stop recording when any modifier key is released (existing Shift+Cmd+Space flow)
       if (e.key === "Shift" || e.key === "Meta" || e.key === "Control") {
         // Don't stop if this was a long-press ShiftLeft release handled above
@@ -511,6 +512,8 @@ export default function VoiceInputIndicator({
       savedSelectionRangeRef.current = selectionRange;
       recordingModeRef.current = selectedMode;
       startRecording(selectedMode);
+    } else {
+      Toast.warning(t("base.voiceInput.error.networkUnavailable"));
     }
   };
 

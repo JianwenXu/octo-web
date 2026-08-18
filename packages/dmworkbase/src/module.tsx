@@ -533,7 +533,7 @@ export default class BaseModule implements IModule {
         WKApp.shared.addFriendApply(friendApply);
         // 文档专注场景不播提示音（红点/未读仍会更新）；IM 场景不受影响。
         if (!isDocumentFocusScene()) {
-          this.tipsAudio();
+          void this.tipsAudio();
         }
       } else if (cmdContent.cmd === "friendAccept") {
         // 接受好友申请

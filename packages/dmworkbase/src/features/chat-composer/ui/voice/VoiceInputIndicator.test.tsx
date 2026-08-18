@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   toastWarning: vi.fn(),
   voiceEnabled: false,
   speakingMode: "toggle" as "toggle" | "hold",
+  shortcut: "alt-right" as "alt-right" | "shift-right" | "shift-left",
   isRecording: false,
   isTranscribing: false,
   cancelRecording: vi.fn(),
@@ -47,9 +48,9 @@ vi.mock("../../../../i18n", () => ({
 }));
 
 vi.mock("../../../../Service/VoiceSettingsStore", () => ({
-  getVoiceShortcut: () => "alt-right",
+  getVoiceShortcut: () => mocks.shortcut,
   voiceSettingsStore: {
-    get: () => ({ enabled: mocks.voiceEnabled, shortcutWindows: "alt-right", shortcutMacos: "alt-right", speakingMode: mocks.speakingMode }),
+    get: () => ({ enabled: mocks.voiceEnabled, shortcutWindows: mocks.shortcut, shortcutMacos: mocks.shortcut, speakingMode: mocks.speakingMode }),
     subscribe: (listener: (settings: unknown) => void) => { mocks.settingsListeners.add(listener); return () => mocks.settingsListeners.delete(listener); },
   },
 }));
@@ -94,6 +95,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.voiceEnabled = false;
   mocks.speakingMode = "toggle";
+  mocks.shortcut = "alt-right";
   mocks.isRecording = false;
   mocks.isTranscribing = false;
   mocks.cancelRecording.mockReset();
@@ -177,6 +179,21 @@ describe("VoiceInputIndicator click behavior", () => {
     expect(mocks.cancelRecording).toHaveBeenCalled();
   });
 
+  it.each([
+    ["shift-right", "ShiftRight"],
+    ["shift-left", "ShiftLeft"],
+  ] as const)("does not stop toggle recording on %s keyup", async (shortcut, code) => {
+    mocks.voiceEnabled = true;
+    mocks.shortcut = shortcut;
+    mocks.isRecording = true;
+    await act(async () => {
+      ReactDOM.render(<VoiceInputIndicator voiceHost={voiceHost} onTranscribed={() => undefined} />, container);
+    });
+
+    act(() => window.dispatchEvent(new KeyboardEvent("keyup", { code, key: "Shift" })));
+    expect(mocks.stopRecording).not.toHaveBeenCalled();
+  });
+
   it("uses append mode for toggle shortcuts even when text is selected", async () => {
     mocks.voiceEnabled = true;
     const onTranscribed = vi.fn();
@@ -196,5 +213,55 @@ describe("VoiceInputIndicator click behavior", () => {
     expect(mocks.startRecording).toHaveBeenCalledWith("append_only");
     act(() => mocks.inputTranscribed?.("new text"));
     expect(onTranscribed).toHaveBeenCalledWith("new text", "insert");
+  });
+
+  it("does not start from toggle shortcut while transcribing", async () => {
+    mocks.voiceEnabled = true;
+    mocks.isTranscribing = true;
+    await act(async () => {
+      ReactDOM.render(<VoiceInputIndicator voiceHost={voiceHost} onTranscribed={() => undefined} />, container);
+    });
+
+    act(() => window.dispatchEvent(new KeyboardEvent("keydown", { code: "AltRight" })));
+    expect(mocks.startRecording).not.toHaveBeenCalled();
+  });
+
+  it("shows the network warning for an offline toggle shortcut", async () => {
+    mocks.voiceEnabled = true;
+    Object.defineProperty(navigator, "onLine", { configurable: true, value: false });
+    await act(async () => {
+      ReactDOM.render(<VoiceInputIndicator voiceHost={voiceHost} onTranscribed={() => undefined} />, container);
+    });
+
+    act(() => window.dispatchEvent(new KeyboardEvent("keydown", { code: "AltRight" })));
+    expect(mocks.startRecording).not.toHaveBeenCalled();
+    expect(mocks.toastWarning).toHaveBeenCalledWith("base.voiceInput.error.networkUnavailable");
+  });
+
+  it("shows the network warning before starting an offline hold shortcut", async () => {
+    mocks.voiceEnabled = true;
+    mocks.speakingMode = "hold";
+    Object.defineProperty(navigator, "onLine", { configurable: true, value: false });
+    vi.useFakeTimers();
+    await act(async () => {
+      ReactDOM.render(<VoiceInputIndicator voiceHost={voiceHost} onTranscribed={() => undefined} />, container);
+    });
+
+    act(() => window.dispatchEvent(new KeyboardEvent("keydown", { code: "AltRight" })));
+    act(() => vi.advanceTimersByTime(500));
+    expect(mocks.startRecording).not.toHaveBeenCalled();
+    expect(mocks.toastWarning).toHaveBeenCalledWith("base.voiceInput.error.networkUnavailable");
+    vi.useRealTimers();
+  });
+
+  it("cancels recording with Escape", async () => {
+    mocks.voiceEnabled = true;
+    mocks.isRecording = true;
+    await act(async () => {
+      ReactDOM.render(<VoiceInputIndicator voiceHost={voiceHost} onTranscribed={() => undefined} />, container);
+    });
+
+    act(() => window.dispatchEvent(new KeyboardEvent("keydown", { code: "Escape", key: "Escape" })));
+    expect(mocks.cancelRecording).toHaveBeenCalled();
   });
 });

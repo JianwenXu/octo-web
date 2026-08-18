@@ -1437,6 +1437,7 @@
   "navRail.settingsCenter.value.notTested": "Not tested",
   "navRail.settingsCenter.value.connectionSuccess": "Connected",
   "navRail.settingsCenter.value.connectionFailed": "Connection failed",
+  "navRail.settingsCenter.value.saveFailed": "Failed to save. Please try again.",
   "navRail.settingsPanel.accountCenter": "Account center",
   "navRail.settingsPanel.changelog": "Changelog",
   "navRail.settingsPanel.changelogLoadFailed": "Failed to load changelog",

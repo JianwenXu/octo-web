@@ -176,7 +176,11 @@ export class QuickMuteStore implements QuickMuteService {
     this.expiryTimer = setTimeout(() => {
       if (this.state.endAt !== endAt || !this.state.active) return;
       if (endAt > Date.now() + this.serverOffset) this.scheduleExpiry(endAt);
-      else void this.refresh().catch(() => undefined);
+      else void this.refresh().catch(() => {
+        this.state = { ...this.state, active: false, endAt: undefined };
+        this.listeners.forEach((listener) => listener(this.state));
+        this.expiryTimer = setTimeout(() => this.scheduleExpiry(endAt), 5_000);
+      });
     }, Math.min(Math.max(remaining, 0), 60 * 60_000));
   }
 

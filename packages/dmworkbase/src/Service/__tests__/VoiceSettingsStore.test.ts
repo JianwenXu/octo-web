@@ -66,12 +66,16 @@ describe("voiceSettingsStore", () => {
 
   it("rolls back the in-memory value when persistence fails", () => {
     voiceSettingsStore.set({ enabled: true });
-    const setItem = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
-      throw new Error("storage unavailable");
+    const originalStorage = window.localStorage;
+    Object.defineProperty(window, "localStorage", {
+      configurable: true,
+      value: { ...originalStorage, setItem: () => { throw new Error("storage unavailable"); } },
     });
-
-    expect(() => voiceSettingsStore.set({ enabled: false })).toThrow("storage unavailable");
-    expect(voiceSettingsStore.get().enabled).toBe(true);
-    setItem.mockRestore();
+    try {
+      expect(() => voiceSettingsStore.set({ enabled: false })).toThrow("storage unavailable");
+      expect(voiceSettingsStore.get().enabled).toBe(true);
+    } finally {
+      Object.defineProperty(window, "localStorage", { configurable: true, value: originalStorage });
+    }
   });
 });

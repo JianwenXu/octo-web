@@ -91,7 +91,9 @@ export default function useVoiceInput(
   const [isVoiceEnabled, setIsVoiceEnabled] = useState(false);
   const [currentMode, setCurrentMode] = useState<VoiceMode>(mode);
   const [localAvailable, setLocalAvailable] = useState(false);
-  const localEnabled = voiceSettingsStore.get().localEnabled;
+  const [localEnabled, setLocalEnabled] = useState(
+    () => voiceSettingsStore.get().localEnabled,
+  );
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -120,6 +122,7 @@ export default function useVoiceInput(
 
   const syncLocalSettings = useCallback(() => {
     const settings = voiceSettingsStore.get();
+    setLocalEnabled(settings.localEnabled);
     const signature = [settings.localEnabled, settings.localProbeUrl, settings.localTranscribeUrl, settings.localTimeoutMs].join("\u0000");
     if (localSettingsSignatureRef.current === signature) return;
     localSettingsSignatureRef.current = signature;
@@ -269,8 +272,9 @@ export default function useVoiceInput(
   useEffect(() => {
     if (!localEnabled) return;
     const retryProbe = () => {
+      const generation = localProbeGenerationRef.current;
       void LocalModelService.shared.probe().then((available) => {
-        if (mountedRef.current) setLocalAvailable(available);
+        if (mountedRef.current && localProbeGenerationRef.current === generation) setLocalAvailable(available);
       });
     };
     const timer = window.setInterval(retryProbe, 5000);
