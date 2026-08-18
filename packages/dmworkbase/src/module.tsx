@@ -282,7 +282,11 @@ export default class BaseModule implements IModule {
     WKSDK.shared().connectManager.addConnectStatusListener((status) => {
       if (status === ConnectStatus.Connected) refreshQuickMute();
     });
-    refreshQuickMute();
+    // Let browser mock/service workers and the first app render settle before
+    // the background prefetch. Foreground/online/reconnect events still
+    // refresh immediately; this avoids an initialization request racing SW
+    // takeover in browser e2e and real cold starts.
+    setTimeout(refreshQuickMute, 1000);
 
     WKApp.endpointManager.setMethod(
       EndpointID.emojiService,
