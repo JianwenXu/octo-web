@@ -14,9 +14,8 @@ import VoiceService, {
 import VoiceFeedback, {
   type AsrParams,
 } from "../../../../Service/VoiceFeedback";
-import LocalModelService, {
-  LocalModelConfig,
-} from "../../../../Service/LocalModelService";
+import LocalModelService from "../../../../Service/LocalModelService";
+import { voiceSettingsStore } from "../../../../Service/VoiceSettingsStore";
 import type {
   ChatComposerVoiceContext,
   ChatComposerVoiceHost,
@@ -27,7 +26,6 @@ import {
   resetSharedSpaceSetting,
   setSharedVoiceConfig,
   getSharedSpaceFeedbackState,
-  getSharedVoiceConfig,
   subscribe as subscribeSpaceFeedback,
 } from "../../../voice-input/useSpaceFeedbackSetting";
 
@@ -118,6 +116,31 @@ export default function useVoiceInput(
   const backendMaxDurationRef = useRef<number | null>(null);
   const backendEnabledRef = useRef(false);
   const feedbackUrlRef = useRef<string | undefined>(undefined);
+
+  const syncLocalSettings = useCallback(() => {
+    const settings = voiceSettingsStore.get();
+    setIsVoiceEnabled(settings.localEnabled || backendEnabledRef.current);
+    const generation = ++localProbeGenerationRef.current;
+    LocalModelService.shared.updateConfig(
+      {
+        enabled: settings.localEnabled,
+        probeUrl: settings.localProbeUrl,
+        transcribeUrl: settings.localTranscribeUrl,
+        requestTimeoutMs: settings.localTimeoutMs,
+        preferLocal: true,
+      },
+      localStorage,
+    );
+    if (!settings.localEnabled) {
+      if (mountedRef.current) setLocalAvailable(false);
+      return;
+    }
+    void LocalModelService.shared.probe().then((available) => {
+      if (mountedRef.current && localProbeGenerationRef.current === generation) {
+        setLocalAvailable(available);
+      }
+    });
+  }, []);
   const voiceFeedbackOnRef = useRef(0);
 
   const mountedRef = useRef(true);
@@ -206,13 +229,16 @@ export default function useVoiceInput(
     let cancelled = false;
 
     LocalModelService.shared.loadConfig(localStorage);
-    LocalModelService.shared.updateConfig({ enabled: false }, localStorage);
+    syncLocalSettings();
 
     VoiceService.shared
       .getConfig()
       .then((config: VoiceConfig) => {
         if (cancelled || !mountedRef.current) return;
-        setIsVoiceEnabled(config.enabled || config.local_enabled === true);
+        setIsVoiceEnabled(
+          config.enabled ||
+            voiceSettingsStore.get().localEnabled,
+        );
         backendEnabledRef.current = config.enabled;
         maxFileSizeRef.current = config.max_file_size || 0;
         if (config.max_duration != null) {
@@ -230,7 +256,9 @@ export default function useVoiceInput(
     return () => {
       cancelled = true;
     };
-  }, [reconcileSpaceSetting]);
+  }, [reconcileSpaceSetting, syncLocalSettings]);
+
+  useEffect(() => voiceSettingsStore.subscribe(syncLocalSettings), [syncLocalSettings]);
 
   useEffect(() => {
     const previousHost = subscribedVoiceHostRef.current;
@@ -276,57 +304,6 @@ export default function useVoiceInput(
         state.spaceSetting?.voice_feedback_on === 1
           ? 1
           : 0;
-    });
-  }, []);
-
-  useEffect(() => {
-    const previous = {
-      enabled: false,
-      probeUrl: "",
-      transcribeUrl: "",
-      timeoutMs: 0,
-    };
-    return subscribeSpaceFeedback(() => {
-      const config = getSharedVoiceConfig();
-      if (!config) return;
-
-      const next = {
-        enabled: config.local_enabled === true,
-        probeUrl: config.local_probe_url ?? "",
-        transcribeUrl: config.local_transcribe_url ?? "",
-        timeoutMs: config.local_timeout_ms ?? 10000,
-      };
-      const changed =
-        next.enabled !== previous.enabled ||
-        next.probeUrl !== previous.probeUrl ||
-        next.transcribeUrl !== previous.transcribeUrl ||
-        next.timeoutMs !== previous.timeoutMs;
-      if (!changed) return;
-      Object.assign(previous, next);
-
-      const generation = ++localProbeGenerationRef.current;
-      if (next.enabled) {
-        const updateFields: Partial<LocalModelConfig> = {
-          enabled: true,
-          requestTimeoutMs: next.timeoutMs,
-        };
-        if (next.probeUrl) updateFields.probeUrl = next.probeUrl;
-        if (next.transcribeUrl) {
-          updateFields.transcribeUrl = next.transcribeUrl;
-        }
-        LocalModelService.shared.updateConfig(updateFields, localStorage);
-        void LocalModelService.shared.probe().then((available) => {
-          if (
-            mountedRef.current &&
-            localProbeGenerationRef.current === generation
-          ) {
-            setLocalAvailable(available);
-          }
-        });
-      } else {
-        LocalModelService.shared.updateConfig({ enabled: false }, localStorage);
-        if (mountedRef.current) setLocalAvailable(false);
-      }
     });
   }, []);
 

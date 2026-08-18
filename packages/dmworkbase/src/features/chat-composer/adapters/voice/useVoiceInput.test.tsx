@@ -36,6 +36,12 @@ const mocks = vi.hoisted(() => ({
     apiAvailable: false,
     loadedSpaceId: null as string | null,
   },
+  localVoiceSettings: {
+    localEnabled: false,
+    localProbeUrl: "http://localhost:8787/",
+    localTranscribeUrl: "http://localhost:8787/v1/voice/transcribe",
+    localTimeoutMs: 10000,
+  },
 }));
 
 vi.mock("@douyinfe/semi-ui", () => ({
@@ -76,6 +82,13 @@ vi.mock("../../../../Service/LocalModelService", () => ({
       probe: (...args: unknown[]) => mocks.probeLocal(...args),
       transcribe: (...args: unknown[]) => mocks.transcribeLocal(...args),
     },
+  },
+}));
+
+vi.mock("../../../../Service/VoiceSettingsStore", () => ({
+  voiceSettingsStore: {
+    get: () => mocks.localVoiceSettings,
+    subscribe: () => () => {},
   },
 }));
 
@@ -179,6 +192,12 @@ beforeEach(() => {
     apiAvailable: false,
     loadedSpaceId: null,
   };
+  Object.assign(mocks.localVoiceSettings, {
+    localEnabled: false,
+    localProbeUrl: "http://localhost:8787/",
+    localTranscribeUrl: "http://localhost:8787/v1/voice/transcribe",
+    localTimeoutMs: 10000,
+  });
   mocks.getConfig.mockResolvedValue({ enabled: true });
   mocks.getVoiceContext.mockResolvedValue({ has_context: false });
   mocks.fetchAndApplySpaceSetting.mockResolvedValue(undefined);
@@ -205,6 +224,35 @@ afterEach(() => {
 });
 
 describe("useVoiceInput space lifecycle", () => {
+  it("applies local voice settings to the runtime model service", async () => {
+    Object.assign(mocks.localVoiceSettings, {
+      localEnabled: true,
+      localProbeUrl: "http://127.0.0.1:9000/health",
+      localTranscribeUrl: "http://127.0.0.1:9000/transcribe",
+      localTimeoutMs: 7000,
+    });
+    const current = createHost("space-a");
+
+    await act(async () => {
+      ReactDOM.render(
+        <Probe host={current.host} onTranscribed={() => undefined} />,
+        container,
+      );
+    });
+    await flush();
+
+    expect(mocks.updateLocalConfig).toHaveBeenCalledWith(
+      expect.objectContaining({
+        enabled: true,
+        probeUrl: "http://127.0.0.1:9000/health",
+        transcribeUrl: "http://127.0.0.1:9000/transcribe",
+        requestTimeoutMs: 7000,
+        preferLocal: true,
+      }),
+      localStorage,
+    );
+  });
+
   it("does not tear down shared voice feedback on a plain mount", async () => {
     const current = createHost("space-a");
 
