@@ -22,7 +22,7 @@ import { acceptVoiceInput } from "../../features/voice-input/useSpaceFeedbackSet
 import { Dap } from "../../Service/Dap";
 import { openElectronSystemSettings } from "../../electron/desktopBridge";
 
-export function SettingsRow({ title, description, trailing, children }: { title: string; description?: string; trailing?: React.ReactNode; children?: React.ReactNode }) { return <div className="wk-settings-center__row"><div className="wk-settings-center__row-main"><div className="wk-settings-center__row-title">{title}</div>{description && <div className="wk-settings-center__row-description">{description}</div>}</div>{children ?? trailing}</div>; }
+export function SettingsRow({ title, description, trailing, children }: { title: string; description?: React.ReactNode; trailing?: React.ReactNode; children?: React.ReactNode }) { return <div className="wk-settings-center__row"><div className="wk-settings-center__row-main"><div className="wk-settings-center__row-title">{title}</div>{description && <div className="wk-settings-center__row-description">{description}</div>}</div>{children ?? trailing}</div>; }
 
 function SettingsSection({ title, children }: { title: string; children: React.ReactNode }) { return <section className="wk-settings-center__settings-section"><h3>{title}</h3>{children}</section>; }
 
@@ -207,7 +207,7 @@ function NotificationsSettingsPage({ environment }: { environment: import("../..
   };
   const openNotificationSettings = async () => {
     if (environment.target !== "desktop") return;
-    const opened = await openElectronSystemSettings("notifications");
+    const opened = await openElectronSystemSettings("notifications").catch(() => false);
     if (!opened) Toast.info(t("base.navRail.settingsCenter.row.systemPermissionDesktopDescription"));
   };
   React.useEffect(() => {
@@ -249,7 +249,7 @@ function AboutSettingsPage({ onAbout, onChangelog, onOpenOnboarding }: { onAbout
   </SettingsPageFrame>;
 }
 function ChevronIcon() { return <svg className="wk-settings-center__chevron-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7" /></svg>; }
-function ShortcutRow({ label, keys }: { label: string; keys?: string[] }) { return <div className="wk-settings-center__shortcut-row"><span>{label}</span><span className="wk-settings-center__shortcut-keys">{keys?.map((key) => <kbd key={key}>{key}</kbd>)}</span></div>; }
+function ShortcutRow({ label, keys }: { label: string; keys: string[] }) { return <div className="wk-settings-center__shortcut-row"><span>{label}</span><span className="wk-settings-center__shortcut-keys">{keys.map((key) => <kbd key={key}>{key}</kbd>)}</span></div>; }
 function useVoiceSettings() {
   const [settings, setSettings] = React.useState<VoiceSettings>(() => voiceSettingsStore.get());
   React.useEffect(() => voiceSettingsStore.subscribe(setSettings), []);
@@ -366,7 +366,7 @@ function VoiceInputSettingsPage({ environment }: { environment: import("../../Ru
   };
   const showPermissionGuide = async () => {
     if (environment.target === "desktop" && permission === "denied") {
-      const opened = await openElectronSystemSettings("microphone");
+      const opened = await openElectronSystemSettings("microphone").catch(() => false);
       if (opened) return;
     }
     const key = environment.target === "web"

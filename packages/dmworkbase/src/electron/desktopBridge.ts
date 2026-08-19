@@ -158,6 +158,6 @@ export function clearElectronAuthSession(): Promise<unknown> | undefined {
   return getElectronIpcBridge()?.invoke(IPC_OIDC_CLEAR_AUTH_SESSION);
 }
 
-export function openElectronSystemSettings(target: "microphone" | "notifications"): Promise<boolean> | undefined {
-  return getElectronIpcBridge()?.invoke(IPC_OPEN_SYSTEM_SETTINGS, target).then((result) => result === true);
+export function openElectronSystemSettings(target: "microphone" | "notifications"): Promise<boolean> {
+  return getElectronIpcBridge()?.invoke(IPC_OPEN_SYSTEM_SETTINGS, target).then((result) => result === true) ?? Promise.resolve(false);
 }

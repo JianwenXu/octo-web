@@ -1,8 +1,7 @@
 import { isSafeUrl } from "./security";
 import WKApp from "../App";
 import { getElectronIpcBridge, isElectronPowered } from "../electron/desktopBridge";
-import { IPC_DOWNLOAD_URL } from "../../../../apps/web/src-election/shared/ipc-channels";
-import { IPC_DOWNLOAD_STATUS } from "../../../../apps/web/src-election/shared/ipc-channels";
+import { IPC_DOWNLOAD_STATUS, IPC_DOWNLOAD_URL } from "../../../../apps/web/src-election/shared/ipc-channels";
 import { Toast } from "@douyinfe/semi-ui";
 import { t } from "../i18n";
 
@@ -66,10 +65,9 @@ export async function downloadFile(url: string, filename: string): Promise<void>
         const ipc = getElectronIpcBridge();
         if (ipc) {
             const displayName = (value: string) => value.length > 48 ? `${value.slice(0, 45)}…` : value;
-            try {
-                const id = await ipc.invoke(IPC_DOWNLOAD_URL, downloadUrl) as string;
-                const onStatus = (_event: unknown, status: { id?: string; state?: string; filename?: string }) => {
-                    if (status?.id !== id) return;
+            let id: string | undefined;
+            const onStatus = (_event: unknown, status: { id?: string; state?: string; filename?: string }) => {
+                    if (!id || status?.id !== id) return;
                     if (status.state === "completed") {
                         Toast.success({ content: t("base.download.completed", { values: { filename: displayName(status.filename || filename) } }), duration: 2.5 });
                         ipc.removeListener(IPC_DOWNLOAD_STATUS, onStatus);
@@ -78,10 +76,13 @@ export async function downloadFile(url: string, filename: string): Promise<void>
                         Toast.error({ content: t("base.download.failed", { values: { filename: displayName(status.filename || filename) } }), duration: 3 });
                         ipc.removeListener(IPC_DOWNLOAD_STATUS, onStatus);
                     }
-                };
-                ipc.on(IPC_DOWNLOAD_STATUS, onStatus);
+            };
+            ipc.on(IPC_DOWNLOAD_STATUS, onStatus);
+            try {
+                id = await ipc.invoke(IPC_DOWNLOAD_URL, downloadUrl) as string;
                 return;
             } catch (error) {
+                ipc.removeListener(IPC_DOWNLOAD_STATUS, onStatus);
                 console.warn("downloadFile: Electron download failed, falling back to browser download", error);
             }
         }

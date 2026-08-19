@@ -152,7 +152,9 @@ function writeDesktopSettings(next: DesktopSettings): void {
 }
 
 function applyDesktopSettings(): void {
-  app.setLoginItemSettings({ openAtLogin: settings.launchAtLogin });
+  if (app.getLoginItemSettings().openAtLogin !== settings.launchAtLogin) {
+    app.setLoginItemSettings({ openAtLogin: settings.launchAtLogin });
+  }
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.setZoomFactor(settings.zoomFactor);
   }
@@ -234,14 +236,18 @@ function registerDownloadHandler(): void {
       if (!sender || sender.isDestroyed()) return;
       sender.send(IPC_DOWNLOAD_STATUS, { id, filename, ...status } satisfies DownloadStatus);
     };
+    let savePath: string | undefined;
     item.on("updated", () => sendStatus({ state: "progress", receivedBytes: item.getReceivedBytes(), totalBytes: item.getTotalBytes() }));
-    item.once("done", (_event, state) => sendStatus({ state: state === "completed" ? "completed" : "failed" }));
+    item.once("done", (_event, state) => {
+      if (state === "cancelled") return;
+      sendStatus({ state: state === "completed" ? "completed" : "failed" }, savePath ? basename(savePath) : undefined);
+    });
     const path = downloadSettings.directory;
     if (!downloadSettings.askBeforeSaving) {
       try {
         fs.mkdirSync(path, { recursive: true });
         const original = join(path, item.getFilename());
-        let savePath = original;
+        savePath = original;
         let index = 1;
         while (fs.existsSync(savePath)) {
           const name = basename(original, extname(original));
@@ -259,7 +265,8 @@ function registerDownloadHandler(): void {
     const choosePath = async () => {
       const result = await dialog.showSaveDialog(mainWindow, { defaultPath: join(path, item.getFilename()) });
       if (result.canceled || !result.filePath) { item.cancel(); return; }
-      item.setSavePath(result.filePath);
+      savePath = result.filePath;
+      item.setSavePath(savePath);
       sendStatus({ state: "started" }, basename(result.filePath));
       item.resume();
     };
@@ -281,8 +288,16 @@ function registerDownloadUrlHandler(): void {
       const current = pendingDownloads.get(parsed.href);
       const index = current?.findIndex((entry) => entry.id === id) ?? -1;
       if (current && index >= 0) {
+        const request = current[index];
         current.splice(index, 1);
         if (current.length === 0) pendingDownloads.delete(parsed.href);
+        if (!request.sender.isDestroyed()) {
+          request.sender.send(IPC_DOWNLOAD_STATUS, {
+            id,
+            state: "failed",
+            filename: basename(new URL(parsed.href).pathname) || "download",
+          } satisfies DownloadStatus);
+        }
       }
     }, 60_000);
     event.sender.downloadURL(parsed.href);
@@ -1328,7 +1343,8 @@ const createMainWindow = async () => {
   });
 
   mainWindow.on("close", (e: any) => {
-    if ((settings.closeBehavior === "quit" || !settings.showOnTray) && !forceQuit) {
+    const canBackground = isOsx || (settings.showOnTray && Boolean(tray));
+    if ((settings.closeBehavior === "quit" || !canBackground) && !forceQuit) {
       forceQuit = true;
       mainWindow = null;
       app.quit();
