@@ -84,6 +84,7 @@ type DownloadSettings = { directory: string; askBeforeSaving: boolean };
 type DownloadStatus = { id: string; state: "started" | "progress" | "completed" | "failed" | "cancelled" | "expired"; filename: string; receivedBytes?: number; totalBytes?: number };
 type PendingDownload = { id: string; sender: Electron.WebContents; filename: string };
 const pendingDownloads = new Map<string, PendingDownload[]>();
+const reservedDownloadPaths = new Set<string>();
 let settings: DesktopSettings = {
   zoomFactor: 1,
   launchAtLogin: false,
@@ -106,11 +107,28 @@ const defaultDownloadDirectory = () => join(app.getPath("userData"), "Downloads"
 let downloadSettings: DownloadSettings = { directory: defaultDownloadDirectory(), askBeforeSaving: false };
 const downloadSettingsPath = () => join(app.getPath("userData"), "download-settings.json");
 const DOWNLOAD_SETTINGS_VERSION = 1;
+let userDataMigrationPending = false;
 
 function sanitizeDownloadFilename(value: unknown, fallback: string): string {
   const candidate = typeof value === "string" ? value.trim() : "";
-  const sanitized = candidate.replace(/[\\/]/g, "_").replace(/[\u0000-\u001f]/g, "_");
-  return sanitized && sanitized !== "." && sanitized !== ".." ? sanitized : fallback;
+  let sanitized = candidate
+    .replace(/[\\/]/g, "_")
+    .replace(/[\u0000-\u001f]/g, "_")
+    .replace(/[<>:"|?*]/g, "_")
+    .replace(/[. ]+$/g, "");
+  if (!sanitized || sanitized === "." || sanitized === "..") return fallback;
+  const extension = extname(sanitized);
+  let stem = basename(sanitized, extension);
+  if (/^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i.test(stem)) stem = `_${stem}`;
+  const maxBytes = 240;
+  const trimToBytes = (value: string, limit: number) => {
+    while (Buffer.byteLength(value, "utf8") > limit) value = value.slice(0, -1);
+    return value;
+  };
+  const trimmedExtension = trimToBytes(extension, maxBytes);
+  stem = trimToBytes(stem, Math.max(1, maxBytes - Buffer.byteLength(trimmedExtension, "utf8")));
+  sanitized = `${stem || "download"}${trimmedExtension}`;
+  return sanitized || fallback;
 }
 
 function readDownloadSettings(): DownloadSettings {
@@ -122,7 +140,9 @@ function readDownloadSettings(): DownloadSettings {
       directory: raw?.version === DOWNLOAD_SETTINGS_VERSION ? directory : directory === legacyDefault ? defaultDownloadDirectory() : directory,
       askBeforeSaving: raw?.askBeforeSaving === true,
     };
-    if (raw?.version !== DOWNLOAD_SETTINGS_VERSION) writeDownloadSettings(next);
+    if (raw?.version !== DOWNLOAD_SETTINGS_VERSION && !userDataMigrationPending) {
+      try { writeDownloadSettings(next); } catch { /* preserve parsed settings if migration write is unavailable */ }
+    }
     return next;
   } catch { return { directory: defaultDownloadDirectory(), askBeforeSaving: false }; }
 }
@@ -161,7 +181,7 @@ function writeDesktopSettings(next: DesktopSettings): void {
 }
 
 function applyDesktopSettings(): void {
-  if (app.getLoginItemSettings().openAtLogin !== settings.launchAtLogin) {
+  if (process.platform !== "linux" && app.getLoginItemSettings().openAtLogin !== settings.launchAtLogin) {
     app.setLoginItemSettings({ openAtLogin: settings.launchAtLogin });
   }
   if (mainWindow && !mainWindow.isDestroyed()) {
@@ -252,7 +272,7 @@ function registerDownloadHandler(): void {
     }
     const id = request?.id || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
     const sender = request?.sender;
-    const requestedFilename = request?.filename || item.getFilename();
+    const requestedFilename = request?.filename || sanitizeDownloadFilename(item.getFilename(), "download");
     const sendStatus = (status: Omit<DownloadStatus, "id" | "filename">, filename = requestedFilename) => {
       if (!sender || sender.isDestroyed()) return;
       sender.send(IPC_DOWNLOAD_STATUS, { id, filename, ...status } satisfies DownloadStatus);
@@ -263,6 +283,7 @@ function registerDownloadHandler(): void {
     item.once("done", (_event, state) => {
       const nextState = state === "completed" ? "completed" : state === "cancelled" ? (userCancelled ? "cancelled" : "failed") : "failed";
       sendStatus({ state: nextState }, savePath ? basename(savePath) : undefined);
+      if (savePath) reservedDownloadPaths.delete(savePath);
     });
     const path = downloadSettings.directory;
     if (!downloadSettings.askBeforeSaving) {
@@ -271,10 +292,11 @@ function registerDownloadHandler(): void {
         const original = join(path, requestedFilename);
         savePath = original;
         let index = 1;
-        while (fs.existsSync(savePath)) {
+        while (fs.existsSync(savePath) || reservedDownloadPaths.has(savePath)) {
           const name = basename(original, extname(original));
           savePath = join(path, `${name} (${index++})${extname(original)}`);
         }
+        reservedDownloadPaths.add(savePath);
         item.setSavePath(savePath);
         sendStatus({ state: "started" }, basename(savePath));
       } catch {
@@ -313,8 +335,6 @@ function registerDownloadUrlHandler(): void {
       const index = current?.findIndex((entry) => entry.id === id) ?? -1;
       if (current && index >= 0) {
         const request = current[index];
-        current.splice(index, 1);
-        if (current.length === 0) pendingDownloads.delete(parsed.href);
         if (!request.sender.isDestroyed()) {
           request.sender.send(IPC_DOWNLOAD_STATUS, {
             id,
@@ -322,6 +342,14 @@ function registerDownloadUrlHandler(): void {
             filename: "",
           } satisfies DownloadStatus);
         }
+        setTimeout(() => {
+          const latest = pendingDownloads.get(parsed.href);
+          const stillPending = latest?.findIndex((entry) => entry.id === id) ?? -1;
+          if (latest && stillPending >= 0) {
+            latest.splice(stillPending, 1);
+            if (latest.length === 0) pendingDownloads.delete(parsed.href);
+          }
+        }, 5 * 60_000);
       }
     }, 60_000);
     event.sender.downloadURL(parsed.href);
@@ -1192,15 +1220,16 @@ function updateTray(unread?: number, isFlash = false): any {
       if (!tray) {
         // Init tray icon
         tray = new Tray(trayIcon);
-        tray.setContextMenu(contextmenu);
+        // macOS uses the status-item click for its menu; Windows shows this
+        // menu on right-click automatically. Keep the explicit window restore
+        // click only on Windows to avoid two actions on one macOS click.
+        if (!isOsx) tray.setContextMenu(contextmenu);
         tray.setToolTip(OCTO_CONFIG.name);
 
-        tray.on("right-click", () => {
-          tray.popUpContextMenu(contextmenu);
-        });
-
         tray.on("click", () => {
-          if (mainWindow && !mainWindow.isDestroyed()) {
+          if (isOsx) {
+            tray.popUpContextMenu(contextmenu);
+          } else if (mainWindow && !mainWindow.isDestroyed()) {
             mainWindow.show();
             mainWindow.focus();
           }
@@ -1215,7 +1244,7 @@ function updateTray(unread?: number, isFlash = false): any {
         tray.setTitle(unreadCount > 0 ? ` ${unreadCount}` : "");
       }
 
-      mainWindow.flashFrame(isFlash);
+      if (mainWindow && !mainWindow.isDestroyed()) mainWindow.flashFrame(isFlash);
       //设置系统托盘闪烁
       if(isFlash){
         clearInterval(flashTimer)
@@ -1322,6 +1351,9 @@ const createNewWindow = () => {
   trackTrustedShellDocument(newWindow);
 
   newWindow.center();
+  newWindow.webContents.on("did-finish-load", () => {
+    if (!newWindow.isDestroyed()) newWindow.webContents.setZoomFactor(settings.zoomFactor);
+  });
   newWindow.once("ready-to-show", () => {
     newWindow.show(); // 显示窗口
     newWindow.focus();
@@ -1357,7 +1389,7 @@ const createMainWindow = async () => {
   mainWindow = new BrowserWindow(getWindowConfig());
   trackTrustedShellDocument(mainWindow);
   mainWindow.center();
-  mainWindow.webContents.once("did-finish-load", () => {
+  mainWindow.webContents.on("did-finish-load", () => {
     if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.setZoomFactor(settings.zoomFactor);
   });
   mainWindow.once("ready-to-show", () => {
@@ -1366,12 +1398,19 @@ const createMainWindow = async () => {
     mainWindow.focus();
   });
 
+  let quitAfterClose = false;
   mainWindow.on("close", (e: any) => {
     const canBackground = isOsx || (settings.showOnTray && Boolean(tray));
+    if (quitAfterClose) return;
     if ((settings.closeBehavior === "quit" || !canBackground) && !forceQuit) {
-      forceQuit = true;
-      mainWindow = null;
-      app.quit();
+      e.preventDefault();
+      quitAfterClose = true;
+      mainWindow.once("closed", () => {
+        quitAfterClose = false;
+        mainWindow = null;
+        app.quit();
+      });
+      mainWindow.close();
     } else if (forceQuit) {
       mainWindow = null;
     } else {
@@ -1536,6 +1575,7 @@ const userDataPlan = planUserDataMigration(
 if (userDataPlan.action !== "none") {
   app.setPath("userData", userDataPlan.oldDir);
 }
+userDataMigrationPending = userDataPlan.action !== "none";
 keepAwakeEnabled = readKeepAwakePreference();
 settings = readDesktopSettings();
 downloadSettings = readDownloadSettings();
