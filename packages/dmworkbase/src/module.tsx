@@ -847,8 +847,10 @@ export default class BaseModule implements IModule {
     if (!this.allowNotify(message)) return { playSound: false, showPopup: false };
     const quickMuteState = await quickMuteStore.getState().catch(() => undefined);
     if (quickMuteState?.active) {
+      // "sound" = keep sounds only (suppress the popup); the other scope
+      // mutes both sounds and popups.
       return quickMuteState.scope === "sound"
-        ? { playSound: false, showPopup: true }
+        ? { playSound: true, showPopup: false }
         : { playSound: false, showPopup: false };
     }
     return { playSound: true, showPopup: true };
