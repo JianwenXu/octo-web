@@ -67,6 +67,7 @@ import { INDEX_HTML, reloadShell } from "./reloadShell";
 import { attachLogoutWindowNavigationListeners, classifyOidcNavigation, extractEndSessionRedirect, isTrustedSenderUrl, OIDC_HTTP_MAX_RESPONSE_BYTES, parseHttpOrigin, parseOidcCallback, validateOidcHttpRequest, validateOpenExternalUrl, withTrustedSessionSid } from "./oidcRedirect";
 import { createTrustedShellDocumentTracker } from "./trustedShell";
 import { clearAuthSessionCookies } from "./clearAuthSession";
+import { DOWNLOAD_SETTINGS_VERSION, normalizeDownloadSettings, sanitizeDownloadFilename, type DownloadSettings } from "./downloadSettings";
 
 let forceQuit = false;
 let mainWindow: any;
@@ -80,7 +81,6 @@ type DesktopSettings = {
   showOnTray: boolean;
   closeBehavior: "background" | "quit";
 };
-type DownloadSettings = { directory: string; askBeforeSaving: boolean };
 type DownloadStatus = { id: string; state: "started" | "progress" | "completed" | "failed" | "cancelled" | "expired"; filename: string; receivedBytes?: number; totalBytes?: number };
 type PendingDownload = { id: string; sender: Electron.WebContents; filename: string };
 const pendingDownloads = new Map<string, PendingDownload[]>();
@@ -106,40 +106,13 @@ const desktopSettingsPath = () => join(app.getPath("userData"), "desktop-setting
 const defaultDownloadDirectory = () => join(app.getPath("userData"), "Downloads", "Shared Files");
 let downloadSettings: DownloadSettings = { directory: defaultDownloadDirectory(), askBeforeSaving: false };
 const downloadSettingsPath = () => join(app.getPath("userData"), "download-settings.json");
-const DOWNLOAD_SETTINGS_VERSION = 1;
 let userDataMigrationPending = false;
-
-function sanitizeDownloadFilename(value: unknown, fallback: string): string {
-  const candidate = typeof value === "string" ? value.trim() : "";
-  let sanitized = candidate
-    .replace(/[\\/]/g, "_")
-    .replace(/[\u0000-\u001f]/g, "_")
-    .replace(/[<>:"|?*]/g, "_")
-    .replace(/[. ]+$/g, "");
-  if (!sanitized || sanitized === "." || sanitized === "..") return fallback;
-  const extension = extname(sanitized);
-  let stem = basename(sanitized, extension);
-  if (/^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i.test(stem)) stem = `_${stem}`;
-  const maxBytes = 240;
-  const trimToBytes = (value: string, limit: number) => {
-    while (Buffer.byteLength(value, "utf8") > limit) value = value.slice(0, -1);
-    return value;
-  };
-  const trimmedExtension = trimToBytes(extension, maxBytes);
-  stem = trimToBytes(stem, Math.max(1, maxBytes - Buffer.byteLength(trimmedExtension, "utf8")));
-  sanitized = `${stem || "download"}${trimmedExtension}`;
-  return sanitized || fallback;
-}
 
 function readDownloadSettings(): DownloadSettings {
   try {
     const raw = JSON.parse(fs.readFileSync(downloadSettingsPath(), "utf8"));
     const legacyDefault = join(app.getPath("downloads"), "Shared Files");
-    const directory = typeof raw?.directory === "string" && raw.directory ? raw.directory : defaultDownloadDirectory();
-    const next = {
-      directory: raw?.version === DOWNLOAD_SETTINGS_VERSION ? directory : directory === legacyDefault ? defaultDownloadDirectory() : directory,
-      askBeforeSaving: raw?.askBeforeSaving === true,
-    };
+    const next = normalizeDownloadSettings(raw, defaultDownloadDirectory(), legacyDefault);
     if (raw?.version !== DOWNLOAD_SETTINGS_VERSION && !userDataMigrationPending) {
       try { writeDownloadSettings(next); } catch { /* preserve parsed settings if migration write is unavailable */ }
     }
@@ -164,7 +137,11 @@ function readDesktopSettings(): DesktopSettings {
       closeBehavior: raw?.closeBehavior === "quit" ? "quit" : "background",
     };
   } catch {
-    return { ...settings };
+    let launchAtLogin = settings.launchAtLogin;
+    if (!fs.existsSync(desktopSettingsPath()) && process.platform !== "linux") {
+      try { launchAtLogin = app.getLoginItemSettings().openAtLogin; } catch { /* use the default */ }
+    }
+    return { ...settings, launchAtLogin };
   }
 }
 
@@ -270,6 +247,12 @@ function registerDownloadHandler(): void {
       if (pending.length === 0) pendingDownloads.delete(url);
       break;
     }
+    if (!request) {
+      item.setSaveDialogOptions({
+        defaultPath: join(downloadSettings.directory, sanitizeDownloadFilename(item.getFilename(), "download")),
+      });
+      return;
+    }
     const id = request?.id || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
     const sender = request?.sender;
     const requestedFilename = request?.filename || sanitizeDownloadFilename(item.getFilename(), "download");
@@ -278,7 +261,7 @@ function registerDownloadHandler(): void {
       sender.send(IPC_DOWNLOAD_STATUS, { id, filename, ...status } satisfies DownloadStatus);
     };
     let savePath: string | undefined;
-    let userCancelled = false;
+    let userCancelled = downloadSettings.askBeforeSaving;
     item.on("updated", () => sendStatus({ state: "progress", receivedBytes: item.getReceivedBytes(), totalBytes: item.getTotalBytes() }));
     item.once("done", (_event, state) => {
       const nextState = state === "completed" ? "completed" : state === "cancelled" ? (userCancelled ? "cancelled" : "failed") : "failed";
@@ -305,16 +288,12 @@ function registerDownloadHandler(): void {
       return;
     }
 
-    item.pause();
-    const choosePath = async () => {
-      const result = await dialog.showSaveDialog(mainWindow, { defaultPath: join(path, requestedFilename) });
-      if (result.canceled || !result.filePath) { userCancelled = true; item.cancel(); return; }
-      savePath = result.filePath;
-      item.setSavePath(savePath);
-      sendStatus({ state: "started" }, basename(result.filePath));
-      item.resume();
-    };
-    void choosePath().catch(() => item.cancel());
+    try {
+      item.setSaveDialogOptions({ defaultPath: join(path, requestedFilename) });
+    } catch {
+      userCancelled = false;
+      item.cancel();
+    }
   });
 }
 
@@ -335,6 +314,8 @@ function registerDownloadUrlHandler(): void {
       const index = current?.findIndex((entry) => entry.id === id) ?? -1;
       if (current && index >= 0) {
         const request = current[index];
+        current.splice(index, 1);
+        if (current.length === 0) pendingDownloads.delete(parsed.href);
         if (!request.sender.isDestroyed()) {
           request.sender.send(IPC_DOWNLOAD_STATUS, {
             id,
@@ -342,14 +323,6 @@ function registerDownloadUrlHandler(): void {
             filename: "",
           } satisfies DownloadStatus);
         }
-        setTimeout(() => {
-          const latest = pendingDownloads.get(parsed.href);
-          const stillPending = latest?.findIndex((entry) => entry.id === id) ?? -1;
-          if (latest && stillPending >= 0) {
-            latest.splice(stillPending, 1);
-            if (latest.length === 0) pendingDownloads.delete(parsed.href);
-          }
-        }, 5 * 60_000);
       }
     }, 60_000);
     event.sender.downloadURL(parsed.href);
