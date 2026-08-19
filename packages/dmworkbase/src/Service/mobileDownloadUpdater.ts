@@ -1,6 +1,11 @@
 import React from "react";
 
-export type MobileDownloadFetcher = (url: string) => Promise<unknown>;
+export type MobileDownloadFetcher = (
+  url: string,
+  init?: RequestInit,
+) => Promise<unknown>;
+
+export const MOBILE_DOWNLOAD_REQUEST_TIMEOUT_MS = 20_000;
 
 export type MobileDownloadUrlState =
   | { status: "idle" | "loading" | "error"; downloadUrl?: undefined }
@@ -10,7 +15,7 @@ export function resolveMobileUpdaterUrl(
   updaterPath: string,
   apiUrl: string,
 ) {
-  return `${apiUrl.replace(/\/?$/, "/")}${updaterPath}`;
+  return `${apiUrl.replace(/\/?$/, "/")}${updaterPath.replace(/^\/+/, "")}`;
 }
 
 export function resolveSafeDownloadUrl(
@@ -18,7 +23,7 @@ export function resolveSafeDownloadUrl(
   baseUrl = typeof window === "undefined" ? "http://localhost" : window.location.origin,
 ) {
   if (typeof value !== "string") return undefined;
-  const normalizedValue = value.trim();
+  const normalizedValue = value.replace(/[\u200B-\u200D\uFEFF]/g, "").trim();
   if (!normalizedValue) return undefined;
   try {
     const url = new URL(normalizedValue, baseUrl);
@@ -35,14 +40,20 @@ export async function fetchMobileDownloadUrl(
   fetcher: MobileDownloadFetcher,
   apiUrl: string,
 ) {
-  const result = await fetcher(resolveMobileUpdaterUrl(updaterPath, apiUrl));
-  const downloadUrl = resolveSafeDownloadUrl(
-    result && typeof result === "object" && "url" in result
-      ? (result as { url?: unknown }).url
-      : undefined,
-  );
-  if (!downloadUrl) throw new Error("Updater returned an invalid download URL");
-  return downloadUrl;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), MOBILE_DOWNLOAD_REQUEST_TIMEOUT_MS);
+  try {
+    const result = await fetcher(resolveMobileUpdaterUrl(updaterPath, apiUrl), { signal: controller.signal });
+    const downloadUrl = resolveSafeDownloadUrl(
+      result && typeof result === "object" && "url" in result
+        ? (result as { url?: unknown }).url
+        : undefined,
+    );
+    if (!downloadUrl) throw new Error("Updater returned an invalid download URL");
+    return downloadUrl;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 export function useMobileDownloadUrl(
