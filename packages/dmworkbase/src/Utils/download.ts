@@ -4,6 +4,7 @@ import { getElectronIpcBridge, isElectronPowered } from "../electron/desktopBrid
 import { IPC_DOWNLOAD_URL } from "../../../../apps/web/src-election/shared/ipc-channels";
 import { IPC_DOWNLOAD_STATUS } from "../../../../apps/web/src-election/shared/ipc-channels";
 import { Toast } from "@douyinfe/semi-ui";
+import { t } from "../i18n";
 
 /**
  * Get a presigned download URL from the backend.
@@ -69,11 +70,11 @@ export async function downloadFile(url: string, filename: string): Promise<void>
             const onStatus = (_event: unknown, status: { id?: string; state?: string; filename?: string }) => {
                 if (status?.id !== id) return;
                 if (status.state === "completed") {
-                    Toast.success({ content: `下载完成：${displayName(status.filename || filename)}`, duration: 2.5 });
+                    Toast.success({ content: t("base.download.completed", { values: { filename: displayName(status.filename || filename) } }), duration: 2.5 });
                     ipc.removeListener(IPC_DOWNLOAD_STATUS, onStatus);
                 }
                 if (status.state === "failed") {
-                    Toast.error({ content: `下载失败：${displayName(status.filename || filename)}`, duration: 3 });
+                    Toast.error({ content: t("base.download.failed", { values: { filename: displayName(status.filename || filename) } }), duration: 3 });
                     ipc.removeListener(IPC_DOWNLOAD_STATUS, onStatus);
                 }
             };

@@ -77,6 +77,8 @@
   "chatPage.unsentAttachmentTitle": "有未发送的附件",
   "channelSearch.close": "关闭搜索",
   "channelSearch.downloadFailed": "下载失败，请稍后重试",
+  "download.completed": "下载完成：{{filename}}",
+  "download.failed": "下载失败：{{filename}}",
   "channelSearch.downloadUnavailable": "暂无可下载地址",
   "channelSearch.emptyHint": "输入关键字或使用筛选查找消息记录",
   "channelSearch.fileMore": "文件操作",
