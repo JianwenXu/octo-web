@@ -11,7 +11,7 @@ test("@TES18 @p1 @settings-center @voice @chat @persistence 刷新后语音设�
   await expect.poll(() => getComposerPlaceholder(authedPage)).toContain("按住左 Shift说话");
 
   // The conversation draft queue writes /extra during page teardown. Route it
-  // at the Playwright context level because the MSW worker is being unloaded.
+  // at the page level because the MSW worker is being unloaded.
   await authedPage.route("**/conversations/*/*/extra", (route) => route.fulfill({ status: 200, body: "{}" }));
   await authedPage.reload();
   await authedPage.getByRole("button", { name: "会话" }).waitFor({ state: "visible", timeout: 15_000 });

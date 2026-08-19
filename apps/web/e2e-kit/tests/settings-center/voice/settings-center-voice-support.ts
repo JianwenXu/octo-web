@@ -69,5 +69,5 @@ export async function closeSettings(page: Page): Promise<void> {
 
 export async function getComposerPlaceholder(page: Page): Promise<string> {
   const textbox = page.getByRole("textbox");
-  return (await textbox.locator("p[data-placeholder]").getAttribute("data-placeholder", { timeout: 10_000 })) ?? "";
+  return (await textbox.locator("p[data-placeholder]").getAttribute("data-placeholder", { timeout: 1_000 })) ?? "";
 }

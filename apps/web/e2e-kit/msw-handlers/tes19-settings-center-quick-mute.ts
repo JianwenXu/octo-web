@@ -28,7 +28,11 @@ export async function registerTES19SettingsCenterQuickMute(page: Page): Promise<
 
     worker.use(
       http.get("*/user/notification-pause", () => HttpResponse.json(response())),
-      http.put("*/user/notification-pause", () => {
+      http.put("*/user/notification-pause", async ({ request }: any) => {
+        const body = await request.json();
+        if (body?.duration !== "30m") {
+          return HttpResponse.json({ error: "TES19 expected a 30-minute pause" }, { status: 400 });
+        }
         state.paused = true;
         state.revision += 1;
         return HttpResponse.json(response());
