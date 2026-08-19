@@ -81,8 +81,8 @@ type DesktopSettings = {
   closeBehavior: "background" | "quit";
 };
 type DownloadSettings = { directory: string; askBeforeSaving: boolean };
-type DownloadStatus = { id: string; state: "started" | "progress" | "completed" | "failed"; filename: string; receivedBytes?: number; totalBytes?: number };
-type PendingDownload = { id: string; sender: Electron.WebContents };
+type DownloadStatus = { id: string; state: "started" | "progress" | "completed" | "failed" | "cancelled" | "expired"; filename: string; receivedBytes?: number; totalBytes?: number };
+type PendingDownload = { id: string; sender: Electron.WebContents; filename: string };
 const pendingDownloads = new Map<string, PendingDownload[]>();
 let settings: DesktopSettings = {
   zoomFactor: 1,
@@ -105,23 +105,32 @@ const desktopSettingsPath = () => join(app.getPath("userData"), "desktop-setting
 const defaultDownloadDirectory = () => join(app.getPath("userData"), "Downloads", "Shared Files");
 let downloadSettings: DownloadSettings = { directory: defaultDownloadDirectory(), askBeforeSaving: false };
 const downloadSettingsPath = () => join(app.getPath("userData"), "download-settings.json");
+const DOWNLOAD_SETTINGS_VERSION = 1;
+
+function sanitizeDownloadFilename(value: unknown, fallback: string): string {
+  const candidate = typeof value === "string" ? value.trim() : "";
+  const sanitized = candidate.replace(/[\\/]/g, "_").replace(/[\u0000-\u001f]/g, "_");
+  return sanitized && sanitized !== "." && sanitized !== ".." ? sanitized : fallback;
+}
 
 function readDownloadSettings(): DownloadSettings {
   try {
     const raw = JSON.parse(fs.readFileSync(downloadSettingsPath(), "utf8"));
     const legacyDefault = join(app.getPath("downloads"), "Shared Files");
     const directory = typeof raw?.directory === "string" && raw.directory ? raw.directory : defaultDownloadDirectory();
-    return {
-      directory: directory === legacyDefault ? defaultDownloadDirectory() : directory,
+    const next = {
+      directory: raw?.version === DOWNLOAD_SETTINGS_VERSION ? directory : directory === legacyDefault ? defaultDownloadDirectory() : directory,
       askBeforeSaving: raw?.askBeforeSaving === true,
     };
+    if (raw?.version !== DOWNLOAD_SETTINGS_VERSION) writeDownloadSettings(next);
+    return next;
   } catch { return { directory: defaultDownloadDirectory(), askBeforeSaving: false }; }
 }
 
 function writeDownloadSettings(next: DownloadSettings): void {
   const path = downloadSettingsPath();
   const tempPath = `${path}.${process.pid}.tmp`;
-  fs.writeFileSync(tempPath, JSON.stringify(next, null, 2));
+  fs.writeFileSync(tempPath, JSON.stringify({ version: DOWNLOAD_SETTINGS_VERSION, ...next }, null, 2));
   try { fs.renameSync(tempPath, path); } catch (error) { try { fs.unlinkSync(tempPath); } catch {} throw error; }
 }
 
@@ -169,7 +178,13 @@ function registerDesktopSettingsHandlers(): void {
   ipcMain.handle(IPC_DESKTOP_SETTINGS_SET, (event, patch: unknown) => {
     if (!isTrustedShellIpcSender(event)) throw new Error("untrusted sender");
     if (!patch || typeof patch !== "object" || Array.isArray(patch)) throw new Error("invalid desktop settings");
-    const candidate = { ...settings, ...patch } as DesktopSettings;
+    const values = patch as Record<string, unknown>;
+    const candidate: DesktopSettings = {
+      zoomFactor: values.zoomFactor === undefined ? settings.zoomFactor : values.zoomFactor as number,
+      launchAtLogin: values.launchAtLogin === undefined ? settings.launchAtLogin : values.launchAtLogin as boolean,
+      showOnTray: values.showOnTray === undefined ? settings.showOnTray : values.showOnTray as boolean,
+      closeBehavior: values.closeBehavior === undefined ? settings.closeBehavior : values.closeBehavior as DesktopSettings["closeBehavior"],
+    };
     if (![0.8, 0.9, 1, 1.1, 1.25].includes(candidate.zoomFactor)) throw new Error("invalid zoom factor");
     if (typeof candidate.launchAtLogin !== "boolean" || typeof candidate.showOnTray !== "boolean") throw new Error("invalid desktop setting");
     if (candidate.closeBehavior !== "background" && candidate.closeBehavior !== "quit") throw new Error("invalid close behavior");
@@ -181,6 +196,7 @@ function registerDesktopSettingsHandlers(): void {
     } catch (error) {
       settings = previous;
       try { writeDesktopSettings(previous); } catch { /* preserve original failure */ }
+      try { applyDesktopSettings(); } catch { /* best effort rollback of native effects */ }
       throw error;
     }
     return settings;
@@ -196,7 +212,11 @@ function registerDownloadSettingsHandlers(): void {
     if (!isTrustedShellIpcSender(event)) throw new Error("untrusted sender");
     if (!patch || typeof patch !== "object" || Array.isArray(patch)) throw new Error("invalid download settings");
     if ("directory" in patch) throw new Error("download directory must be selected natively");
-    const candidate = { ...downloadSettings, ...patch } as DownloadSettings;
+    const values = patch as Record<string, unknown>;
+    const candidate: DownloadSettings = {
+      directory: downloadSettings.directory,
+      askBeforeSaving: values.askBeforeSaving === undefined ? downloadSettings.askBeforeSaving : values.askBeforeSaving as boolean,
+    };
     if (typeof candidate.directory !== "string" || !candidate.directory || typeof candidate.askBeforeSaving !== "boolean") throw new Error("invalid download setting");
     const previous = downloadSettings;
     try {
@@ -232,21 +252,23 @@ function registerDownloadHandler(): void {
     }
     const id = request?.id || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
     const sender = request?.sender;
-    const sendStatus = (status: Omit<DownloadStatus, "id" | "filename">, filename = item.getFilename()) => {
+    const requestedFilename = request?.filename || item.getFilename();
+    const sendStatus = (status: Omit<DownloadStatus, "id" | "filename">, filename = requestedFilename) => {
       if (!sender || sender.isDestroyed()) return;
       sender.send(IPC_DOWNLOAD_STATUS, { id, filename, ...status } satisfies DownloadStatus);
     };
     let savePath: string | undefined;
+    let userCancelled = false;
     item.on("updated", () => sendStatus({ state: "progress", receivedBytes: item.getReceivedBytes(), totalBytes: item.getTotalBytes() }));
     item.once("done", (_event, state) => {
-      if (state === "cancelled") return;
-      sendStatus({ state: state === "completed" ? "completed" : "failed" }, savePath ? basename(savePath) : undefined);
+      const nextState = state === "completed" ? "completed" : state === "cancelled" ? (userCancelled ? "cancelled" : "failed") : "failed";
+      sendStatus({ state: nextState }, savePath ? basename(savePath) : undefined);
     });
     const path = downloadSettings.directory;
     if (!downloadSettings.askBeforeSaving) {
       try {
         fs.mkdirSync(path, { recursive: true });
-        const original = join(path, item.getFilename());
+        const original = join(path, requestedFilename);
         savePath = original;
         let index = 1;
         while (fs.existsSync(savePath)) {
@@ -263,8 +285,8 @@ function registerDownloadHandler(): void {
 
     item.pause();
     const choosePath = async () => {
-      const result = await dialog.showSaveDialog(mainWindow, { defaultPath: join(path, item.getFilename()) });
-      if (result.canceled || !result.filePath) { item.cancel(); return; }
+      const result = await dialog.showSaveDialog(mainWindow, { defaultPath: join(path, requestedFilename) });
+      if (result.canceled || !result.filePath) { userCancelled = true; item.cancel(); return; }
       savePath = result.filePath;
       item.setSavePath(savePath);
       sendStatus({ state: "started" }, basename(result.filePath));
@@ -275,13 +297,15 @@ function registerDownloadHandler(): void {
 }
 
 function registerDownloadUrlHandler(): void {
-  ipcMain.handle(IPC_DOWNLOAD_URL, (event, url: unknown) => {
+  ipcMain.handle(IPC_DOWNLOAD_URL, (event, url: unknown, filename?: unknown, requestId?: unknown) => {
     if (!isTrustedShellIpcSender(event) || typeof url !== "string") throw new Error("invalid download URL");
     const parsed = new URL(url);
     if (parsed.protocol !== "http:" && parsed.protocol !== "https:") throw new Error("invalid download URL");
-    const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const requestedFilename = sanitizeDownloadFilename(filename, "download");
+    const generatedId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const id = typeof requestId === "string" && requestId ? requestId : generatedId;
     const queue = pendingDownloads.get(parsed.href) || [];
-    const request = { id, sender: event.sender };
+    const request = { id, sender: event.sender, filename: requestedFilename };
     queue.push(request);
     pendingDownloads.set(parsed.href, queue);
     setTimeout(() => {
@@ -294,8 +318,8 @@ function registerDownloadUrlHandler(): void {
         if (!request.sender.isDestroyed()) {
           request.sender.send(IPC_DOWNLOAD_STATUS, {
             id,
-            state: "failed",
-            filename: basename(new URL(parsed.href).pathname) || "download",
+            state: "expired",
+            filename: "",
           } satisfies DownloadStatus);
         }
       }

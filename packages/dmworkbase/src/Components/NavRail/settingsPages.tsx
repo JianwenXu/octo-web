@@ -107,7 +107,7 @@ function DownloadsSettingsPage({ environment }: { environment: import("../../Run
   const [settings, setSettings] = React.useState<DownloadSettings | null>(null);
   const [saving, setSaving] = useState(false);
   React.useEffect(() => { let active = true; if (!adapter) return () => { active = false; }; void adapter.get().then((next) => { if (active) setSettings(next); }).catch(() => undefined); return () => { active = false; }; }, [adapter]);
-  const update = async (patch: Partial<DownloadSettings>) => { if (!adapter) return; setSaving(true); try { setSettings(await adapter.set(patch)); } catch { Toast.error(t("base.navRail.settingsCenter.value.saveFailed")); } finally { setSaving(false); } };
+  const update = async (patch: Pick<DownloadSettings, "askBeforeSaving">) => { if (!adapter) return; setSaving(true); try { setSettings(await adapter.set(patch)); } catch { Toast.error(t("base.navRail.settingsCenter.value.saveFailed")); } finally { setSaving(false); } };
   const choose = async () => { if (!adapter) return; setSaving(true); try { setSettings(await adapter.chooseDirectory()); } catch { Toast.error(t("base.navRail.settingsCenter.value.saveFailed")); } finally { setSaving(false); } };
   const unavailable = <SettingsStatusTag tone="neutral" label={t("base.navRail.settingsCenter.value.comingSoon")} />;
   const directory = settings?.directory ?? t(environment.os === "macos" ? "base.navRail.settingsCenter.value.defaultDownloadPathMacos" : "base.navRail.settingsCenter.value.defaultDownloadPathWindows");

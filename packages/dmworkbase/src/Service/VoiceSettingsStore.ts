@@ -157,7 +157,9 @@ export function getVoiceShortcut(settings: VoiceSettings, os: "windows" | "macos
  * `ShiftRight` / `location === 2`. Matching only on `e.code === "ShiftRight"`
  * silently drops the key there, so we fall back to `key === "Shift"` with an
  * unmapped code: the left Shift key always reports `ShiftLeft` / `location
- * 1`, so a Shift event with an empty code cannot be the left one.
+ * 1`, so a Shift event with an empty code cannot be the left one. This
+ * fallback is based on the affected Windows driver behavior and is not
+ * independently verifiable on every keyboard / IME stack.
  */
 export function voiceShortcutMatches(event: { code: string; key: string; location: number }, shortcut: VoiceShortcut): boolean {
   switch (shortcut) {
