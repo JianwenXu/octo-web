@@ -721,9 +721,9 @@ export default class BaseModule implements IModule {
     );
   }
 
-  async tipsAudio() {
+  async tipsAudio(options: { allowDuringQuickMute?: boolean } = {}) {
     const quickMuteState = await quickMuteStore.getState().catch(() => undefined);
-    if (quickMuteState?.active) return;
+    if (quickMuteState?.active && !options.allowDuringQuickMute) return;
     Howler.autoUnlock = false;
     if (!this.messageTone) {
       this.messageTone = new Howl({
@@ -833,7 +833,7 @@ export default class BaseModule implements IModule {
             `${from}${message.content.conversationDigest}`
           );
         }
-        if (decision.playSound) await this.tipsAudio();
+        if (decision.playSound) await this.tipsAudio({ allowDuringQuickMute: true });
       },
     });
   }

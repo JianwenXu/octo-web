@@ -193,6 +193,7 @@ function registerDownloadSettingsHandlers(): void {
   ipcMain.handle(IPC_DOWNLOAD_SETTINGS_SET, (event, patch: unknown) => {
     if (!isTrustedShellIpcSender(event)) throw new Error("untrusted sender");
     if (!patch || typeof patch !== "object" || Array.isArray(patch)) throw new Error("invalid download settings");
+    if ("directory" in patch) throw new Error("download directory must be selected natively");
     const candidate = { ...downloadSettings, ...patch } as DownloadSettings;
     if (typeof candidate.directory !== "string" || !candidate.directory || typeof candidate.askBeforeSaving !== "boolean") throw new Error("invalid download setting");
     const previous = downloadSettings;
@@ -1198,6 +1199,7 @@ function updateTray(unread?: number, isFlash = false): any {
       }
     });
   } else {
+    clearInterval(flashTimer);
     if (!tray) return;
     tray.destroy();
     tray = null;
@@ -1326,7 +1328,7 @@ const createMainWindow = async () => {
   });
 
   mainWindow.on("close", (e: any) => {
-    if (settings.closeBehavior === "quit" && !forceQuit) {
+    if ((settings.closeBehavior === "quit" || !settings.showOnTray) && !forceQuit) {
       forceQuit = true;
       mainWindow = null;
       app.quit();
