@@ -12,11 +12,13 @@ import {
   dialog,
   net,
   powerSaveBlocker,
+  session,
+  shell,
 } from "electron";
 import fs from "fs";
 import tmp from 'tmp';
 import Screenshots from "electron-screenshots";
-import { join, dirname } from "path";
+import { join, dirname, basename, extname } from "path";
 import { pathToFileURL } from "url";
 
 import logo, { getNoMessageTrayIcon } from "./logo";
@@ -24,6 +26,17 @@ import {
   IPC_CONVERSATION_UNREAD_COUNT,
   IPC_KEEP_AWAKE_GET,
   IPC_KEEP_AWAKE_SET,
+  IPC_DESKTOP_SETTINGS_GET,
+  IPC_DESKTOP_SETTINGS_SET,
+  IPC_DOWNLOAD_SETTINGS_GET,
+  IPC_DOWNLOAD_SETTINGS_SET,
+  IPC_DOWNLOAD_DIRECTORY_CHOOSE,
+  IPC_DOWNLOAD_URL,
+  IPC_DOWNLOAD_STATUS,
+  IPC_OPEN_SYSTEM_SETTINGS,
+  IPC_GLOBAL_SHORTCUT_REGISTER,
+  IPC_GLOBAL_SHORTCUT_UNREGISTER,
+  IPC_GLOBAL_SHORTCUT_TRIGGERED,
   IPC_DEEP_LINK,
   IPC_OIDC_AUTHORIZE_START,
   IPC_OIDC_AUTHORIZE_END,
@@ -64,7 +77,30 @@ let isMainWindowFocusedWhenStartScreenshot = false;
 let screenshots: any;
 let tray: any;
 let trayIcon: any;
-let settings: any = {};
+type DesktopSettings = {
+  zoomFactor: number;
+  launchAtLogin: boolean;
+  showOnTray: boolean;
+  closeBehavior: "background" | "quit";
+};
+type DownloadSettings = { directory: string; askBeforeSaving: boolean };
+type DownloadStatus = { id: string; state: "started" | "progress" | "completed" | "failed"; filename: string; receivedBytes?: number; totalBytes?: number };
+type PendingDownload = { id: string; sender: Electron.WebContents };
+const pendingDownloads = new Map<string, PendingDownload[]>();
+let registeredGlobalShortcut: { accelerator: string; sender: Electron.WebContents } | null = null;
+
+function shortcutAccelerator(shortcut: unknown): string | null {
+  if (shortcut === "alt-right") return "Alt+Right";
+  if (shortcut === "shift-right") return "Shift+Right";
+  if (shortcut === "shift-left") return "Shift+Left";
+  return null;
+}
+let settings: DesktopSettings = {
+  zoomFactor: 1,
+  launchAtLogin: false,
+  showOnTray: true,
+  closeBehavior: "background",
+};
 let screenShotWindowId = 0;
 let isFullScreen = false;
 
@@ -76,6 +112,222 @@ let keepAwakeEnabled = false;
 
 const keepAwakeSettingsPath = () => join(app.getPath("userData"), "keep-awake.json");
 const legacyKeepAwakeSettingsPath = () => join(app.getPath("userData"), "settings.json");
+const desktopSettingsPath = () => join(app.getPath("userData"), "desktop-settings.json");
+const defaultDownloadDirectory = () => join(app.getPath("userData"), "Downloads", "Shared Files");
+let downloadSettings: DownloadSettings = { directory: defaultDownloadDirectory(), askBeforeSaving: false };
+const downloadSettingsPath = () => join(app.getPath("userData"), "download-settings.json");
+
+function readDownloadSettings(): DownloadSettings {
+  try {
+    const raw = JSON.parse(fs.readFileSync(downloadSettingsPath(), "utf8"));
+    const legacyDefault = join(app.getPath("downloads"), "Shared Files");
+    const directory = typeof raw?.directory === "string" && raw.directory ? raw.directory : defaultDownloadDirectory();
+    return {
+      directory: directory === legacyDefault ? defaultDownloadDirectory() : directory,
+      askBeforeSaving: raw?.askBeforeSaving === true,
+    };
+  } catch { return { directory: defaultDownloadDirectory(), askBeforeSaving: false }; }
+}
+
+function writeDownloadSettings(next: DownloadSettings): void {
+  const path = downloadSettingsPath();
+  const tempPath = `${path}.${process.pid}.tmp`;
+  fs.writeFileSync(tempPath, JSON.stringify(next, null, 2));
+  try { fs.renameSync(tempPath, path); } catch (error) { try { fs.unlinkSync(tempPath); } catch {} throw error; }
+}
+
+function readDesktopSettings(): DesktopSettings {
+  try {
+    const raw = JSON.parse(fs.readFileSync(desktopSettingsPath(), "utf8"));
+    return {
+      zoomFactor: [0.8, 0.9, 1, 1.1, 1.25].includes(raw?.zoomFactor) ? raw.zoomFactor : 1,
+      launchAtLogin: raw?.launchAtLogin === true,
+      showOnTray: raw?.showOnTray !== false,
+      closeBehavior: raw?.closeBehavior === "quit" ? "quit" : "background",
+    };
+  } catch {
+    return { ...settings };
+  }
+}
+
+function writeDesktopSettings(next: DesktopSettings): void {
+  const path = desktopSettingsPath();
+  const tempPath = `${path}.${process.pid}.tmp`;
+  fs.writeFileSync(tempPath, JSON.stringify(next, null, 2));
+  try {
+    fs.renameSync(tempPath, path);
+  } catch (error) {
+    try { fs.unlinkSync(tempPath); } catch { /* best effort cleanup */ }
+    throw error;
+  }
+}
+
+function applyDesktopSettings(): void {
+  app.setLoginItemSettings({ openAtLogin: settings.launchAtLogin });
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.setZoomFactor(settings.zoomFactor);
+  }
+  updateTray();
+}
+
+function registerDesktopSettingsHandlers(): void {
+  ipcMain.handle(IPC_DESKTOP_SETTINGS_GET, (event) => {
+    if (!isTrustedShellIpcSender(event)) return settings;
+    return settings;
+  });
+  ipcMain.handle(IPC_DESKTOP_SETTINGS_SET, (event, patch: unknown) => {
+    if (!isTrustedShellIpcSender(event)) throw new Error("untrusted sender");
+    if (!patch || typeof patch !== "object" || Array.isArray(patch)) throw new Error("invalid desktop settings");
+    const candidate = { ...settings, ...patch } as DesktopSettings;
+    if (![0.8, 0.9, 1, 1.1, 1.25].includes(candidate.zoomFactor)) throw new Error("invalid zoom factor");
+    if (typeof candidate.launchAtLogin !== "boolean" || typeof candidate.showOnTray !== "boolean") throw new Error("invalid desktop setting");
+    if (candidate.closeBehavior !== "background" && candidate.closeBehavior !== "quit") throw new Error("invalid close behavior");
+    const previous = settings;
+    try {
+      settings = candidate;
+      writeDesktopSettings(candidate);
+      applyDesktopSettings();
+    } catch (error) {
+      settings = previous;
+      try { writeDesktopSettings(previous); } catch { /* preserve original failure */ }
+      throw error;
+    }
+    return settings;
+  });
+}
+
+function registerDownloadSettingsHandlers(): void {
+  ipcMain.handle(IPC_DOWNLOAD_SETTINGS_GET, (event) => {
+    if (!isTrustedShellIpcSender(event)) return downloadSettings;
+    return downloadSettings;
+  });
+  ipcMain.handle(IPC_DOWNLOAD_SETTINGS_SET, (event, patch: unknown) => {
+    if (!isTrustedShellIpcSender(event)) throw new Error("untrusted sender");
+    if (!patch || typeof patch !== "object" || Array.isArray(patch)) throw new Error("invalid download settings");
+    const candidate = { ...downloadSettings, ...patch } as DownloadSettings;
+    if (typeof candidate.directory !== "string" || !candidate.directory || typeof candidate.askBeforeSaving !== "boolean") throw new Error("invalid download setting");
+    const previous = downloadSettings;
+    try {
+      writeDownloadSettings(candidate);
+      downloadSettings = candidate;
+    } catch (error) {
+      downloadSettings = previous;
+      throw error;
+    }
+    return downloadSettings;
+  });
+  ipcMain.handle(IPC_DOWNLOAD_DIRECTORY_CHOOSE, async (event) => {
+    if (!isTrustedShellIpcSender(event)) throw new Error("untrusted sender");
+    const result = await dialog.showOpenDialog(mainWindow, { properties: ["openDirectory", "createDirectory"] });
+    if (result.canceled || !result.filePaths[0]) return downloadSettings;
+    const next = { ...downloadSettings, directory: result.filePaths[0] };
+    writeDownloadSettings(next);
+    downloadSettings = next;
+    return downloadSettings;
+  });
+}
+
+function registerDownloadHandler(): void {
+  session.defaultSession.on("will-download", (event, item) => {
+    const url = item.getURL();
+    const pending = pendingDownloads.get(url);
+    const request = pending?.shift();
+    if (pendingDownloads.get(url)?.length === 0) pendingDownloads.delete(url);
+    const id = request?.id || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const sender = request?.sender;
+    const sendStatus = (status: Omit<DownloadStatus, "id" | "filename">, filename = item.getFilename()) => {
+      if (!sender || sender.isDestroyed()) return;
+      sender.send(IPC_DOWNLOAD_STATUS, { id, filename, ...status } satisfies DownloadStatus);
+    };
+    item.on("updated", () => sendStatus({ state: "progress", receivedBytes: item.getReceivedBytes(), totalBytes: item.getTotalBytes() }));
+    item.once("done", (_event, state) => sendStatus({ state: state === "completed" ? "completed" : "failed" }));
+    const path = downloadSettings.directory;
+    if (!downloadSettings.askBeforeSaving) {
+      try {
+        fs.mkdirSync(path, { recursive: true });
+        const original = join(path, item.getFilename());
+        let savePath = original;
+        let index = 1;
+        while (fs.existsSync(savePath)) {
+          const name = basename(original, extname(original));
+          savePath = join(path, `${name} (${index++})${extname(original)}`);
+        }
+        item.setSavePath(savePath);
+        sendStatus({ state: "started" }, basename(savePath));
+      } catch {
+        item.cancel();
+      }
+      return;
+    }
+
+    item.pause();
+    const choosePath = async () => {
+      const result = await dialog.showSaveDialog(mainWindow, { defaultPath: join(path, item.getFilename()) });
+      if (result.canceled || !result.filePath) { item.cancel(); return; }
+      item.setSavePath(result.filePath);
+      sendStatus({ state: "started" }, basename(result.filePath));
+      item.resume();
+    };
+    void choosePath().catch(() => item.cancel());
+  });
+}
+
+function registerDownloadUrlHandler(): void {
+  ipcMain.handle(IPC_DOWNLOAD_URL, (event, url: unknown) => {
+    if (!isTrustedShellIpcSender(event) || typeof url !== "string") throw new Error("invalid download URL");
+    const parsed = new URL(url);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") throw new Error("invalid download URL");
+    const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const queue = pendingDownloads.get(parsed.href) || [];
+    queue.push({ id, sender: event.sender });
+    pendingDownloads.set(parsed.href, queue);
+    event.sender.downloadURL(parsed.href);
+    return id;
+  });
+}
+
+function registerSystemSettingsHandler(): void {
+  ipcMain.handle(IPC_OPEN_SYSTEM_SETTINGS, async (event, target: unknown) => {
+    if (!isTrustedShellIpcSender(event) || (target !== "microphone" && target !== "notifications")) return false;
+    const url = process.platform === "darwin"
+      ? target === "microphone" ? "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone" : "x-apple.systempreferences:com.apple.preference.notifications"
+      : process.platform === "win32"
+        ? target === "microphone" ? "ms-settings:privacy-microphone" : "ms-settings:notifications"
+        : null;
+    if (!url) return false;
+    try { await shell.openExternal(url); return true; } catch { return false; }
+  });
+}
+
+function registerGlobalShortcutHandlers(): void {
+  ipcMain.handle(IPC_GLOBAL_SHORTCUT_REGISTER, (event, shortcut: unknown) => {
+    if (!isTrustedShellIpcSender(event)) return { ok: false, reason: "untrusted-sender" };
+    const accelerator = shortcutAccelerator(shortcut);
+    if (!accelerator) return { ok: true, registered: false };
+    if (registeredGlobalShortcut?.accelerator === accelerator && registeredGlobalShortcut.sender === event.sender) return { ok: true, registered: true };
+    const registered = globalShortcut.register(accelerator, () => {
+      if (!registeredGlobalShortcut || registeredGlobalShortcut.sender.isDestroyed()) return;
+      registeredGlobalShortcut.sender.send(IPC_GLOBAL_SHORTCUT_TRIGGERED, shortcut);
+    });
+    if (!registered) return { ok: false, reason: "conflict" };
+    if (registeredGlobalShortcut) globalShortcut.unregister(registeredGlobalShortcut.accelerator);
+    registeredGlobalShortcut = { accelerator, sender: event.sender };
+    event.sender.once("destroyed", () => {
+      if (registeredGlobalShortcut?.sender !== event.sender) return;
+      globalShortcut.unregister(registeredGlobalShortcut.accelerator);
+      registeredGlobalShortcut = null;
+    });
+    return { ok: true, registered: true };
+  });
+  ipcMain.handle(IPC_GLOBAL_SHORTCUT_UNREGISTER, (event) => {
+    if (!isTrustedShellIpcSender(event)) return false;
+    if (registeredGlobalShortcut?.sender === event.sender) {
+      globalShortcut.unregister(registeredGlobalShortcut.accelerator);
+      registeredGlobalShortcut = null;
+    }
+    return true;
+  });
+}
 
 function readKeepAwakePreference(): boolean {
   for (const path of [keepAwakeSettingsPath(), legacyKeepAwakeSettingsPath()]) {
@@ -897,8 +1149,6 @@ function createMacTrayIcon(iconPath: string) {
 }
 
 function updateTray(unread = 0, isFlash= false): any {
-  settings.showOnTray = true;
-
   // IPC arguments are untrusted renderer data. Normalize them here so a
   // transient undefined/string value cannot produce a malformed title.
   const unreadCount = Number.isFinite(Number(unread))
@@ -921,19 +1171,22 @@ function updateTray(unread = 0, isFlash= false): any {
     }
 
     setTimeout(() => {
+      if (!settings.showOnTray) return;
       if (!tray) {
         // Init tray icon
         tray = new Tray(trayIcon);
-        if (process.platform === "linux") {
-          tray.setContextMenu(contextmenu);
-        }
+        tray.setContextMenu(contextmenu);
+        tray.setToolTip(OCTO_CONFIG.name);
 
         tray.on("right-click", () => {
           tray.popUpContextMenu(contextmenu);
         });
 
         tray.on("click", () => {
-          mainWindow.show();
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.show();
+            mainWindow.focus();
+          }
         });
       }
 
@@ -1093,7 +1346,7 @@ const createMainWindow = async () => {
   });
 
   mainWindow.on("close", (e: any) => {
-    if (forceQuit || !tray) {
+    if (forceQuit || settings.closeBehavior === "quit" || !tray) {
       mainWindow = null;
     } else {
       e.preventDefault();
@@ -1258,6 +1511,8 @@ if (userDataPlan.action !== "none") {
   app.setPath("userData", userDataPlan.oldDir);
 }
 keepAwakeEnabled = readKeepAwakePreference();
+settings = readDesktopSettings();
+downloadSettings = readDownloadSettings();
 
 // Migration dialogs. Round-6 P2-2: dialog.showErrorBox called before `ready`
 // degrades to stderr on Linux (documented in electron.d.ts), so every dialog
@@ -1511,9 +1766,16 @@ app.on("ready", () => {
   }
   registerKeepAwakeHandlers();
   applyKeepAwake(keepAwakeEnabled);
+  registerDesktopSettingsHandlers();
+  registerDownloadSettingsHandlers();
+  registerDownloadHandler();
+  registerDownloadUrlHandler();
+  registerSystemSettingsHandler();
+  registerGlobalShortcutHandlers();
   regShortcut();
   registerWindowFocusHandler();
   createMainWindow(); // 创建窗口
+  applyDesktopSettings();
 
   if (isWin) {
     app.setAppUserModelId(OCTO_CONFIG.appId);
@@ -1620,10 +1882,14 @@ app.on("before-quit", () => {
     flashTimer = null;
   }
 
-  if (!tray) return;
-
-  tray.destroy();
-  tray = null;
+  if (tray) {
+    tray.destroy();
+    tray = null;
+  }
+  if (registeredGlobalShortcut) {
+    globalShortcut.unregister(registeredGlobalShortcut.accelerator);
+    registeredGlobalShortcut = null;
+  }
   globalShortcut.unregisterAll();
 });
 

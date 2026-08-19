@@ -1,5 +1,9 @@
 import { isSafeUrl } from "./security";
 import WKApp from "../App";
+import { getElectronIpcBridge, isElectronPowered } from "../electron/desktopBridge";
+import { IPC_DOWNLOAD_URL } from "../../../../apps/web/src-election/shared/ipc-channels";
+import { IPC_DOWNLOAD_STATUS } from "../../../../apps/web/src-election/shared/ipc-channels";
+import { Toast } from "@douyinfe/semi-ui";
 
 /**
  * Get a presigned download URL from the backend.
@@ -57,14 +61,31 @@ export async function downloadFile(url: string, filename: string): Promise<void>
         downloadUrl = await getPresignedDownloadUrl(resolvedUrl, filename);
     }
 
+    if (isElectronPowered()) {
+        const ipc = getElectronIpcBridge();
+        if (ipc) {
+            const displayName = (value: string) => value.length > 48 ? `${value.slice(0, 45)}…` : value;
+            const id = await ipc.invoke(IPC_DOWNLOAD_URL, downloadUrl) as string;
+            const onStatus = (_event: unknown, status: { id?: string; state?: string; filename?: string }) => {
+                if (status?.id !== id) return;
+                if (status.state === "completed") {
+                    Toast.success({ content: `下载完成：${displayName(status.filename || filename)}`, duration: 2.5 });
+                    ipc.removeListener(IPC_DOWNLOAD_STATUS, onStatus);
+                }
+                if (status.state === "failed") {
+                    Toast.error({ content: `下载失败：${displayName(status.filename || filename)}`, duration: 3 });
+                    ipc.removeListener(IPC_DOWNLOAD_STATUS, onStatus);
+                }
+            };
+            ipc.on(IPC_DOWNLOAD_STATUS, onStatus);
+            return;
+        }
+    }
+
     try {
         const a = document.createElement("a");
         a.href = downloadUrl;
         a.download = filename;
-        if (isCrossOrigin) {
-            a.target = "_blank";
-            a.rel = "noopener";
-        }
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);

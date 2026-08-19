@@ -16,6 +16,8 @@ import type {
 import { VoiceMode } from "../../../../Service/VoiceService";
 import { useI18n } from "../../../../i18n";
 import { getVoiceShortcut, voiceSettingsStore } from "../../../../Service/VoiceSettingsStore";
+import { detectRuntimeEnvironment } from "../../../../Runtime/runtimeEnvironment";
+import { createGlobalShortcutAdapter } from "../../../../Runtime/adapters";
 
 type ReplaceMode = "all" | "selection" | "insert";
 
@@ -84,6 +86,24 @@ export default function VoiceInputIndicator({
   const { t } = useI18n();
   const [voiceSettings, setVoiceSettings] = useState(() => voiceSettingsStore.get());
   useEffect(() => voiceSettingsStore.subscribe(setVoiceSettings), []);
+  useEffect(() => {
+    const adapter = createGlobalShortcutAdapter(detectRuntimeEnvironment());
+    if (!adapter || !voiceSettings.enabled || voiceSettings.speakingMode !== "toggle") return;
+    const os = /Mac|iPhone|iPad/i.test(navigator.userAgent) ? "macos" : "windows" as const;
+    const shortcut = getVoiceShortcut(voiceSettings, os);
+    if (shortcut === "disabled") return;
+    let active = true;
+    void adapter.register(shortcut).then((result) => {
+      if (active && !result.ok && result.reason === "conflict") Toast.warning(t("base.voiceInput.error.shortcutConflict"));
+    }).catch(() => undefined);
+    const unsubscribe = adapter.onTriggered((triggeredShortcut) => {
+      const code = triggeredShortcut === "alt-right" ? "AltRight" : triggeredShortcut === "shift-right" ? "ShiftRight" : "ShiftLeft";
+      const event = new KeyboardEvent("keydown", { code, key: code.replace("Right", "").replace("Left", ""), altKey: triggeredShortcut === "alt-right", shiftKey: triggeredShortcut !== "alt-right" });
+      Object.defineProperty(event, "__octoGlobalShortcut", { value: true });
+      window.dispatchEvent(event);
+    });
+    return () => { active = false; unsubscribe(); void adapter.unregister(); };
+  }, [t, voiceSettings.enabled, voiceSettings.speakingMode, voiceSettings.shortcutMacos, voiceSettings.shortcutWindows]);
   // Voice mode menu state (不保存选中的模式，每次都是临时选择)
   const [showModeMenu, setShowModeMenu] = useState(false);
 
@@ -295,7 +315,7 @@ export default function VoiceInputIndicator({
 
     const handleKeyDown = (e: KeyboardEvent) => {
       // 只处理当前活动输入框的快捷键（避免多个输入框同时响应）
-      if (checkIsInputActive && !checkIsInputActive()) {
+      if (!(e as KeyboardEvent & { __octoGlobalShortcut?: boolean }).__octoGlobalShortcut && checkIsInputActive && !checkIsInputActive()) {
         return;
       }
 

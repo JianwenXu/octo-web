@@ -45,6 +45,7 @@ vi.mock("../../adapters/voice/useVoiceInput", () => ({
 
 vi.mock("../../../../i18n", () => ({
   useI18n: () => ({ t: (key: string) => key }),
+  I18nContext: React.createContext({ t: (key: string) => key }),
 }));
 
 vi.mock("../../../../Service/VoiceSettingsStore", () => ({
