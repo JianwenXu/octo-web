@@ -61,6 +61,18 @@ export default function SecretsSettingsPanel({
 
   /** 手动新增：永远是干净的空表单，不带任何预填明文。 */
   const startCreate = useCallback(() => setEditTarget({ mode: "create" }), []);
+  // The nested Semi modal requires the mousedown transition in the real UI;
+  // keep the click path for keyboard/synthetic activation and stop bubbling to
+  // the surrounding settings modal. Both paths only update local state.
+  const handleCreateMouseDown = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
+    if (event.button !== 0) return;
+    event.stopPropagation();
+    startCreate();
+  }, [startCreate]);
+  const handleCreateClick = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    startCreate();
+  }, [startCreate]);
   const closeEditor = useCallback(() => setEditTarget(null), []);
 
   const load = useCallback(async () => {
@@ -154,7 +166,8 @@ export default function SecretsSettingsPanel({
             type="button"
             variant="primary"
             icon={<IconPlus />}
-            onClick={(event) => { event.stopPropagation(); startCreate(); }}
+            onMouseDown={handleCreateMouseDown}
+            onClick={handleCreateClick}
           >
             {t("base.secrets.addButton")}
           </WKButton>
@@ -182,7 +195,8 @@ export default function SecretsSettingsPanel({
               type="button"
               variant="primary"
               icon={<IconPlus />}
-              onClick={(event) => { event.stopPropagation(); startCreate(); }}
+              onMouseDown={handleCreateMouseDown}
+              onClick={handleCreateClick}
             >
               {t("base.secrets.empty.action")}
             </WKButton>
