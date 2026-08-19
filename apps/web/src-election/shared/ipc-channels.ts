@@ -22,9 +22,6 @@ export const IPC_DOWNLOAD_DIRECTORY_CHOOSE = "download-directory-choose";
 export const IPC_DOWNLOAD_URL = "download-url";
 export const IPC_DOWNLOAD_STATUS = "download-status";
 export const IPC_OPEN_SYSTEM_SETTINGS = "open-system-settings";
-export const IPC_GLOBAL_SHORTCUT_REGISTER = "global-shortcut-register";
-export const IPC_GLOBAL_SHORTCUT_UNREGISTER = "global-shortcut-unregister";
-export const IPC_GLOBAL_SHORTCUT_TRIGGERED = "global-shortcut-triggered";
 
 /** Renderer → Main: desktop system capabilities. */
 export const IPC_SCREENSHOTS_START = "screenshots-start";

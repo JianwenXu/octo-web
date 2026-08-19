@@ -249,7 +249,7 @@ function AboutSettingsPage({ onAbout, onChangelog, onOpenOnboarding }: { onAbout
   </SettingsPageFrame>;
 }
 function ChevronIcon() { return <svg className="wk-settings-center__chevron-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7" /></svg>; }
-function ShortcutRow({ label, keys, trailing }: { label: string; keys?: string[]; trailing?: React.ReactNode }) { return <div className="wk-settings-center__shortcut-row"><span>{label}</span>{trailing ?? <span className="wk-settings-center__shortcut-keys">{keys?.map((key) => <kbd key={key}>{key}</kbd>)}</span>}</div>; }
+function ShortcutRow({ label, keys }: { label: string; keys?: string[] }) { return <div className="wk-settings-center__shortcut-row"><span>{label}</span><span className="wk-settings-center__shortcut-keys">{keys?.map((key) => <kbd key={key}>{key}</kbd>)}</span></div>; }
 function useVoiceSettings() {
   const [settings, setSettings] = React.useState<VoiceSettings>(() => voiceSettingsStore.get());
   React.useEffect(() => voiceSettingsStore.subscribe(setSettings), []);

@@ -34,9 +34,6 @@ import {
   IPC_DOWNLOAD_URL,
   IPC_DOWNLOAD_STATUS,
   IPC_OPEN_SYSTEM_SETTINGS,
-  IPC_GLOBAL_SHORTCUT_REGISTER,
-  IPC_GLOBAL_SHORTCUT_UNREGISTER,
-  IPC_GLOBAL_SHORTCUT_TRIGGERED,
   IPC_DEEP_LINK,
   IPC_OIDC_AUTHORIZE_START,
   IPC_OIDC_AUTHORIZE_END,
@@ -87,14 +84,6 @@ type DownloadSettings = { directory: string; askBeforeSaving: boolean };
 type DownloadStatus = { id: string; state: "started" | "progress" | "completed" | "failed"; filename: string; receivedBytes?: number; totalBytes?: number };
 type PendingDownload = { id: string; sender: Electron.WebContents };
 const pendingDownloads = new Map<string, PendingDownload[]>();
-let registeredGlobalShortcut: { accelerator: string; sender: Electron.WebContents } | null = null;
-
-function shortcutAccelerator(shortcut: unknown): string | null {
-  if (shortcut === "alt-right") return "Alt+Right";
-  if (shortcut === "shift-right") return "Shift+Right";
-  if (shortcut === "shift-left") return "Shift+Left";
-  return null;
-}
 let settings: DesktopSettings = {
   zoomFactor: 1,
   launchAtLogin: false,
@@ -172,7 +161,7 @@ function applyDesktopSettings(): void {
 
 function registerDesktopSettingsHandlers(): void {
   ipcMain.handle(IPC_DESKTOP_SETTINGS_GET, (event) => {
-    if (!isTrustedShellIpcSender(event)) return settings;
+    if (!isTrustedShellIpcSender(event)) throw new Error("untrusted sender");
     return settings;
   });
   ipcMain.handle(IPC_DESKTOP_SETTINGS_SET, (event, patch: unknown) => {
@@ -198,7 +187,7 @@ function registerDesktopSettingsHandlers(): void {
 
 function registerDownloadSettingsHandlers(): void {
   ipcMain.handle(IPC_DOWNLOAD_SETTINGS_GET, (event) => {
-    if (!isTrustedShellIpcSender(event)) return downloadSettings;
+    if (!isTrustedShellIpcSender(event)) throw new Error("untrusted sender");
     return downloadSettings;
   });
   ipcMain.handle(IPC_DOWNLOAD_SETTINGS_SET, (event, patch: unknown) => {
@@ -229,10 +218,15 @@ function registerDownloadSettingsHandlers(): void {
 
 function registerDownloadHandler(): void {
   session.defaultSession.on("will-download", (event, item) => {
-    const url = item.getURL();
-    const pending = pendingDownloads.get(url);
-    const request = pending?.shift();
-    if (pendingDownloads.get(url)?.length === 0) pendingDownloads.delete(url);
+    const urls = [item.getURL(), ...(item.getURLChain?.() ?? [])];
+    let request: PendingDownload | undefined;
+    for (const url of urls) {
+      const pending = pendingDownloads.get(url);
+      if (!pending?.length) continue;
+      request = pending.shift();
+      if (pending.length === 0) pendingDownloads.delete(url);
+      break;
+    }
     const id = request?.id || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
     const sender = request?.sender;
     const sendStatus = (status: Omit<DownloadStatus, "id" | "filename">, filename = item.getFilename()) => {
@@ -279,8 +273,17 @@ function registerDownloadUrlHandler(): void {
     if (parsed.protocol !== "http:" && parsed.protocol !== "https:") throw new Error("invalid download URL");
     const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
     const queue = pendingDownloads.get(parsed.href) || [];
-    queue.push({ id, sender: event.sender });
+    const request = { id, sender: event.sender };
+    queue.push(request);
     pendingDownloads.set(parsed.href, queue);
+    setTimeout(() => {
+      const current = pendingDownloads.get(parsed.href);
+      const index = current?.findIndex((entry) => entry.id === id) ?? -1;
+      if (current && index >= 0) {
+        current.splice(index, 1);
+        if (current.length === 0) pendingDownloads.delete(parsed.href);
+      }
+    }, 60_000);
     event.sender.downloadURL(parsed.href);
     return id;
   });
@@ -296,36 +299,6 @@ function registerSystemSettingsHandler(): void {
         : null;
     if (!url) return false;
     try { await shell.openExternal(url); return true; } catch { return false; }
-  });
-}
-
-function registerGlobalShortcutHandlers(): void {
-  ipcMain.handle(IPC_GLOBAL_SHORTCUT_REGISTER, (event, shortcut: unknown) => {
-    if (!isTrustedShellIpcSender(event)) return { ok: false, reason: "untrusted-sender" };
-    const accelerator = shortcutAccelerator(shortcut);
-    if (!accelerator) return { ok: true, registered: false };
-    if (registeredGlobalShortcut?.accelerator === accelerator && registeredGlobalShortcut.sender === event.sender) return { ok: true, registered: true };
-    const registered = globalShortcut.register(accelerator, () => {
-      if (!registeredGlobalShortcut || registeredGlobalShortcut.sender.isDestroyed()) return;
-      registeredGlobalShortcut.sender.send(IPC_GLOBAL_SHORTCUT_TRIGGERED, shortcut);
-    });
-    if (!registered) return { ok: false, reason: "conflict" };
-    if (registeredGlobalShortcut) globalShortcut.unregister(registeredGlobalShortcut.accelerator);
-    registeredGlobalShortcut = { accelerator, sender: event.sender };
-    event.sender.once("destroyed", () => {
-      if (registeredGlobalShortcut?.sender !== event.sender) return;
-      globalShortcut.unregister(registeredGlobalShortcut.accelerator);
-      registeredGlobalShortcut = null;
-    });
-    return { ok: true, registered: true };
-  });
-  ipcMain.handle(IPC_GLOBAL_SHORTCUT_UNREGISTER, (event) => {
-    if (!isTrustedShellIpcSender(event)) return false;
-    if (registeredGlobalShortcut?.sender === event.sender) {
-      globalShortcut.unregister(registeredGlobalShortcut.accelerator);
-      registeredGlobalShortcut = null;
-    }
-    return true;
   });
 }
 
@@ -1133,6 +1106,7 @@ let trayMenu: Electron.MenuItemConstructorOptions[] = [
  * @returns
  */
 let flashTimer: any = null;
+let currentUnreadCount = 0;
 
 function createMacTrayIcon(iconPath: string) {
   const source = nativeImage.createFromPath(iconPath);
@@ -1148,12 +1122,15 @@ function createMacTrayIcon(iconPath: string) {
   return trayImage;
 }
 
-function updateTray(unread = 0, isFlash= false): any {
+function updateTray(unread?: number, isFlash = false): any {
   // IPC arguments are untrusted renderer data. Normalize them here so a
   // transient undefined/string value cannot produce a malformed title.
-  const unreadCount = Number.isFinite(Number(unread))
-    ? Math.max(0, Math.floor(Number(unread)))
-    : 0;
+  const unreadCount = unread === undefined
+    ? currentUnreadCount
+    : Number.isFinite(Number(unread))
+      ? Math.max(0, Math.floor(Number(unread)))
+      : 0;
+  currentUnreadCount = unreadCount;
 
   // linux 系统不支持 tray
   if (process.platform === "linux") {
@@ -1339,6 +1316,9 @@ const createMainWindow = async () => {
   mainWindow = new BrowserWindow(getWindowConfig());
   trackTrustedShellDocument(mainWindow);
   mainWindow.center();
+  mainWindow.webContents.once("did-finish-load", () => {
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.setZoomFactor(settings.zoomFactor);
+  });
   mainWindow.once("ready-to-show", () => {
     mainWindow.setTitle(OCTO_CONFIG.name);
     mainWindow.show(); // 显示窗口
@@ -1346,7 +1326,11 @@ const createMainWindow = async () => {
   });
 
   mainWindow.on("close", (e: any) => {
-    if (forceQuit || settings.closeBehavior === "quit" || !tray) {
+    if (settings.closeBehavior === "quit" && !forceQuit) {
+      forceQuit = true;
+      mainWindow = null;
+      app.quit();
+    } else if (forceQuit) {
       mainWindow = null;
     } else {
       e.preventDefault();
@@ -1401,7 +1385,7 @@ const createMainWindow = async () => {
     }
 
     // const isFlag = num > 0 && isWin ? true : false;
-    updateTray(num, false); // 不需要闪烁，闪烁很消耗性能
+    updateTray(Number(num), false); // 不需要闪烁，闪烁很消耗性能
   });
 
   ipcMain.on(IPC_RESTART_APP,(event)=>{
@@ -1771,7 +1755,6 @@ app.on("ready", () => {
   registerDownloadHandler();
   registerDownloadUrlHandler();
   registerSystemSettingsHandler();
-  registerGlobalShortcutHandlers();
   regShortcut();
   registerWindowFocusHandler();
   createMainWindow(); // 创建窗口
@@ -1885,10 +1868,6 @@ app.on("before-quit", () => {
   if (tray) {
     tray.destroy();
     tray = null;
-  }
-  if (registeredGlobalShortcut) {
-    globalShortcut.unregister(registeredGlobalShortcut.accelerator);
-    registeredGlobalShortcut = null;
   }
   globalShortcut.unregisterAll();
 });

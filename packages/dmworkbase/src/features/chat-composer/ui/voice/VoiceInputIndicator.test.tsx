@@ -206,12 +206,12 @@ describe("VoiceInputIndicator click behavior", () => {
       ReactDOM.render(<VoiceInputIndicator voiceHost={voiceHost} onTranscribed={() => undefined} />, container);
     });
 
-    act(() => window.dispatchEvent(new KeyboardEvent("keydown", { code: "", key: "Shift", location: 0 })));
+    act(() => { window.dispatchEvent(new KeyboardEvent("keydown", { code: "", key: "Shift", location: 0 })); });
     expect(mocks.startRecording).toHaveBeenCalledWith("append_only");
 
     mocks.isRecording = true;
-    act(() => window.dispatchEvent(new KeyboardEvent("keydown", { code: "", key: "Shift", location: 0 })));
-    expect(mocks.stopRecording).toHaveBeenCalledWith(undefined);
+    act(() => { window.dispatchEvent(new KeyboardEvent("keydown", { code: "", key: "Shift", location: 0 })); });
+    expect(mocks.stopRecording).toHaveBeenCalledWith();
   });
 
   it("supports the Windows empty-code right Shift key for hold recording", async () => {
@@ -223,12 +223,12 @@ describe("VoiceInputIndicator click behavior", () => {
       ReactDOM.render(<VoiceInputIndicator voiceHost={voiceHost} onTranscribed={() => undefined} />, container);
     });
 
-    act(() => window.dispatchEvent(new KeyboardEvent("keydown", { code: "", key: "Shift", location: 0 })));
+    act(() => { window.dispatchEvent(new KeyboardEvent("keydown", { code: "", key: "Shift", location: 0 })); });
     act(() => vi.advanceTimersByTime(500));
     expect(mocks.startRecording).toHaveBeenCalledWith("append_only");
 
     mocks.isRecording = true;
-    act(() => window.dispatchEvent(new KeyboardEvent("keyup", { code: "", key: "Shift", location: 0 })));
+    act(() => { window.dispatchEvent(new KeyboardEvent("keyup", { code: "", key: "Shift", location: 0 })); });
     expect(mocks.stopRecording).toHaveBeenCalledWith(undefined);
     vi.useRealTimers();
   });

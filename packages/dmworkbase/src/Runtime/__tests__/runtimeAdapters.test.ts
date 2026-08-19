@@ -11,7 +11,6 @@ vi.mock("../../Utils/NotificationUtil", () => ({
 
 import { createKeepAwakeAdapter } from "../adapters/keepAwakeAdapter";
 import { createNotificationAdapter } from "../adapters/notificationAdapter";
-import { createGlobalShortcutAdapter } from "../adapters/globalShortcutAdapter";
 import { detectRuntimeEnvironment } from "../runtimeEnvironment";
 
 const webEnvironment = {
@@ -66,30 +65,6 @@ describe("runtime adapters", () => {
 
   it("does not create keep-awake IPC on Web", () => {
     expect(createKeepAwakeAdapter(webEnvironment)).toBeNull();
-  });
-
-  it("bridges global shortcut registration, trigger events, and cleanup", async () => {
-    let listener: ((event: unknown, shortcut: unknown) => void) | undefined;
-    const invoke = vi.fn().mockResolvedValueOnce({ ok: true, registered: true }).mockResolvedValueOnce(true);
-    const ipc = {
-      invoke,
-      on: vi.fn((_channel: string, next: typeof listener) => { listener = next; }),
-      removeListener: vi.fn(),
-    };
-    (window as Window & { ipc?: unknown }).ipc = ipc;
-    const environment = { ...webEnvironment, target: "desktop" as const, shell: "electron" as const };
-    const adapter = createGlobalShortcutAdapter(environment);
-    const triggered = vi.fn();
-    const dispose = adapter?.onTriggered(triggered);
-
-    await expect(adapter?.register("alt-right")).resolves.toEqual({ ok: true, registered: true });
-    listener?.({}, "alt-right");
-    expect(triggered).toHaveBeenCalledWith("alt-right");
-    dispose?.();
-    await expect(adapter?.unregister()).resolves.toBe(true);
-    expect(invoke).toHaveBeenNthCalledWith(1, "global-shortcut-register", "alt-right");
-    expect(invoke).toHaveBeenNthCalledWith(2, "global-shortcut-unregister");
-    expect(ipc.removeListener).toHaveBeenCalled();
   });
 
   it("detects Electron from the user agent and exposes desktop capabilities", () => {

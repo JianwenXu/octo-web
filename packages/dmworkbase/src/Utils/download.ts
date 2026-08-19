@@ -66,20 +66,24 @@ export async function downloadFile(url: string, filename: string): Promise<void>
         const ipc = getElectronIpcBridge();
         if (ipc) {
             const displayName = (value: string) => value.length > 48 ? `${value.slice(0, 45)}…` : value;
-            const id = await ipc.invoke(IPC_DOWNLOAD_URL, downloadUrl) as string;
-            const onStatus = (_event: unknown, status: { id?: string; state?: string; filename?: string }) => {
-                if (status?.id !== id) return;
-                if (status.state === "completed") {
-                    Toast.success({ content: t("base.download.completed", { values: { filename: displayName(status.filename || filename) } }), duration: 2.5 });
-                    ipc.removeListener(IPC_DOWNLOAD_STATUS, onStatus);
-                }
-                if (status.state === "failed") {
-                    Toast.error({ content: t("base.download.failed", { values: { filename: displayName(status.filename || filename) } }), duration: 3 });
-                    ipc.removeListener(IPC_DOWNLOAD_STATUS, onStatus);
-                }
-            };
-            ipc.on(IPC_DOWNLOAD_STATUS, onStatus);
-            return;
+            try {
+                const id = await ipc.invoke(IPC_DOWNLOAD_URL, downloadUrl) as string;
+                const onStatus = (_event: unknown, status: { id?: string; state?: string; filename?: string }) => {
+                    if (status?.id !== id) return;
+                    if (status.state === "completed") {
+                        Toast.success({ content: t("base.download.completed", { values: { filename: displayName(status.filename || filename) } }), duration: 2.5 });
+                        ipc.removeListener(IPC_DOWNLOAD_STATUS, onStatus);
+                    }
+                    if (status.state === "failed") {
+                        Toast.error({ content: t("base.download.failed", { values: { filename: displayName(status.filename || filename) } }), duration: 3 });
+                        ipc.removeListener(IPC_DOWNLOAD_STATUS, onStatus);
+                    }
+                };
+                ipc.on(IPC_DOWNLOAD_STATUS, onStatus);
+                return;
+            } catch (error) {
+                console.warn("downloadFile: Electron download failed, falling back to browser download", error);
+            }
         }
     }
 
@@ -87,6 +91,10 @@ export async function downloadFile(url: string, filename: string): Promise<void>
         const a = document.createElement("a");
         a.href = downloadUrl;
         a.download = filename;
+        if (isCrossOrigin) {
+            a.target = "_blank";
+            a.rel = "noopener";
+        }
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
