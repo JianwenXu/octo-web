@@ -1,0 +1,24 @@
+// @caseId SK4-skills-market-pagination
+// @spec apps/web/e2e-kit/case-specs/skills/SK4-skills-market-pagination.md
+
+import { test, expect } from "../../fixtures-authed";
+
+test("@SK4 @p1 @skills @market @pagination Skills 市场分页追加", async ({ authedPage }) => {
+  await authedPage.addInitScript(() => {
+    sessionStorage.setItem("__e2e_scenario", "skill-market-pagination");
+  });
+  await authedPage.goto("/mcp-market/skills?sid=e2etest");
+
+  const firstSkill = authedPage.getByRole("button", {
+    name: /release-risk-radar 官方发布/,
+  });
+  const secondSkill = authedPage.getByRole("button", {
+    name: /meeting-note-cleaner/,
+  });
+
+  await expect(authedPage.getByText("共 2 个技能")).toBeVisible();
+  await expect(firstSkill).toBeVisible();
+  await expect(secondSkill).toBeVisible();
+  await expect(firstSkill).toBeVisible();
+  await expect(authedPage.getByText("加载失败")).not.toBeVisible();
+});

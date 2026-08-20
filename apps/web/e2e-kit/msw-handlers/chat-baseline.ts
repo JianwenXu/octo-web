@@ -19,6 +19,7 @@ const MOCK_APP_CONFIG = {
   docs_on: "0",
   dmloop_on: "0",
   dmpersonal_on: "0",
+  mail_on: "1",
   thread_on: false,
   oidc_providers: [],
 };

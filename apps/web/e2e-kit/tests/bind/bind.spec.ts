@@ -338,11 +338,10 @@ test.describe('OIDC bind page', () => {
       page: import('@playwright/test').Page,
     ): Promise<string | null> {
       // setStorageItemForSID writes 'login_provider' + sid, where sid comes
-      // from the live URL's ?sid= (LoginInfo.getSID, App.tsx:343). RouteManager
-      // injects sid on pageshow, so we read it back from the URL at assertion
-      // time rather than hardcoding.
+      // from the current SessionScope sid. The sid-clean flow keeps it in
+      // sessionStorage instead of exposing it in the URL.
       return page.evaluate(() => {
-        const sid = new URLSearchParams(window.location.search).get('sid') ?? ''
+        const sid = sessionStorage.getItem('octo.session.sid') ?? ''
         return sessionStorage.getItem('login_provider' + sid)
       })
     }
