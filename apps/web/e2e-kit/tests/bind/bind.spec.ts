@@ -382,7 +382,8 @@ test.describe('OIDC bind page', () => {
       // Storage key is 'login_provider' + sid. RouteManager's pageshow handler
       // injects ?sid=... into /oidc/bind, and LoginInfo.setStorageItemForSID
       // suffixes the sid onto every key so different tabs/sessions don't
-      // collide. Derive sid from the live URL rather than hardcoding.
+      // collide. Read the canonical sid from sessionStorage rather than
+      // hardcoding or deriving it from the cleaned URL.
       const persisted = await readLoginProviderFromSession(page)
       expect(persisted).toBe('xming')
       expect(persisted).not.toBe('oidc-bind')
