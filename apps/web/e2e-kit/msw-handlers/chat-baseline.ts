@@ -19,10 +19,19 @@ const MOCK_APP_CONFIG = {
   docs_on: "0",
   dmloop_on: "0",
   dmpersonal_on: "0",
-  mail_on: "1",
   thread_on: false,
   oidc_providers: [],
 };
+
+function appConfig() {
+  let mailOn = false;
+  try {
+    mailOn = sessionStorage.getItem("__e2e_scenario") === "mail";
+  } catch {
+    // Keep the baseline config mail-disabled when storage is unavailable.
+  }
+  return { ...MOCK_APP_CONFIG, mail_on: mailOn ? "1" : "0" };
+}
 
 // Space fixture (单 space, 用户是 owner).
 const MOCK_SPACE = {
@@ -40,12 +49,8 @@ const MOCK_SPACE = {
 
 export const chatBaselineHandlers = [
   // === Common / config ===
-  http.get("*/api/v1/common/appconfig", () =>
-    HttpResponse.json(MOCK_APP_CONFIG)
-  ),
-  http.get("*/common/appconfig", () =>
-    HttpResponse.json(MOCK_APP_CONFIG)
-  ),
+  http.get("*/api/v1/common/appconfig", () => HttpResponse.json(appConfig())),
+  http.get("*/common/appconfig", () => HttpResponse.json(appConfig())),
   // shape: { version, list: [{ key, name, url }] } - 见 packages/dmworkbase/src/Service/EmojiService.ts:30
   http.get("*/api/v1/common/emojis", () =>
     HttpResponse.json({ version: 0, list: [] })

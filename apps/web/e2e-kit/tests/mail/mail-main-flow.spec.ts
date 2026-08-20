@@ -18,6 +18,13 @@ type Message = {
   unread: boolean;
 };
 
+async function enableMail(page: Page) {
+  await page.addInitScript(() => {
+    sessionStorage.setItem("__e2e_scenario", "mail");
+  });
+  await page.reload();
+}
+
 const BASE_MESSAGE: Message = {
   id: MESSAGE_ID,
   mailbox: "INBOX",
@@ -125,6 +132,7 @@ async function openMail(page: Page) {
 
 test.describe("@ML1 @p0 @mail @mail-inbox", () => {
   test("进入 Mail 并显示空收件箱", async ({ authedPage }) => {
+    await enableMail(authedPage);
     await installMailHandlers(authedPage, []);
     await openMail(authedPage);
     await expect(
@@ -140,6 +148,7 @@ test.describe("@ML1 @p0 @mail @mail-inbox", () => {
 
 test.describe("@ML2 @p1 @mail @mail-reader", () => {
   test("打开 Mail 邮件详情", async ({ authedPage }) => {
+    await enableMail(authedPage);
     await installMailHandlers(authedPage, [BASE_MESSAGE]);
     await openMail(authedPage);
     await expect(
@@ -153,6 +162,7 @@ test.describe("@ML2 @p1 @mail @mail-reader", () => {
 
 test.describe("@ML3 @p1 @mail @mail-search", () => {
   test("搜索 Mail 邮件", async ({ authedPage }) => {
+    await enableMail(authedPage);
     const searchResult = { ...BASE_MESSAGE, subject: "E2E 搜索结果" };
     await installMailHandlers(authedPage, [BASE_MESSAGE], [searchResult]);
     await openMail(authedPage);

@@ -99,20 +99,7 @@ jobs:
           BUSINESS_FAIL=$((TOTAL_FAIL - VISUAL_FAIL))
           TOTAL_TESTS=$(grep -oE 'tests="[0-9]+"' "$JUNIT" | head -1 | grep -oE '[0-9]+' || echo 0)
           SKIPPED=$(grep -oE 'skipped="[0-9]+"' "$JUNIT" | head -1 | grep -oE '[0-9]+' || echo 0)
-          # Summary cases deliberately target 127.0.0.1:9 / mock.e2e.local as
-          # unreachable leak sentinels. Ignore only those proxy-error blocks;
-          # every other Vite proxy error remains a hard failure.
-          UNEXPECTED_PROXY_ERRORS=$(awk '
-            /http proxy error:/ {
-              if (block && !sentinel) print block
-              block = $0
-              sentinel = 0
-              next
-            }
-            block && /127\.0\.0\.1:9|mock\.e2e\.local/ { sentinel = 1 }
-            END { if (block && !sentinel) print block }
-          ' "$E2E_LOG")
-          PROXY_ERRORS=$(printf '%s\n' "$UNEXPECTED_PROXY_ERRORS" | grep -c . || true)
+          PROXY_ERRORS=$(grep -c "http proxy error:" "$E2E_LOG" || true)
           echo ""
           echo "═════════════════════════════════════════════════════════════"
           echo "📊 e2e full-suite summary (playwright exit=$PW_EXIT):"
@@ -131,22 +118,26 @@ jobs:
 
           # 判定顺序 (fail-closed, PW_EXIT 检查在 visual allow 之前避免掩盖 crash):
           #  1. tests=0 → webServer / playwright 挂了根本没跑, block
-          #  2. 全量运行不依赖固定 case 数；新增 case 会自动纳入本 gate
+          #  2. tests < MIN_TESTS → test discovery unexpectedly narrowed, block
           #  3. skipped>0 → 有 case 没真执行, block
           #  4. Vite proxy error → MSW 漏 mock, case 虽过也是假绿, block
           #  5. 有业务 fail (含 @p0+@visual 交叉 case) → block
           #  6. PW_EXIT!=0 但 junit 无 business fail → playwright 本身 crash/OOM/timeout, block
           #  7. 仅视觉 fail (无 @p0 交叉) 且 playwright 干净退出 → allow
           #  8. 全绿 → success
+          MIN_TESTS=80
           if [[ "$TOTAL_TESTS" -eq 0 ]]; then
             echo "❌ tests=0 (playwright 没跑起 test, 通常是 preview server timeout), block PR"
+            exit 1
+          elif [[ "$TOTAL_TESTS" -lt "$MIN_TESTS" ]]; then
+            echo "❌ tests=$TOTAL_TESTS < MIN_TESTS=$MIN_TESTS (全量 suite discovery 缩小), block PR"
             exit 1
           elif [[ "$SKIPPED" -gt 0 ]]; then
             echo "❌ skipped=$SKIPPED (有 case 没真执行), block PR"
             exit 1
           elif [[ "$PROXY_ERRORS" -gt 0 ]]; then
             echo "❌ e2e 出现 $PROXY_ERRORS 条 Vite proxy error, 说明 mock 覆盖漏网, block PR"
-            printf '%s\n' "$UNEXPECTED_PROXY_ERRORS" | sed -E 's/.*http proxy error: //g' | sort | uniq -c
+            grep "http proxy error:" "$E2E_LOG" | sed -E 's/.*http proxy error: //g' | sort | uniq -c
             exit 1
           elif [[ "$BUSINESS_FAIL" -gt 0 ]]; then
             echo "❌ 有 $BUSINESS_FAIL 个业务 case fail → block PR"

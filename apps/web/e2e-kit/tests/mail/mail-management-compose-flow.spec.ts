@@ -4,6 +4,13 @@ import type { Page } from "@playwright/test";
 
 const MAILBOX_CONTEXT = "agent-mailbox-e2e";
 
+async function enableMail(page: Page) {
+  await page.addInitScript(() => {
+    sessionStorage.setItem("__e2e_scenario", "mail");
+  });
+  await page.reload();
+}
+
 async function installMailWorkspaceHandlers(page: Page) {
   await page.evaluate(
     ({ mailboxContext }) => {
@@ -72,6 +79,7 @@ async function openMail(page: Page) {
 
 test.describe("@MM1 @p1 @mail @mail-management", () => {
   test("打开 Agent mailbox 管理页", async ({ authedPage }) => {
+    await enableMail(authedPage);
     await installMailWorkspaceHandlers(authedPage);
     await openMail(authedPage);
     await authedPage.getByText("管理 Agent 邮箱", { exact: true }).click();
@@ -89,6 +97,7 @@ test.describe("@MM1 @p1 @mail @mail-management", () => {
 
 test.describe("@MM2 @p1 @mail @mail-compose", () => {
   test("打开新邮件编辑器", async ({ authedPage }) => {
+    await enableMail(authedPage);
     await installMailWorkspaceHandlers(authedPage);
     await openMail(authedPage);
     await authedPage

@@ -82,9 +82,9 @@ test.describe("@CH3 @p1 @chat @conversation @composer", () => {
     await editor.pressSequentially("E2E 文本消息");
     await editor.press("Enter");
 
-    await expect(authedPage.getByText("E2E 文本消息", { exact: true })).toBeVisible({
-      timeout: 15_000,
-    });
+    await expect(
+      authedPage.locator(".wk-conversation-messages").getByText("E2E 文本消息", { exact: true }),
+    ).toBeVisible({ timeout: 15_000 });
   });
 });
 
