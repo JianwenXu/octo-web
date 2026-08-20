@@ -43,6 +43,9 @@ async function installMailHandlers(
   messages: Message[],
   searchMessages = messages
 ) {
+  await page.waitForFunction(() =>
+    Boolean((window as unknown as { __MSW_READY__?: boolean }).__MSW_READY__)
+  );
   await page.evaluate(
     ({ mailboxContext, messages: seededMessages, searchResult }) => {
       type MSW = {

@@ -12,6 +12,9 @@ async function enableMail(page: Page) {
 }
 
 async function installMailWorkspaceHandlers(page: Page) {
+  await page.waitForFunction(() =>
+    Boolean((window as unknown as { __MSW_READY__?: boolean }).__MSW_READY__)
+  );
   await page.evaluate(
     ({ mailboxContext }) => {
       type MSW = {
