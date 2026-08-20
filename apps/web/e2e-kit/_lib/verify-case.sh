@@ -2,19 +2,23 @@
 set -euo pipefail
 
 # Run one case through the kit stability gate.
-# Usage: e2e/_lib/verify-case.sh --grep='@C7' [--config=e2e/playwright.ci.config.ts]
+# Usage: apps/web/e2e-kit/_lib/verify-case.sh --grep='@C7' [--config=/path/to/playwright.ci.config.ts]
 
 GREP=""
 CONFIG=""
 REPEAT_EACH="3"
 EXTRA=()
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+E2E_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-for arg in "$@"; do
+while [ "$#" -gt 0 ]; do
+  arg="$1"
+  shift
   case "$arg" in
     --grep=*) GREP="${arg#*=}" ;;
     --config=*) CONFIG="${arg#*=}" ;;
     --repeat-each=*) REPEAT_EACH="${arg#*=}" ;;
-    --) shift; EXTRA+=("$@") ; break ;;
+    --) EXTRA+=("$@"); break ;;
     *) EXTRA+=("$arg") ;;
   esac
 done
@@ -24,9 +28,13 @@ if [ -z "$GREP" ]; then
   exit 2
 fi
 
-CMD=(pnpm exec playwright test --grep "$GREP" --repeat-each="$REPEAT_EACH" --workers=1)
-[ -n "$CONFIG" ] && CMD+=(--config "$CONFIG")
-CMD+=("${EXTRA[@]}")
+if [ -z "$CONFIG" ]; then
+  CONFIG="$E2E_ROOT/playwright.ci.config.ts"
+fi
+CMD=(pnpm exec playwright test --grep "$GREP" --repeat-each="$REPEAT_EACH" --workers=1 --config "$CONFIG")
+if [ "${#EXTRA[@]}" -gt 0 ]; then
+  CMD+=("${EXTRA[@]}")
+fi
 
 echo "[e2e verify] ${CMD[*]}"
 "${CMD[@]}"

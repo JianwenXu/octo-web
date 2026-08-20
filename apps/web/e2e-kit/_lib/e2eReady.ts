@@ -26,7 +26,6 @@ export async function waitForE2EReady(page: Page, options: ReadyOptions): Promis
 export function waitForMswReady(page: Page, timeout = 15_000): Promise<void> {
   return waitForE2EReady(page, {
     readyKey: "__MSW_READY__",
-    errorKey: "__MSW_ERROR__",
     timeout,
     label: "MSW",
   });

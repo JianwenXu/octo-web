@@ -2,17 +2,37 @@
 
 /**
  * Fast, read-only e2e environment check.
- * Usage: node e2e/_lib/preflight.mjs [--port=3000] [--check-env-file=apps/web/env.local]
+ * Usage: node apps/web/e2e-kit/_lib/preflight.mjs [--port=3000] [--check-env-file=apps/web/env.local]
  *        [--require-env=VITE_API_URL] [--check-url=http://localhost:3000]
  */
 import { existsSync, readFileSync } from "node:fs";
 import { createServer } from "node:net";
+import { dirname, join } from "node:path";
 import { spawnSync } from "node:child_process";
 
 const args = Object.fromEntries(process.argv.slice(2).map((arg) => {
   const [key, ...rest] = arg.replace(/^--/, "").split("=");
   return [key, rest.join("=") || true];
 }));
+
+function findWorkspaceRoot(start) {
+  let current = start;
+  while (true) {
+    if (
+      existsSync(join(current, "package.json")) &&
+      ["pnpm-lock.yaml", "yarn.lock", "package-lock.json"].some((name) => existsSync(join(current, name)))
+    ) {
+      return current;
+    }
+    const parent = dirname(current);
+    if (parent === current) return start;
+    current = parent;
+  }
+}
+
+const workspaceRoot = findWorkspaceRoot(process.cwd());
+const packageJsonPath = join(workspaceRoot, "package.json");
+const packageJson = existsSync(packageJsonPath) ? JSON.parse(readFileSync(packageJsonPath, "utf8")) : {};
 
 const requestedPort = Number(args.port || process.env.PORT || 3000);
 const envFile = typeof args["check-env-file"] === "string" ? args["check-env-file"] : null;
@@ -44,9 +64,9 @@ async function choosePort(start) {
   return null;
 }
 
-check(existsSync("package.json"), "当前目录存在 package.json");
+check(existsSync(packageJsonPath), `工作区存在 package.json: ${workspaceRoot}`);
 check(
-  ["pnpm-lock.yaml", "yarn.lock", "package-lock.json"].some(existsSync),
+  ["pnpm-lock.yaml", "yarn.lock", "package-lock.json"].some((name) => existsSync(join(workspaceRoot, name))),
   "找到包管理器 lockfile",
 );
 
@@ -63,7 +83,13 @@ const selectedPort = await choosePort(requestedPort);
 check(selectedPort !== null, `端口可用: ${selectedPort ?? requestedPort}`);
 if (selectedPort !== null) console.log(`E2E_SELECTED_PORT=${selectedPort}`);
 
-const packageManager = existsSync("pnpm-lock.yaml") ? "pnpm" : existsSync("yarn.lock") ? "yarn" : "npm";
+const packageManager = typeof packageJson.packageManager === "string"
+  ? packageJson.packageManager.split("@")[0]
+  : existsSync(join(workspaceRoot, "pnpm-lock.yaml"))
+    ? "pnpm"
+    : existsSync(join(workspaceRoot, "yarn.lock"))
+      ? "yarn"
+      : "npm";
 const version = spawnSync(packageManager, ["--version"], { encoding: "utf8" });
 check(version.status === 0, `${packageManager} 可执行`);
 

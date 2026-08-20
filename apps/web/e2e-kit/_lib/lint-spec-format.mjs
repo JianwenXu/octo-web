@@ -2,7 +2,7 @@
 /**
  * _lib/lint-spec-format.mjs — spec 格式 lint (kit-provided).
  *
- * 校验 e2e/case-specs/**​/*.md 合规:
+ * 校验 e2e 根目录下 case-specs/**​/*.md 合规:
  *   - 必需段: Metadata / 目标 / 前置条件 / 用户操作步骤 / 预期结果 / 反例
  *     (视觉基准 / 摸清依据可选)
  *   - Metadata 段有 "Case 类型" / "目标模式" / "优先级" / "Tags"
@@ -11,17 +11,17 @@
  *   - 无残留 "**待补**" marker (scaffolder 骨架填完应删)
  *
  * **接入方需改的占位** (脚本顶部 config):
- *   - SPECS_DIR    — case-spec md 目录 (默认 "e2e/case-specs")
+ *   - SPECS_DIR    — case-spec md 目录 (由 target-layout.mjs 自动解析)
  *
  * 用法:
- *   node e2e/_lib/lint-spec-format.mjs                 # 全部 spec, 不合规 exit 1
- *   node e2e/_lib/lint-spec-format.mjs --files a.md b.md   # 指定文件 (pre-commit)
- *   node e2e/_lib/lint-spec-format.mjs --diff-mode     # 只校验 git 里新加/改的 spec
+ *   node apps/web/e2e-kit/_lib/lint-spec-format.mjs                 # 全部 spec, 不合规 exit 1
+ *   node apps/web/e2e-kit/_lib/lint-spec-format.mjs --files a.md b.md   # 指定文件 (pre-commit)
+ *   node apps/web/e2e-kit/_lib/lint-spec-format.mjs --diff-mode     # 只校验 git 里新加/改的 spec
  *                                                     # (存量老格式豁免, 只挡漂移)
  *
  * 建议 package.json 加脚本:
- *   "check:spec-format": "node e2e/_lib/lint-spec-format.mjs"
- *   "check:spec-format:diff": "node e2e/_lib/lint-spec-format.mjs --diff-mode"
+ *   "check:spec-format": "node apps/web/e2e-kit/_lib/lint-spec-format.mjs"
+ *   "check:spec-format:diff": "node apps/web/e2e-kit/_lib/lint-spec-format.mjs --diff-mode"
  *
  * CI: quality stage, MR 里 case-specs/ 有变更时触发 --diff-mode
  * pre-commit: .husky/pre-commit 里 staged 涉及 case-specs/ 时跑一次 --files
@@ -59,9 +59,9 @@ const REQUIRED_SECTIONS = [
 
 // Metadata 段内必需字段
 const REQUIRED_METADATA_FIELDS = [
-  { name: "Case 类型", pattern: /^-\s*Case\s*类型\s*[::]/im },
-  { name: "目标模式", pattern: /^-\s*目标模式\s*[::]/im },
-  { name: "优先级", pattern: /^-\s*优先级\s*[::]/im },
+  { name: "Case 类型", pattern: /^-\s*Case\s*类型\s*[:：]/im },
+  { name: "目标模式", pattern: /^-\s*目标模式\s*[:：]/im },
+  { name: "优先级", pattern: /^-\s*优先级\s*[:：]/im },
 ];
 
 // ---------- helpers ----------
@@ -105,9 +105,9 @@ function caseIdFromFilename(filePath) {
 function parseTags(metadata) {
   const line = metadata
     .split("\n")
-    .find((l) => /^-\s*Tags?\s*:/i.test(l));
+    .find((l) => /^-\s*Tags?\s*[:：]/i.test(l));
   if (!line) return null;
-  const raw = line.replace(/^-\s*Tags?\s*:/i, "").replace(/`/g, "").trim();
+  const raw = line.replace(/^-\s*Tags?\s*[:：]/i, "").replace(/`/g, "").trim();
   return new Set(raw.split(/\s+/).filter((t) => t.startsWith("@")));
 }
 
@@ -136,6 +136,7 @@ function diffModeFiles() {
     try {
       base = execSync(`git merge-base HEAD ${ref}`, {
         stdio: ["ignore", "pipe", "ignore"],
+        cwd: GIT_ROOT,
       })
         .toString()
         .trim();
@@ -148,6 +149,7 @@ function diffModeFiles() {
   // diff-filter=AM: A 新加 / M 修改, 不含 deleted
   const out = execSync(`git diff --name-only --diff-filter=AM ${base}...HEAD`, {
     stdio: ["ignore", "pipe", "ignore"],
+    cwd: GIT_ROOT,
   }).toString();
   return out
     .split("\n")
@@ -267,5 +269,5 @@ for (const e of errors) console.error(`  - ${e}`);
 console.error("");
 console.error("  必需段: Metadata / 目标 / 前置条件 / 用户操作步骤 / 预期结果 / 反例");
 console.error("  Metadata 字段: Case 类型 / 目标模式 / 优先级 / Tags");
-console.error("  格式规约见 e2e/case-specs/TEMPLATE.md");
+console.error("  格式规约见 e2e 根目录/case-specs/TEMPLATE.md");
 process.exit(1);
