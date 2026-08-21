@@ -8,6 +8,8 @@ import { getAvailableSettingsGroups, type SettingsItem } from "./settingsRegistr
 import { SettingsPage } from "./settingsPages";
 import SecretsSettingsPanel from "../SecretsSettings/SecretsSettingsPanel";
 
+const settingsIcons = { general: SlidersHorizontal, account: UserRound, notifications: Bell, voice: Mic, "desktop-behavior": Monitor, downloads: FolderDown, shortcuts: Keyboard, devices: MonitorSmartphone, about: Info } as const;
+
 export interface OpenSecretsRequest {
   create?: boolean;
   name?: string;
@@ -30,8 +32,7 @@ export interface SettingsCenterProps {
   openSecretsRequest?: OpenSecretsRequest | null;
 }
 function SettingsIcon({ name }: { name: string }) {
-  const icons = { general: SlidersHorizontal, account: UserRound, notifications: Bell, voice: Mic, "desktop-behavior": Monitor, downloads: FolderDown, shortcuts: Keyboard, devices: MonitorSmartphone, about: Info } as const;
-  const Icon = icons[name as keyof typeof icons] ?? SlidersHorizontal;
+  const Icon = settingsIcons[name as keyof typeof settingsIcons] ?? SlidersHorizontal;
   return <Icon aria-hidden="true" />;
 }
 function LogoutIcon() {
