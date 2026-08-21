@@ -14,18 +14,11 @@ export function resolveMobileUpdaterUrl(
 
 const fetchWithApi = (url: string, init?: RequestInit) => apiFetchJson(url, init);
 
-export function fetchMobileDownloadUrl(updaterPath: string) {
-  return fetchSharedMobileDownloadUrl(
-    updaterPath,
-    fetchWithApi,
-    WKApp.apiClient.config.apiURL,
-  );
-}
-
 export function useMobileDownloadUrl(updaterPath: string) {
   return useSharedMobileDownloadUrl(
     updaterPath,
     fetchWithApi,
     WKApp.apiClient.config.apiURL,
+    typeof window === "undefined" ? null : window.location.origin,
   );
 }

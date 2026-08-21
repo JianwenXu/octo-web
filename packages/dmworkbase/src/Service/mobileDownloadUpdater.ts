@@ -1,10 +1,11 @@
 import React from "react";
-import { DEFAULT_REQUEST_TIMEOUT_MS } from "./APIClient";
 
 export type MobileDownloadFetcher = (
   url: string,
   init?: RequestInit,
 ) => Promise<unknown>;
+
+export const MOBILE_DOWNLOAD_REQUEST_TIMEOUT_MS = 20_000;
 
 export type MobileDownloadUrlState =
   | { status: "idle" | "loading" | "error"; downloadUrl?: undefined }
@@ -19,12 +20,15 @@ export function resolveMobileUpdaterUrl(
 
 export function resolveSafeDownloadUrl(
   value: unknown,
+  baseUrl: string | null = null,
 ) {
   if (typeof value !== "string") return undefined;
   const normalizedValue = value.replace(/[\u200B-\u200D\uFEFF]/g, "").trim();
   if (!normalizedValue) return undefined;
   try {
-    const url = new URL(normalizedValue);
+    const url = baseUrl === null
+      ? new URL(normalizedValue)
+      : new URL(normalizedValue, baseUrl);
     return url.protocol === "http:" || url.protocol === "https:"
       ? url.toString()
       : undefined;
@@ -38,18 +42,20 @@ export async function fetchMobileDownloadUrl(
   fetcher: MobileDownloadFetcher,
   apiUrl: string,
   signal?: AbortSignal,
+  downloadBaseUrl: string | null = null,
 ) {
   const controller = new AbortController();
   const abortExternalRequest = () => controller.abort();
   if (signal?.aborted) controller.abort();
   else signal?.addEventListener("abort", abortExternalRequest, { once: true });
-  const timeout = setTimeout(() => controller.abort(), DEFAULT_REQUEST_TIMEOUT_MS);
+  const timeout = setTimeout(() => controller.abort(), MOBILE_DOWNLOAD_REQUEST_TIMEOUT_MS);
   try {
     const result = await fetcher(resolveMobileUpdaterUrl(updaterPath, apiUrl), { signal: controller.signal });
     const downloadUrl = resolveSafeDownloadUrl(
       result && typeof result === "object" && "url" in result
         ? (result as { url?: unknown }).url
         : undefined,
+      downloadBaseUrl,
     );
     if (!downloadUrl) throw new Error("Updater returned an invalid download URL");
     return downloadUrl;
@@ -63,6 +69,7 @@ export function useMobileDownloadUrl(
   updaterPath: string | undefined,
   fetcher: MobileDownloadFetcher,
   apiUrl: string,
+  downloadBaseUrl: string | null = null,
 ) {
   const [state, setState] = React.useState<MobileDownloadUrlState>({
     status: updaterPath ? "loading" : "idle",
@@ -80,7 +87,7 @@ export function useMobileDownloadUrl(
     setState({ status: "loading" });
     const controller = new AbortController();
     requestControllerRef.current = controller;
-    void fetchMobileDownloadUrl(updaterPath, fetcher, apiUrl, controller.signal).then(
+    void fetchMobileDownloadUrl(updaterPath, fetcher, apiUrl, controller.signal, downloadBaseUrl).then(
       (downloadUrl) => {
         if (requestId === requestIdRef.current) setState({ status: "ready", downloadUrl });
       },
@@ -88,7 +95,7 @@ export function useMobileDownloadUrl(
         if (requestId === requestIdRef.current) setState({ status: "error" });
       },
     );
-  }, [apiUrl, fetcher, updaterPath]);
+  }, [apiUrl, downloadBaseUrl, fetcher, updaterPath]);
 
   React.useEffect(() => {
     load();

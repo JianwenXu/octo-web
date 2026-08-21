@@ -1,10 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   fetchMobileDownloadUrl,
+  MOBILE_DOWNLOAD_REQUEST_TIMEOUT_MS,
   resolveMobileUpdaterUrl,
   resolveSafeDownloadUrl,
 } from "../mobileDownloadUpdater";
-import { DEFAULT_REQUEST_TIMEOUT_MS } from "../APIClient";
 
 describe("mobile download updater", () => {
   afterEach(() => vi.useRealTimers());
@@ -18,6 +18,9 @@ describe("mobile download updater", () => {
     );
     expect(resolveSafeDownloadUrl("javascript:alert(1)")).toBeUndefined();
     expect(resolveSafeDownloadUrl("/app.apk")).toBeUndefined();
+    expect(resolveSafeDownloadUrl("/app.apk", "https://app.test")).toBe(
+      "https://app.test/app.apk",
+    );
   });
 
   it("aborts a stalled updater request after the shared timeout", async () => {
@@ -32,7 +35,7 @@ describe("mobile download updater", () => {
 
     const request = fetchMobileDownloadUrl("common/updater/ios/1.0.0", fetcher, "https://api.test");
     const rejection = expect(request).rejects.toThrow("Aborted");
-    await vi.advanceTimersByTimeAsync(DEFAULT_REQUEST_TIMEOUT_MS);
+    await vi.advanceTimersByTimeAsync(MOBILE_DOWNLOAD_REQUEST_TIMEOUT_MS);
 
     expect(signal?.aborted).toBe(true);
     expect(fetcher).toHaveBeenCalledWith(
