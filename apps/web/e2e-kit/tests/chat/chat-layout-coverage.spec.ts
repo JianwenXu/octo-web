@@ -112,10 +112,27 @@ test("@CH42 @p1 @chat @sidebar @follow 关注会话拖拽后按新顺序展示",
   const from = await a.locator(".wk-conv-compact-drag-handle").boundingBox();
   const to = await b.locator(".wk-conv-compact-drag-handle").boundingBox();
   if (!from || !to) throw new Error("关注会话排序拖拽 handle 不可见");
+  const sortResponse = authedPage.waitForResponse((response) =>
+    response.request().method() === "PUT" &&
+    new URL(response.url()).pathname.endsWith("/follow/sort") &&
+    response.status() === 200
+  );
   await authedPage.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
   await authedPage.mouse.down();
   await authedPage.mouse.move(to.x + to.width / 2, to.y + to.height / 2, { steps: 8 });
   await authedPage.mouse.up();
+  const sortRequest = await sortResponse;
+  const payload = sortRequest.request().postDataJSON() as {
+    items?: Array<{ target_id?: string; sort?: number }>;
+  };
+  const requestOrder = (payload.items ?? [])
+    .filter((item) => typeof item.target_id === "string" && typeof item.sort === "number")
+    .sort((left, right) => (left.sort ?? 0) - (right.sort ?? 0))
+    .map((item) => item.target_id);
+  expect(requestOrder).toEqual([
+    "e2e-chat-layout-group-b",
+    "e2e-chat-layout-group-a",
+  ]);
   await expect.poll(async () => {
     const aBox = await a.boundingBox();
     const bBox = await b.boundingBox();
