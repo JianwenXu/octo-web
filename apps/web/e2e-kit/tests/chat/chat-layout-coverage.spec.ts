@@ -25,8 +25,10 @@ async function openChat(page: Parameters<typeof installMockImRuntime>[0]) {
   await page.getByRole("button", { name: "会话" }).click();
   await expect(page.getByRole("button", { name: /最近/ })).toBeVisible();
 }
-async function openConversation(page: Parameters<typeof installMockImRuntime>[0]) {
-  await installMockImRuntime(page, seed()); await openChat(page);
+async function openConversation(page: Parameters<typeof installMockImRuntime>[0], reload = true) {
+  await installMockImRuntime(page, seed());
+  if (reload) await page.reload();
+  await openChat(page);
   await page.getByRole("button", { name: "最近", exact: true }).click();
   await expect(page.getByText(GROUP_NAME, { exact: true })).toBeVisible({ timeout: 15_000 });
   await page.getByText(GROUP_NAME, { exact: true }).click();
@@ -58,21 +60,21 @@ test("@CH34 @p1 @chat @sidebar @group-create 发起群聊完成创建", async ({
 });
 
 test("@CH22 @p1 @chat @sidebar @follow 关注 Tab 展示已关注会话", async ({ authedPage }) => {
-  await registerChatLayoutFollowData(authedPage); await authedPage.reload(); await installMockImRuntime(authedPage, seed()); await openChat(authedPage);
+  await installMockImRuntime(authedPage, seed()); await registerChatLayoutFollowData(authedPage); await authedPage.reload(); await openChat(authedPage);
   await authedPage.getByRole("button", { name: "关注", exact: true }).click();
   await expect(authedPage.getByText(GROUP_NAME, { exact: true })).toBeVisible({ timeout: 15_000 });
 });
 
 test("@CH35 @p1 @chat @sidebar @follow 关注 Tab 展示真实关注会话", async ({ authedPage }) => {
-  await registerChatLayoutFollowData(authedPage); await authedPage.reload();
-  await installMockImRuntime(authedPage, seed()); await openChat(authedPage);
+  await installMockImRuntime(authedPage, seed()); await registerChatLayoutFollowData(authedPage); await authedPage.reload(); await openChat(authedPage);
+  await authedPage.getByRole("button", { name: "最近", exact: true }).click();
+  await expect(authedPage.getByText(GROUP_NAME, { exact: true })).toBeVisible({ timeout: 15_000 });
   await authedPage.getByRole("button", { name: "关注", exact: true }).click();
   await expect(authedPage.getByText(GROUP_NAME, { exact: true })).toBeVisible({ timeout: 15_000 });
 });
 
 test("@CH41 @p1 @chat @sidebar @follow 取消关注后会话从关注列表移除", async ({ authedPage }) => {
-  await registerChatFollowUnfollowFixture(authedPage); await authedPage.reload();
-  await installMockImRuntime(authedPage, seed()); await openChat(authedPage);
+  await installMockImRuntime(authedPage, seed()); await registerChatFollowUnfollowFixture(authedPage); await authedPage.reload(); await openChat(authedPage);
   await authedPage.getByRole("button", { name: "关注", exact: true }).click();
   const item = authedPage.getByText(GROUP_NAME, { exact: true });
   await expect(item).toBeVisible({ timeout: 15_000 });
@@ -82,12 +84,14 @@ test("@CH41 @p1 @chat @sidebar @follow 取消关注后会话从关注列表移�
 });
 
 test("@CH42 @p1 @chat @sidebar @follow 关注会话拖拽后按新顺序展示", async ({ authedPage }) => {
-  await registerChatFollowSortFixture(authedPage); await authedPage.reload();
-  await installMockImRuntime(authedPage, sortSeed()); await openChat(authedPage);
+  await installMockImRuntime(authedPage, sortSeed()); await registerChatFollowSortFixture(authedPage); await authedPage.reload(); await openChat(authedPage);
   await authedPage.getByRole("button", { name: "关注", exact: true }).click();
   const a = authedPage.locator('.wk-conv-compact-item[data-object-id="e2e-chat-layout-group-a"]');
   const b = authedPage.locator('.wk-conv-compact-item[data-object-id="e2e-chat-layout-group-b"]');
   await expect(a).toBeVisible({ timeout: 15_000 }); await expect(b).toBeVisible({ timeout: 15_000 });
+  const initialA = await a.boundingBox();
+  const initialB = await b.boundingBox();
+  if (!initialA || !initialB || initialA.y >= initialB.y) throw new Error("关注会话初始顺序不是 A → B");
   const from = await a.locator(".wk-conv-compact-drag-handle").boundingBox();
   const to = await b.locator(".wk-conv-compact-drag-handle").boundingBox();
   if (!from || !to) throw new Error("关注会话排序拖拽 handle 不可见");
@@ -114,8 +118,9 @@ test("@CH24 @p1 @chat @thread 群详情顶部打开子区列表", async ({ authe
 });
 
 test("@CH32 @p1 @chat @thread 创建子区后列表显示新子区", async ({ authedPage }) => {
+  await installMockImRuntime(authedPage, seed()); await authedPage.reload();
   await registerChatLayoutThreadCreate(authedPage);
-  await openConversation(authedPage);
+  await openConversation(authedPage, false);
   await authedPage.getByTestId("chat-thread-panel-entry").click();
   await authedPage.getByText("新建子区", { exact: true }).click();
   const dialog = authedPage.locator(".wk-thread-modal");
@@ -126,16 +131,16 @@ test("@CH32 @p1 @chat @thread 创建子区后列表显示新子区", async ({ au
 });
 
 test("@CH25 @p1 @chat @search 会话搜索输入关键词后展示空结果", async ({ authedPage }) => {
-  await registerChatLayoutFollowData(authedPage); await authedPage.reload();
-  await installMockImRuntime(authedPage, seed());
-  await openConversation(authedPage); await authedPage.getByTestId("channel-search-entry").click();
+  await installMockImRuntime(authedPage, seed()); await registerChatLayoutFollowData(authedPage); await authedPage.reload();
+  await openConversation(authedPage, false); await authedPage.getByTestId("channel-search-entry").click();
   await authedPage.getByPlaceholder("输入关键字搜索").fill("不存在的消息");
   await expect(authedPage.getByText("暂无匹配结果", { exact: true })).toBeVisible({ timeout: 15_000 });
 });
 
 test("@CH28 @p1 @chat @search 会话搜索结果可定位回消息", async ({ authedPage }) => {
+  await installMockImRuntime(authedPage, seed()); await authedPage.reload();
   await registerChatLayoutSearchResult(authedPage);
-  await openConversation(authedPage);
+  await openConversation(authedPage, false);
   await authedPage.getByTestId("channel-search-entry").click();
   await authedPage.getByPlaceholder("输入关键字搜索").fill("搜索命中");
   await expect(authedPage.getByText("E2E 搜索命中消息", { exact: true })).toBeVisible({ timeout: 15_000 });
@@ -147,7 +152,8 @@ test("@CH28 @p1 @chat @search 会话搜索结果可定位回消息", async ({ au
 });
 
 test("@CH26 @p1 @chat @summary 详情顶部打开 Summary 面板", async ({ authedPage }) => {
+  await installMockImRuntime(authedPage, seed()); await authedPage.reload();
   await registerS22SummaryChatPanelHistoryDetail(authedPage);
-  await openConversation(authedPage); await authedPage.getByTestId("summary-chat-panel-header-btn").click();
+  await openConversation(authedPage, false); await authedPage.getByTestId("summary-chat-panel-header-btn").click();
   await expect(authedPage.getByTestId("summary-chat-panel")).toBeVisible({ timeout: 15_000 });
 });

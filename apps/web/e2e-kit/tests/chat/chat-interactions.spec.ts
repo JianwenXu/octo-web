@@ -294,11 +294,15 @@ test("@CH18 @p1 @chat @composer @attachment 选择附件后显示待发送附件
 test("@CH38 @p1 @chat @composer @attachment 附件上传并发送后保留文件消息", async ({ authedPage }) => {
   await registerChatLifecycleHandlers(authedPage);
   await openConversation(authedPage, seed());
+  const filename = "E2E 发送附件.txt";
   await authedPage.locator('input[type="file"]').first().setInputFiles({
-    name: "E2E 发送附件.txt", mimeType: "text/plain", buffer: Buffer.from("e2e"),
+    name: filename, mimeType: "text/plain", buffer: Buffer.from("e2e"),
   });
+  const composerPreview = authedPage.locator(".wk-messageinput-box").getByText(filename, { exact: true });
+  await expect(composerPreview).toBeVisible();
   await authedPage.locator('[contenteditable="true"]').press("Enter");
-  await expect(authedPage.getByText("E2E 发送附件.txt", { exact: true })).toBeVisible({ timeout: 15_000 });
+  await expect(composerPreview).toHaveCount(0, { timeout: 15_000 });
+  await expect(authedPage.locator(".wk-message-item").filter({ hasText: filename })).toBeVisible({ timeout: 15_000 });
 });
 
 test("@CH39 @p1 @chat @message-lifecycle 多选删除消息后消息流移除", async ({ authedPage }) => {

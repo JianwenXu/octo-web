@@ -1,81 +1,37 @@
 import type { Page } from "@playwright/test";
 
-export async function registerChatLayoutFollowData(page: Page): Promise<void> {
+async function installChatFollowScenario(page: Page, scenario: string): Promise<void> {
   await page.addInitScript(() => {
     const originalOpen = XMLHttpRequest.prototype.open;
     XMLHttpRequest.prototype.open = function (method, url, ...rest) {
-      const scenario = sessionStorage.getItem("__e2e_chat_follow_fixture__");
-      if (scenario) url += `${String(url).includes("?") ? "&" : "?"}e2e_chat_follow=${encodeURIComponent(scenario)}`;
+      const current = sessionStorage.getItem("__e2e_chat_follow_fixture__");
+      if (current) url += `${String(url).includes("?") ? "&" : "?"}e2e_chat_follow=${encodeURIComponent(current)}`;
       return originalOpen.call(this, method, url, ...rest);
     };
     const originalFetch = window.fetch;
     window.fetch = function (input, init) {
-      const scenario = sessionStorage.getItem("__e2e_chat_follow_fixture__");
-      if (!scenario) return originalFetch.call(this, input, init);
+      const current = sessionStorage.getItem("__e2e_chat_follow_fixture__");
+      if (!current) return originalFetch.call(this, input, init);
       const url = typeof input === "string" ? input : input.url;
-      const next = `${url}${url.includes("?") ? "&" : "?"}e2e_chat_follow=${encodeURIComponent(scenario)}`;
+      const next = `${url}${url.includes("?") ? "&" : "?"}e2e_chat_follow=${encodeURIComponent(current)}`;
       return originalFetch.call(this, typeof input === "string" ? next : new Request(next, input), init);
     };
   });
-  await page.evaluate(() => {
-    sessionStorage.setItem("__e2e_chat_follow_fixture__", `single:${crypto.randomUUID()}`);
-  });
+  await page.evaluate((value) => {
+    sessionStorage.setItem("__e2e_chat_follow_fixture__", value);
+  }, scenario);
+}
+
+export async function registerChatLayoutFollowData(page: Page): Promise<void> {
+  await installChatFollowScenario(page, `single:${crypto.randomUUID()}`);
 }
 
 export async function registerChatFollowUnfollowFixture(page: Page): Promise<void> {
-  await page.addInitScript(() => {
-    const originalOpen = XMLHttpRequest.prototype.open;
-    XMLHttpRequest.prototype.open = function (method, url, ...rest) {
-      const scenario = sessionStorage.getItem("__e2e_chat_follow_fixture__");
-      if (scenario) url += `${String(url).includes("?") ? "&" : "?"}e2e_chat_follow=${encodeURIComponent(scenario)}`;
-      return originalOpen.call(this, method, url, ...rest);
-    };
-    const originalFetch = window.fetch;
-    window.fetch = function (input, init) {
-      const scenario = sessionStorage.getItem("__e2e_chat_follow_fixture__");
-      if (!scenario) return originalFetch.call(this, input, init);
-      const url = typeof input === "string" ? input : input.url;
-      const next = `${url}${url.includes("?") ? "&" : "?"}e2e_chat_follow=${encodeURIComponent(scenario)}`;
-      return originalFetch.call(this, typeof input === "string" ? next : new Request(next, input), init);
-    };
-    const originalSend = XMLHttpRequest.prototype.send;
-    XMLHttpRequest.prototype.send = function (body) {
-      const scenario = sessionStorage.getItem("__e2e_chat_follow_fixture__");
-      if (scenario) this.setRequestHeader("X-E2E-Chat-Follow-Scenario", scenario);
-      return originalSend.call(this, body);
-    };
-  });
-  await page.evaluate(() => {
-    sessionStorage.setItem("__e2e_chat_follow_fixture__", `unfollow:${crypto.randomUUID()}`);
-  });
+  await installChatFollowScenario(page, `unfollow:${crypto.randomUUID()}`);
 }
 
 export async function registerChatFollowSortFixture(page: Page): Promise<void> {
-  await page.addInitScript(() => {
-    const originalOpen = XMLHttpRequest.prototype.open;
-    XMLHttpRequest.prototype.open = function (method, url, ...rest) {
-      const scenario = sessionStorage.getItem("__e2e_chat_follow_fixture__");
-      if (scenario) url += `${String(url).includes("?") ? "&" : "?"}e2e_chat_follow=${encodeURIComponent(scenario)}`;
-      return originalOpen.call(this, method, url, ...rest);
-    };
-    const originalFetch = window.fetch;
-    window.fetch = function (input, init) {
-      const scenario = sessionStorage.getItem("__e2e_chat_follow_fixture__");
-      if (!scenario) return originalFetch.call(this, input, init);
-      const url = typeof input === "string" ? input : input.url;
-      const next = `${url}${url.includes("?") ? "&" : "?"}e2e_chat_follow=${encodeURIComponent(scenario)}`;
-      return originalFetch.call(this, typeof input === "string" ? next : new Request(next, input), init);
-    };
-    const originalSend = XMLHttpRequest.prototype.send;
-    XMLHttpRequest.prototype.send = function (body) {
-      const scenario = sessionStorage.getItem("__e2e_chat_follow_fixture__");
-      if (scenario) this.setRequestHeader("X-E2E-Chat-Follow-Scenario", scenario);
-      return originalSend.call(this, body);
-    };
-  });
-  await page.evaluate(() => {
-    sessionStorage.setItem("__e2e_chat_follow_fixture__", `sort:${crypto.randomUUID()}`);
-  });
+  await installChatFollowScenario(page, `sort:${crypto.randomUUID()}`);
 }
 
 export async function registerChatLifecycleHandlers(page: Page): Promise<void> {

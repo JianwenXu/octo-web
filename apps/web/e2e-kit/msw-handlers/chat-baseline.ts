@@ -157,6 +157,8 @@ export const chatBaselineHandlers = [
 
   // === Contacts / friends ===
   http.get("*/friend/sync", () => HttpResponse.json([])),
+  http.get("*/group/my", () => HttpResponse.json([])),
+  http.get("*/space/:spaceId/members", () => HttpResponse.json([])),
   http.delete("*/user/reddot/friendApply", () => HttpResponse.json({})),
 
   // === Sidebar ===
@@ -175,11 +177,20 @@ export const chatBaselineHandlers = [
     }
     return HttpResponse.json({});
   }),
-  http.put("*/follow/sort", ({ request }) => {
+  http.put("*/follow/sort", async ({ request }) => {
     const scenario = chatFollowScenario(request);
     if (scenario.startsWith("sort:")) {
-      const state = followScenarioState.get(scenario) ?? { order: ["e2e-chat-layout-group-a", "e2e-chat-layout-group-b"] };
-      state.order = [state.order[1], state.order[0]];
+      const body = await request.json().catch(() => null) as { items?: Array<{ target_id?: string; sort?: number }> } | null;
+      const items = body?.items ?? [];
+      const order = items
+        .filter((item) => typeof item.target_id === "string" && typeof item.sort === "number")
+        .sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0))
+        .map((item) => item.target_id as string);
+      if (order.length !== 2 || !order.includes("e2e-chat-layout-group-a") || !order.includes("e2e-chat-layout-group-b")) {
+        return HttpResponse.json({ error: "invalid sort fixture payload" }, { status: 400 });
+      }
+      const state = followScenarioState.get(scenario) ?? { order };
+      state.order = order;
       followScenarioState.set(scenario, state);
     }
     return HttpResponse.json({});
@@ -196,9 +207,11 @@ export const chatBaselineHandlers = [
   http.post("*/conversations/:channelId/:channelType/extra", () =>
     HttpResponse.json({})
   ),
+  http.get("*/groups/:groupNo/threads", () => HttpResponse.json([])),
   http.post("*/messages/_search_all", () =>
     HttpResponse.json({ items: [], data: [], pagination: {} })
   ),
+  http.post("*/search/global", () => HttpResponse.json({ friends: [], groups: [], messages: [] })),
 
   // === OBO / persona ===
   http.get("*/api/v1/obo/grants", () => HttpResponse.json([])),
@@ -208,5 +221,8 @@ export const chatBaselineHandlers = [
   // 空列表, 界面停在"暂无总结"稳定分支; 不返 200 会无限重试打爆 network.
   http.get("*/summary/api/v1/summaries", () =>
     HttpResponse.json({ code: 0, message: "ok", data: { items: [], total: 0 } })
+  ),
+  http.get("*/summary/api/v1/summary-templates", () =>
+    HttpResponse.json({ templates: [], custom_template_limit: 30 })
   ),
 ];
