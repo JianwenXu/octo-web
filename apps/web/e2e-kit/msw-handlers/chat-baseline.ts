@@ -207,6 +207,9 @@ export const chatBaselineHandlers = [
   http.post("*/conversations/:channelId/:channelType/extra", () =>
     HttpResponse.json({})
   ),
+  http.get("*/conversations/:channelId/:channelType/extra", () =>
+    HttpResponse.json({})
+  ),
   http.get("*/groups/:groupNo/threads", () => HttpResponse.json([])),
   http.post("*/messages/_search_all", () =>
     HttpResponse.json({ items: [], data: [], pagination: {} })
