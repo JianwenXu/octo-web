@@ -19,7 +19,9 @@ const MOCK_APP_CONFIG = {
   docs_on: "0",
   dmloop_on: "0",
   dmpersonal_on: "0",
-  thread_on: false,
+  thread_on: true,
+  messages_search_on: true,
+  message_reaction: { read: true, write: true },
   oidc_providers: [],
 };
 
@@ -107,7 +109,12 @@ export const chatBaselineHandlers = [
     HttpResponse.json({ mute: 0, hidden_bots: [], notify_level: 0 })
   ),
   http.get("*/user/notification-pause", () =>
-    HttpResponse.json({ paused: false, paused_until: null, revision: 0, server_time: new Date().toISOString() })
+    HttpResponse.json({
+      paused: false,
+      paused_until: null,
+      revision: 0,
+      server_time: new Date().toISOString(),
+    })
   ),
   http.put("*/user/language", () => HttpResponse.json({})),
 

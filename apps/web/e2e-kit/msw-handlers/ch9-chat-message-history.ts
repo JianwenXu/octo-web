@@ -1,8 +1,11 @@
 /* eslint-disable no-undef -- e2e handler runs in the browser through MSW */
 import type { Page } from "@playwright/test";
 
-export async function registerCh9ChatMessageHistory(page: Page): Promise<void> {
-  await page.evaluate(() => {
+export async function registerCh9ChatMessageHistory(
+  page: Page,
+  fromUid = "e2e-user-2"
+): Promise<void> {
+  await page.evaluate((messageFromUid) => {
     type MSW = {
       worker: { use: (...handlers: unknown[]) => void };
       http: {
@@ -36,7 +39,7 @@ export async function registerCh9ChatMessageHistory(page: Page): Promise<void> {
               message_seq: 1,
               channel_id: "e2e-chat-context-menu-group",
               channel_type: 2,
-              from_uid: "e2e-user-2",
+              from_uid: messageFromUid,
               timestamp: 1,
               payload: { type: 1, content: "E2E 历史文本消息" },
             },
@@ -44,5 +47,5 @@ export async function registerCh9ChatMessageHistory(page: Page): Promise<void> {
         });
       })
     );
-  });
+  }, fromUid);
 }
