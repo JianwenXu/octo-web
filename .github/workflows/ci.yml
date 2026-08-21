@@ -103,17 +103,31 @@ jobs:
         run: |
           pnpm --filter @octo/base exec vitest run src/__tests__/EndpointCommon.menuSwitch.test.tsx
           pnpm --filter @dmwork/summary exec vitest run src/__tests__/module.menuSwitch.test.tsx
+      - name: Agent summary v2 run-binding tests (WEB-03)
+        run: >-
+          pnpm --filter @dmwork/summary exec vitest run
+          src/utils/__tests__/genRequestId.test.ts
+          src/utils/agentChatSession.test.ts
+          src/api/__tests__/agentChatStream.test.ts
+          src/api/__tests__/summaryApi.test.ts
+          src/components/__tests__/AgentChatPanel.test.tsx
+          src/components/__tests__/AgentChatPanel.sse.test.tsx
+          src/components/__tests__/ChatSummaryNewModal.test.tsx
+          src/pages/__tests__/SummaryCreatePage.test.tsx
       - name: I18n check
         run: pnpm i18n:check
       - name: Voice and settings regression tests
         run: >-
           pnpm --filter @octo/base exec vitest run
           src/Service/__tests__/VoiceSettingsStore.test.ts
+          src/Components/NavRail/__tests__/secondarySettingsPages.test.tsx
           src/features/chat-composer/adapters/voice/useVoiceInput.test.tsx
           src/features/chat-composer/ui/voice/VoiceInputIndicator.test.tsx
           src/Components/VoiceInputButton/VoiceInputButton.test.tsx
           src/Components/NavRail/__tests__/settingsPages.test.tsx
           src/Service/__tests__/mobileDownloadUpdater.test.ts
+          src/Components/NavRail/__tests__/desktopSettingsPage.test.tsx
+          src/Components/NavRail/__tests__/QuickMuteStore.test.ts
       - name: Mobile download regression tests
         run: >-
           pnpm --filter @octo/login exec vitest run

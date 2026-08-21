@@ -25,6 +25,10 @@ import "./index.css";
 import { ConversationWrap } from "../../Service/Model";
 import WKApp, { ThemeMode } from "../../App";
 import { Dap } from "../../Service/Dap";
+import {
+  subchannelOpenFromMount,
+  subchannelOpenFromThreadChange,
+} from "../../Service/subchannelOpenTracking";
 import ChannelSetting from "../../Components/ChannelSetting";
 import ChannelSearchPanel from "../../features/channelSearch/ChannelSearchPanel";
 import { createChannelSearchApiDataSource } from "../../bridge/channelSearch/createChannelSearchDataSource";
@@ -77,11 +81,17 @@ import {
   deleteImChannelInfo,
   fetchImChannelInfo,
   getImChannelInfo,
+  getPendingImChannelInfoFetch,
 } from "../../im-runtime/channelRuntime";
 import WebhookIssuePreviewPanel from "../../features/webhookMessagePreview/WebhookIssuePreviewPanel";
 import type { WebhookIssuePreviewTarget } from "../../bridge/message/webhookPreview";
 import { closeChatRightPanels, openChatRightPanel } from "./rightPanelState";
 import { chatPageTitleController } from "./chatPageTitleController";
+import {
+  shouldHideFollowUnreadBadge,
+  shouldHideRecentUnreadBadge,
+  unreadContribution,
+} from "./sidebarUnreadBadge";
 
 // 消息 ACK 只代表发送成功；后端把归档子区恢复为活跃存在短暂异步窗口。
 // 实测立即 threadGet 可能仍返回 Archived，因此发送后用短轮询等后端状态落稳。
@@ -108,6 +118,7 @@ function searchMediaPreviewName(
 
 interface SidebarTabBarWithBadgesProps {
   conversations: ConversationWrap[];
+  recentLoading: boolean;
   activeTab: SidebarTab;
   onTabChange: (tab: SidebarTab) => void;
   onRecentUnreadNavigate?: () => void;
@@ -127,17 +138,48 @@ interface SidebarTabBarWithBadgesProps {
  */
 const SidebarTabBarWithBadges: React.FC<SidebarTabBarWithBadgesProps> = ({
   conversations,
+  recentLoading,
   activeTab,
   onTabChange,
   onRecentUnreadNavigate,
 }) => {
-  const { items } = useFollowSidebarContext();
+  const { items, isLoading: followingLoading } = useFollowSidebarContext();
+  const requestedUnreadAuthorityRef = React.useRef<Set<string>>(new Set());
+  const missingRecentMuteAuthority = new Map<string, Channel>();
+  const missingFollowMuteAuthority = new Map<string, Channel>();
 
-  const isItemMuted = (it: {
+  const rememberMissingAuthority = (
+    target: Map<string, Channel>,
+    channel: Channel
+  ) => {
+    target.set(channel.getChannelKey(), channel);
+  };
+
+  const resolveMuteAuthority = (
+    channel: Channel,
+    parentGroupNo: string | undefined,
+    target: Map<string, Channel>
+  ) => {
+    const channelInfo = getImChannelInfo(WKSDK.shared(), channel);
+    if (!channelInfo) rememberMissingAuthority(target, channel);
+
+    let parentChannelInfo: ChannelInfo | undefined;
+    if (parentGroupNo) {
+      const parentChannel = new Channel(parentGroupNo, ChannelTypeGroup);
+      parentChannelInfo = getImChannelInfo(WKSDK.shared(), parentChannel);
+      if (!parentChannelInfo) {
+        rememberMissingAuthority(target, parentChannel);
+      }
+    }
+
+    return { channelInfo, parentChannelInfo };
+  };
+
+  const getItemMuteState = (it: {
     target_type: number;
     target_id: string;
     parent_channel_id?: string;
-  }): boolean => {
+  }) => {
     let channelType: number | null = null;
     if (it.target_type === SidebarTargetType.DM)
       channelType = ChannelTypePerson;
@@ -145,28 +187,26 @@ const SidebarTabBarWithBadges: React.FC<SidebarTabBarWithBadgesProps> = ({
       channelType = ChannelTypeGroup;
     else if (it.target_type === SidebarTargetType.THREAD)
       channelType = ChannelTypeCommunityTopic;
-    if (channelType == null) return false;
-    const info = getImChannelInfo(
-      WKSDK.shared(),
-      new Channel(it.target_id, channelType)
-    );
-    const isThread = it.target_type === SidebarTargetType.THREAD;
-    let parentChannelInfo: any | undefined;
-    if (isThread) {
-      const parentGroupNo =
-        it.parent_channel_id || parseThreadChannelId(it.target_id)?.groupNo;
-      if (parentGroupNo) {
-        parentChannelInfo = getImChannelInfo(
-          WKSDK.shared(),
-          new Channel(parentGroupNo, ChannelTypeGroup)
-        );
-      }
+    if (channelType == null) {
+      return { ready: true, muted: false };
     }
-    return isEffectivelyMuted({
+    const channel = new Channel(it.target_id, channelType);
+    const isThread = it.target_type === SidebarTargetType.THREAD;
+    const parentGroupNo = isThread
+      ? it.parent_channel_id || parseThreadChannelId(it.target_id)?.groupNo
+      : undefined;
+    const { channelInfo, parentChannelInfo } = resolveMuteAuthority(
+      channel,
+      parentGroupNo,
+      missingFollowMuteAuthority
+    );
+    const ready =
+      !!channelInfo && (!parentGroupNo || !!parentChannelInfo);
+    return { ready, muted: isEffectivelyMuted({
       isThread,
-      channelInfo: info,
+      channelInfo,
       parentChannelInfo,
-    });
+    }) };
   };
 
   // sidebar items 是 /sidebar/sync 的快照，IM 缓存里 conv 才是 reactive 的。
@@ -183,7 +223,6 @@ const SidebarTabBarWithBadges: React.FC<SidebarTabBarWithBadgesProps> = ({
     threadSidebarStatus.set(it.target_id, it.status);
   }
   const followUnread = items.reduce((sum, it) => {
-    if (isItemMuted(it)) return sum;
     let channelType: number | null = null;
     if (it.target_type === SidebarTargetType.DM)
       channelType = ChannelTypePerson;
@@ -212,22 +251,81 @@ const SidebarTabBarWithBadges: React.FC<SidebarTabBarWithBadgesProps> = ({
       return sum;
     }
     const unread = liveConv ? liveConv.unread || 0 : it.unread || 0;
-    return sum + unread;
+    if (unread <= 0) return sum;
+    const muteState = getItemMuteState(it);
+    return sum + unreadContribution({
+      unread,
+      muteAuthorityReady: muteState.ready,
+      muted: muteState.muted,
+    });
   }, 0);
 
   const recentUnread = conversations.reduce(
     (sum: number, c: ConversationWrap) => {
-      if (isMutedForRecentConversation(c)) return sum;
-      return sum + (c.unread || 0);
+      const unread = c.unread || 0;
+      if (unread <= 0) return sum;
+      const isThread =
+        c.channel.channelType === ChannelTypeCommunityTopic;
+      const parentGroupNo = isThread
+        ? (c.channelInfo?.orgData?.parentGroupNo as string | undefined) ||
+          parseThreadChannelId(c.channel.channelID)?.groupNo
+        : undefined;
+      const authority = resolveMuteAuthority(
+        c.channel,
+        parentGroupNo,
+        missingRecentMuteAuthority
+      );
+      return sum + unreadContribution({
+        unread,
+        muteAuthorityReady:
+          !!authority.channelInfo &&
+          (!parentGroupNo || !!authority.parentChannelInfo),
+        muted: isMutedForRecentConversation(c),
+      });
     },
     0
   );
 
+  const missingUnreadAuthority = new Map([
+    ...missingRecentMuteAuthority,
+    ...missingFollowMuteAuthority,
+  ]);
+  const missingUnreadAuthorityKey = [...missingUnreadAuthority.keys()]
+    .sort()
+    .join("|");
+
+  React.useEffect(() => {
+    const sdk = WKSDK.shared();
+    for (const [key, channel] of missingUnreadAuthority) {
+      if (requestedUnreadAuthorityRef.current.has(key)) continue;
+      requestedUnreadAuthorityRef.current.add(key);
+      const request =
+        getPendingImChannelInfoFetch(sdk, channel) ||
+        fetchImChannelInfo(sdk, channel);
+      void Promise.resolve(request)
+        .catch(() => undefined)
+        .finally(() => {
+          requestedUnreadAuthorityRef.current.delete(key);
+        });
+    }
+  }, [missingUnreadAuthorityKey]);
+
+  const hideRecentUnread = shouldHideRecentUnreadBadge({
+    recentLoading,
+    followingLoading,
+  });
+  const hideFollowUnread = shouldHideFollowUnreadBadge({
+    recentLoading,
+    followingLoading,
+  });
+
   return (
     <SidebarTabBar
       activeTab={activeTab}
-      followUnread={followUnread}
-      recentUnread={recentUnread}
+      // 最近和关注快照齐备后再显示 Tab 角标；单个频道缺少免打扰信息时
+      // 只跳过该频道，不能把两个 Tab 的已知未读一起隐藏。
+      followUnread={hideFollowUnread ? 0 : followUnread}
+      recentUnread={hideRecentUnread ? 0 : recentUnread}
       onTabChange={onTabChange}
       onActiveTabClick={(tab) => {
         if (tab === "recent" && activeTab === "recent" && recentUnread > 0) {
@@ -367,6 +465,9 @@ export class ChatContentPage extends Component<
         activeThread.channel_id,
         ChannelTypeCommunityTopic
       );
+      // 该子区已在面板打开(didUpdate 已发过 subchannel_opened),此处仅是视图切换 → 置 sentinel,
+      // 让子区页挂载时跳过重复发点(R10 P1-1)。
+      WKApp.shared.pendingSubchannelOpenTracked = threadChannel.channelID;
       WKApp.endpoints.showConversation(threadChannel);
       return;
     }
@@ -639,9 +740,24 @@ export class ChatContentPage extends Component<
     // 子区：预先获取父群组信息
     if (channel.channelType === ChannelTypeCommunityTopic) {
       const channelInfo = getImChannelInfo(WKSDK.shared(), channel);
+      const parsed = parseThreadChannelId(channel.channelID);
       const parentGroupNo =
-        channelInfo?.orgData?.parentGroupNo ||
-        parseThreadChannelId(channel.channelID)?.groupNo;
+        channelInfo?.orgData?.parentGroupNo || parsed?.groupNo;
+      // subchannel_opened(入口一):本页以子区频道挂载 = 会话列表点子区行 / 文件预览
+      // showConversation(threadChannel) / 深链或路由恢复进子区。这些都会 remount 走 componentDidMount。
+      // 去重(R10 P1-1):若本次挂载来自「已打开面板子区」再导航(全屏/搜索/文件预览),didUpdate 已发过,
+      // 由 pendingSubchannelOpenTracked sentinel 抑制(one-shot 消费);直接从列表/深链挂载则照常发。
+      // channel_id/subchannel_id 归一与判空均在 subchannelOpenFromMount 内(bare id,strip 前缀)。
+      const suppressSubchannelOpen = WKApp.shared.pendingSubchannelOpenTracked;
+      WKApp.shared.pendingSubchannelOpenTracked = undefined;
+      const openEvent = subchannelOpenFromMount(
+        channel,
+        parentGroupNo,
+        suppressSubchannelOpen
+      );
+      if (openEvent) {
+        Dap.shared.track("subchannel_opened", openEvent);
+      }
       if (parentGroupNo) {
         this.parentGroupChannel = new Channel(parentGroupNo, ChannelTypeGroup);
         if (!getImChannelInfo(WKSDK.shared(), this.parentGroupChannel)) {
@@ -651,7 +767,22 @@ export class ChatContentPage extends Component<
     }
   }
 
-  componentDidUpdate(prevProps: ChatContentPageProps) {
+  componentDidUpdate(
+    prevProps: ChatContentPageProps,
+    prevState: ChatContentPageState
+  ) {
+    // 子区打开(入口二:页内子区选择)——本页 channel 为父群、activeThread 身份(channel_id)变化即一次
+    // subchannel_opened,覆盖 onOpenThreadPanel / onThreadSelect 这类不 remount 只改 state 的页内入口。
+    // 与挂载入口(入口一)的去重由 subchannelOpenFromMount 的 sentinel 负责:本支照发,若用户随后把该
+    // 子区导航成完整视图/搜索/文件预览触发 remount,挂载处凭 sentinel 跳过,故一次开子区手势只发一次。
+    // 文件预览等不改 activeThread → 不误发;关闭(→null)也不发。channel_id 归一/判空在 helper 内。
+    const openEvent = subchannelOpenFromThreadChange(
+      this.state.activeThread,
+      prevState.activeThread?.channel_id
+    );
+    if (openEvent) {
+      Dap.shared.track("subchannel_opened", openEvent);
+    }
     const { channel } = this.props;
     const channelChanged =
       channel.channelID !== prevProps.channel.channelID ||
@@ -1551,6 +1682,7 @@ export default class ChatPage extends Component<any, ChatPageState> {
                   <FollowSidebarProvider>
                     <SidebarTabBarWithBadges
                       conversations={vm.conversations}
+                      recentLoading={vm.loading}
                       activeTab={activeTab}
                       onTabChange={this._handleTabChange}
                       onRecentUnreadNavigate={this._handleRecentUnreadNavigate}
