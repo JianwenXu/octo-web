@@ -1,6 +1,7 @@
 /* eslint-disable no-undef -- e2e code runs in Node */
 // @spec apps/web/e2e-kit/case-specs/chat/CH9-chat-message-context-menu.md
 // @spec apps/web/e2e-kit/case-specs/chat/CH11-chat-mention-candidates.md
+// @spec apps/web/e2e-kit/case-specs/chat/CH12-chat-reply-message.md
 import { test, expect } from "../../fixtures-authed";
 import {
   installMockImRuntime,
@@ -57,7 +58,8 @@ function seed(): MockSeed {
 
 async function openConversation(
   page: Parameters<typeof installMockImRuntime>[0],
-  mockSeed: MockSeed
+  mockSeed: MockSeed,
+  expectHistory = false
 ) {
   await installMockImRuntime(page, mockSeed);
   await page.getByRole("button", { name: "会话" }).click();
@@ -68,9 +70,15 @@ async function openConversation(
     timeout: 15_000,
   });
   await page.getByText(GROUP_NAME, { exact: true }).click();
-  await expect(page.getByText(HISTORY_MESSAGE, { exact: false })).toBeVisible({
-    timeout: 15_000,
-  });
+  if (expectHistory) {
+    await expect(page.getByText(HISTORY_MESSAGE, { exact: true })).toBeVisible({
+      timeout: 15_000,
+    });
+  } else {
+    await expect(page.locator('[contenteditable="true"]')).toBeVisible({
+      timeout: 15_000,
+    });
+  }
 }
 
 test("@CH10 @p1 @chat @composer Shift+Enter 插入换行而不发送", async ({
@@ -92,7 +100,7 @@ test("@CH9 @p1 @chat @message-context-menu 消息右键菜单提供消息操作"
   authedPage,
 }) => {
   await registerCh9ChatMessageHistory(authedPage);
-  await openConversation(authedPage, seed());
+  await openConversation(authedPage, seed(), true);
   const message = authedPage.getByText(HISTORY_MESSAGE, { exact: true });
   await message.click({ button: "right" });
 
@@ -106,7 +114,7 @@ test("@CH11 @p1 @chat @composer @mention 输入 @ 后显示群成员候选", asy
   authedPage,
 }) => {
   await registerCh9ChatMessageHistory(authedPage);
-  await openConversation(authedPage, seed());
+  await openConversation(authedPage, seed(), true);
   const editor = authedPage.locator('[contenteditable="true"]');
   await editor.click();
   await editor.pressSequentially("@");
@@ -117,4 +125,20 @@ test("@CH11 @p1 @chat @composer @mention 输入 @ 后显示群成员候选", asy
   await expect(
     authedPage.getByRole("option", { name: "E2E Sender" })
   ).toBeVisible();
+});
+
+test("@CH12 @p1 @chat @message-context-menu 回复消息后显示回复态", async ({
+  authedPage,
+}) => {
+  await registerCh9ChatMessageHistory(authedPage);
+  await openConversation(authedPage, seed(), true);
+  await authedPage
+    .getByText(HISTORY_MESSAGE, { exact: true })
+    .click({ button: "right" });
+  await authedPage.getByText("回复", { exact: true }).click();
+
+  const replyView = authedPage.locator(".wk-replyview-new");
+  await expect(replyView).toBeVisible();
+  await expect(replyView).toContainText("E2E Sender");
+  await expect(replyView).toContainText(HISTORY_MESSAGE);
 });
