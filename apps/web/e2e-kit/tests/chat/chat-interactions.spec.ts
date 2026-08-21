@@ -10,12 +10,14 @@
 // @spec apps/web/e2e-kit/case-specs/chat/CH18-chat-composer-attachment.md
 // @spec apps/web/e2e-kit/case-specs/chat/CH19-chat-thread-create.md
 // @spec apps/web/e2e-kit/case-specs/chat/CH20-chat-channel-search.md
+// @spec apps/web/e2e-kit/case-specs/chat/CH29-chat-composer-emoji-submit.md
 import { test, expect } from "../../fixtures-authed";
 import {
   installMockImRuntime,
   type MockSeed,
 } from "../../_kit/mock-im-runtime";
 import { registerCh9ChatMessageHistory } from "../../msw-handlers/ch9-chat-message-history";
+import { registerChatLifecycleHandlers } from "../../msw-handlers/chat-layout";
 
 const GROUP_ID = "e2e-chat-context-menu-group";
 const GROUP_NAME = "E2E Chat 消息群";
@@ -62,6 +64,18 @@ function seed(currentRole = 0): MockSeed {
         name: "E2E Sender",
       },
     ],
+  };
+}
+
+function forwardSeed(): MockSeed {
+  const base = seed();
+  return {
+    ...base,
+    groups: [...base.groups, { group_no: "e2e-forward-target", name: "E2E 转发目标群" }],
+    conversations: [...base.conversations, {
+      channelId: "e2e-forward-target", channelType: 2, unread: 0,
+      timestamp: Math.floor(Date.now() / 1000) - 10,
+    }],
   };
 }
 
@@ -153,14 +167,16 @@ test("@CH12 @p1 @chat @message-context-menu 回复消息后显示回复态", asy
 });
 
 async function openMessageMenu(
-  page: Parameters<typeof installMockImRuntime>[0]
+  page: Parameters<typeof installMockImRuntime>[0],
+  mockSeed: MockSeed = seed()
 ) {
   await registerCh9ChatMessageHistory(page);
-  await openConversation(page, seed(), true);
+  await openConversation(page, mockSeed, true);
   await page
     .getByText(HISTORY_MESSAGE, { exact: true })
     .click({ button: "right" });
 }
+
 
 test("@CH13 @p1 @chat @reaction 消息菜单打开贴表情选择器", async ({
   authedPage,
@@ -183,6 +199,20 @@ test("@CH14 @p1 @chat @forward 消息菜单打开转发面板", async ({
   ).toBeVisible();
 });
 
+test("@CH37 @p1 @chat @forward 选择目标并完成转发", async ({ authedPage }) => {
+  await registerChatLifecycleHandlers(authedPage);
+  await registerCh9ChatMessageHistory(authedPage);
+  await openConversation(authedPage, forwardSeed(), true);
+  await authedPage.getByText(HISTORY_MESSAGE, { exact: true }).click({ button: "right" });
+  await authedPage.getByTestId("ctx-message-forward").click();
+  const modal = authedPage.locator(".wk-fm");
+  await expect(modal).toBeVisible();
+  await modal.getByText("全部群聊", { exact: true }).click();
+  await modal.locator(".wk-fm-item").filter({ hasText: "E2E 转发目标群" }).click();
+  await modal.getByRole("button", { name: /确认/ }).click();
+  await expect(modal).toBeHidden({ timeout: 15_000 });
+});
+
 test("@CH15 @p1 @chat @message-context-menu 自己的消息显示撤回入口", async ({
   authedPage,
 }) => {
@@ -192,6 +222,16 @@ test("@CH15 @p1 @chat @message-context-menu 自己的消息显示撤回入口", 
     .getByText(HISTORY_MESSAGE, { exact: true })
     .click({ button: "right" });
   await expect(authedPage.getByText("撤回", { exact: true })).toBeVisible();
+});
+
+test("@CH40 @p1 @chat @message-lifecycle 撤回消息后显示撤回态", async ({ authedPage }) => {
+  await registerChatLifecycleHandlers(authedPage);
+  await registerCh9ChatMessageHistory(authedPage, "e2e-user-1");
+  await openConversation(authedPage, seed(1), true);
+  await authedPage.getByText(HISTORY_MESSAGE, { exact: true }).click({ button: "right" });
+  await authedPage.getByText("撤回", { exact: true }).click();
+  await expect(authedPage.getByText("你撤回了一条消息", { exact: true })).toBeVisible({ timeout: 15_000 });
+  await expect(authedPage.getByText(HISTORY_MESSAGE, { exact: true })).toHaveCount(0);
 });
 
 test("@CH16 @p1 @chat @message-context-menu 消息菜单进入多选模式", async ({
@@ -220,6 +260,22 @@ test("@CH17 @p1 @chat @composer @emoji 选择输入表情后保留在编辑器",
   );
 });
 
+test("@CH29 @p1 @chat @composer @emoji 选择表情并提交后消息流出现新消息", async ({
+  authedPage,
+}) => {
+  await openConversation(authedPage, seed());
+  await authedPage.locator(".wk-emojitoolbar .wk-iconclick").click();
+  const emojiButton = authedPage.locator(".wk-emojipanel-content li").first();
+  await emojiButton.click();
+  const editor = authedPage.locator('[contenteditable="true"]');
+  await expect(editor).not.toHaveText("");
+  const submittedText = await editor.innerText();
+  await editor.press("Enter");
+  await expect(editor).toHaveText("");
+  await expect(authedPage.getByRole("img", { name: submittedText }))
+    .toHaveCount(1, { timeout: 15_000 });
+});
+
 test("@CH18 @p1 @chat @composer @attachment 选择附件后显示待发送附件", async ({
   authedPage,
 }) => {
@@ -233,6 +289,27 @@ test("@CH18 @p1 @chat @composer @attachment 选择附件后显示待发送附件
   await expect(
     authedPage.getByText("E2E 附件.txt", { exact: true })
   ).toBeVisible();
+});
+
+test("@CH38 @p1 @chat @composer @attachment 附件上传并发送后保留文件消息", async ({ authedPage }) => {
+  await registerChatLifecycleHandlers(authedPage);
+  await openConversation(authedPage, seed());
+  await authedPage.locator('input[type="file"]').first().setInputFiles({
+    name: "E2E 发送附件.txt", mimeType: "text/plain", buffer: Buffer.from("e2e"),
+  });
+  await authedPage.locator('[contenteditable="true"]').press("Enter");
+  await expect(authedPage.getByText("E2E 发送附件.txt", { exact: true })).toBeVisible({ timeout: 15_000 });
+});
+
+test("@CH39 @p1 @chat @message-lifecycle 多选删除消息后消息流移除", async ({ authedPage }) => {
+  await registerChatLifecycleHandlers(authedPage);
+  await openMessageMenu(authedPage);
+  await authedPage.getByTestId("ctx-message-multiselect").click();
+  await authedPage.getByTestId("multiselect-delete-btn").click();
+  const confirm = authedPage.locator(".semi-modal-wrap").last();
+  await expect(confirm).toBeVisible();
+  await confirm.locator("button").last().click();
+  await expect(authedPage.getByText(HISTORY_MESSAGE, { exact: true })).toHaveCount(0, { timeout: 15_000 });
 });
 
 test("@CH19 @p1 @chat @thread 消息菜单打开创建子区弹窗", async ({

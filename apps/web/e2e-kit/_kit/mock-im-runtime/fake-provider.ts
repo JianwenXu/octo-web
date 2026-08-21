@@ -29,12 +29,15 @@ import WKSDK, {
   ChannelInfo,
   ChannelTypeGroup,
   ChannelTypePerson,
+  CMDContent,
   ConnectStatus,
   Conversation,
   Message,
+  MessageExtra,
   MessageText,
   Subscriber,
 } from "wukongimjssdk";
+import { WKApp } from "@octo/base";
 import type {
   MockConversationSeed,
   MockGroupSeed,
@@ -222,10 +225,57 @@ export function installFakeProvider(seed: MockSeed): void {
     return page;
   };
 
-  provider.syncMessageExtraCallback = async () => [];
+  const messageExtras: MessageExtra[] = [];
+  provider.syncMessageExtraCallback = async (channel: Channel) =>
+    messageExtras.filter((extra) => extra.channel?.isEqual(channel));
   provider.syncRemindersCallback = async () => [];
   provider.reminderDoneCallback = async () => undefined;
   provider.messageReadedCallback = async () => undefined;
+
+  // The real datasource receives revoke/edit as IM command + message-extra push.
+  // Keep the e2e runtime on that same observable path instead of making the UI
+  // infer success from the HTTP response alone.
+  const conversationProvider = WKApp.conversationProvider as any;
+  if (conversationProvider) {
+    const revokeMessage = conversationProvider.revokeMessage?.bind(conversationProvider);
+    conversationProvider.revokeMessage = async (message: Message) => {
+      await revokeMessage?.(message);
+      const command = new Message();
+      command.channel = message.channel;
+      command.fromUID = seed.currentUid;
+      const content = new CMDContent();
+      content.cmd = "messageRevoke";
+      content.param = { message_id: message.messageID };
+      command.content = content;
+      sdk.chatManager.notifyCMDListeners(command);
+    };
+
+    const editMessage = conversationProvider.editMessage?.bind(conversationProvider);
+    conversationProvider.editMessage = async (
+      messageID: String,
+      messageSeq: number,
+      channelID: String,
+      channelType: number,
+      content: String,
+    ) => {
+      await editMessage?.(messageID, messageSeq, channelID, channelType, content);
+      const extra = new MessageExtra();
+      extra.messageID = String(messageID);
+      extra.channel = new Channel(String(channelID), channelType);
+      extra.messageSeq = messageSeq;
+      extra.isEdit = true;
+      extra.contentEdit = new MessageText(String(content));
+      extra.extraVersion = messageExtras.length + 1;
+      messageExtras.push(extra);
+      const command = new Message();
+      command.channel = extra.channel;
+      const cmdContent = new CMDContent();
+      cmdContent.cmd = "syncMessageExtra";
+      cmdContent.param = {};
+      command.content = cmdContent;
+      sdk.chatManager.notifyCMDListeners(command);
+    };
+  }
 
   // 4. short-circuit connect → Connected
   const conn = sdk.connectManager;
