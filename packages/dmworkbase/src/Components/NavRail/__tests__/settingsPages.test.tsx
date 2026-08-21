@@ -4,12 +4,15 @@ import ReactDOM from "react-dom";
 import { act } from "react-dom/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { appState } = vi.hoisted(() => ({ appState: {
+const { appState, apiGetMock } = vi.hoisted(() => {
+  const apiGetMock = vi.fn();
+  return { apiGetMock, appState: {
   shared: { notificationIsClose: false, isLogined: () => false },
   loginInfo: { realnameVerified: false },
   config: { appVersion: "test" },
-  apiClient: { config: { apiURL: "https://example.test" } },
-} }));
+  apiClient: { config: { apiURL: "https://example.test" }, get: apiGetMock },
+} };
+});
 
 vi.mock("../../../App", () => ({ default: appState, ThemeMode: {} }));
 vi.mock("../../MeInfo", () => ({ MeInfo: () => <div data-testid="me-info" /> }));
@@ -29,6 +32,7 @@ let container: HTMLDivElement;
 beforeEach(() => {
   i18n.setLocale("zh-CN", { notify: false, persist: false });
   WKApp.shared.notificationIsClose = false;
+  apiGetMock.mockReset();
   container = document.createElement("div");
   document.body.appendChild(container);
 });
@@ -58,5 +62,23 @@ describe("SettingsPage notifications", () => {
     act(() => ReactDOM.render(<SettingsPage item={{ id: "notifications", labelKey: "base.navRail.settingsCenter.item.notifications" }} environment={environment} />, container));
     expect(container.textContent).toContain("当前环境不支持");
     expect(container.querySelector("button")).toBeNull();
+  });
+});
+
+describe("SettingsPage mobile download QR", () => {
+  it("shows an error and retries through the API client when the updater fails", async () => {
+    apiGetMock.mockRejectedValue(new Error("offline"));
+    await act(async () => {
+      ReactDOM.render(<SettingsPage item={{ id: "devices", labelKey: "base.navRail.settingsCenter.item.devices" }} environment={environment} />, container);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(container.querySelectorAll('[role="alert"]').length).toBe(2);
+    const retry = container.querySelector("button");
+    expect(retry?.textContent).toBe("重试");
+    const callsBeforeRetry = apiGetMock.mock.calls.length;
+    act(() => retry?.click());
+    expect(apiGetMock.mock.calls.length).toBeGreaterThan(callsBeforeRetry);
   });
 });

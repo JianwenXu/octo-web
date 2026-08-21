@@ -3,7 +3,6 @@ import { Spin, Switch, Toast } from "@douyinfe/semi-ui";
 import DOMPurify from "dompurify";
 import { QRCodeSVG } from "qrcode.react";
 import WKApp, { ThemeMode } from "../../App";
-import { apiFetchJson } from "../../Service/apiFetch";
 import { useMobileDownloadUrl } from "../../Service/mobileDownloadUpdater";
 import { updateUserLanguagePreference } from "../../Service/UserLanguageService";
 import { i18n, t } from "../../i18n";
@@ -69,7 +68,7 @@ const mobileUpdaterPaths: Record<string, string> = {
   iphone: "common/updater/ios/1.0.0",
 };
 
-const fetchMobileUpdater = (url: string, init?: RequestInit) => apiFetchJson(url, init);
+const fetchMobileUpdater = (url: string, init?: RequestInit) => WKApp.apiClient.get(url, init?.signal ? { signal: init.signal } : undefined);
 
 export function SettingsPage({ item, environment, accountCenterUrl, onSecrets, onAbout, onChangelog, onOpenOnboarding }: { item?: SettingsItem; environment: import("../../Runtime").RuntimeEnvironment; accountCenterUrl?: string; onSecrets?: () => void; onAbout?: () => void; onChangelog?: () => void; onOpenOnboarding?: () => void }) {
   if (item?.id === "general") return <SettingsPageFrame title={t("base.navRail.settingsCenter.page.general.title")}><SettingsSection title={t("base.navRail.settingsCenter.section.displayLanguage")}><SettingsRow title={t("base.navRail.settingsCenter.row.language")} description={t("base.navRail.settingsCenter.row.languageDescription")} trailing={<select className="wk-settings-center__demo-select" aria-label={t("base.navRail.settingsCenter.row.language")} value={i18n.getLocale()} onChange={(event) => { const locale = event.target.value as Locale; i18n.setLocale(locale); if (WKApp.shared.isLogined()) void updateUserLanguagePreference(locale).catch(() => Toast.error(t("base.navRail.settingsCenter.value.saveFailed"))); }}><option value="zh-CN">{t("base.navRail.settingsCenter.language.zh")}</option><option value="en-US">{t("base.navRail.settingsCenter.language.en")}</option></select>} /><SettingsRow title={t("base.navRail.settingsCenter.row.darkMode")} description={t("base.navRail.settingsCenter.row.darkModeDescription")} trailing={<SettingsStatusTag tone="neutral" label={t("base.navRail.settingsCenter.value.comingSoon")} />} /></SettingsSection></SettingsPageFrame>;
@@ -215,6 +214,7 @@ function VoiceInputSettingsPage({ environment }: { environment: import("../../Ru
   const [consentContent, setConsentContent] = React.useState<string | null>(null);
   const [consentLoading, setConsentLoading] = React.useState(false);
   const [consentError, setConsentError] = React.useState(false);
+  const [consentAccepting, setConsentAccepting] = React.useState(false);
   const [permission, setPermission] = React.useState<"granted" | "prompt" | "denied" | "unsupported">("unsupported");
   const [probeStatus, setProbeStatus] = React.useState<"idle" | "loading" | "success" | "failed">("idle");
   const [localDraft, setLocalDraft] = React.useState(() => ({ timeout: String(settings.localTimeoutMs), probe: settings.localProbeUrl, transcribe: settings.localTranscribeUrl }));
@@ -273,6 +273,7 @@ function VoiceInputSettingsPage({ environment }: { environment: import("../../Ru
     if (!showConsent) return;
     let cancelled = false;
     setConsentChecked(false);
+    setConsentAccepting(false);
     setConsentLoading(true);
     setConsentError(false);
     setConsentContent(null);
@@ -282,6 +283,25 @@ function VoiceInputSettingsPage({ environment }: { environment: import("../../Ru
       .finally(() => { if (!cancelled) setConsentLoading(false); });
     return () => { cancelled = true; };
   }, [showConsent]);
+  const acceptConsent = async () => {
+    const spaceId = WKApp.shared.currentSpaceId;
+    if (!spaceId) {
+      Toast.error(t("base.navRail.settingsCenter.value.saveFailed"));
+      return;
+    }
+    setConsentAccepting(true);
+    try {
+      await acceptVoiceInput(spaceId, consentChecked, () => WKApp.shared.currentSpaceId === spaceId);
+      voiceSettingsStore.acknowledge();
+      voiceSettingsStore.set({ enabled: true });
+      Dap.shared.track("settings_voice_toggled", { enabled: true });
+      setShowConsent(false);
+    } catch {
+      Toast.error(t("base.navRail.settingsCenter.value.saveFailed"));
+    } finally {
+      setConsentAccepting(false);
+    }
+  };
   const toggle = (enabled: boolean) => {
     if (!enabled) {
       voiceSettingsStore.set({ enabled: false });
@@ -332,7 +352,7 @@ function VoiceInputSettingsPage({ environment }: { environment: import("../../Ru
     </div>
     <div className="wk-settings-center__voice-consent-footer">
       <Checkbox checked={consentChecked} onChange={setConsentChecked}>{t("base.navRail.voiceNotice.feedbackConsent")}</Checkbox>
-      <div className="wk-settings-center__voice-consent-actions"><button type="button" className="wk-settings-center__manage-button" onClick={() => setShowConsent(false)}>{t("base.common.cancel")}</button><button type="button" className="wk-settings-center__manage-button wk-settings-center__manage-button--primary" disabled={consentLoading || consentError || !consentContent || !consentChecked} onClick={() => { void (async () => { const spaceId = WKApp.shared.currentSpaceId; if (spaceId) await acceptVoiceInput(spaceId, consentChecked, () => WKApp.shared.currentSpaceId === spaceId); voiceSettingsStore.acknowledge(); voiceSettingsStore.set({ enabled: true }); Dap.shared.track("settings_voice_toggled", { enabled: true }); setShowConsent(false); })().catch(() => Toast.error(t("base.navRail.settingsCenter.value.saveFailed"))); }}>{t("base.navRail.voiceNotice.accept")}</button></div>
+      <div className="wk-settings-center__voice-consent-actions"><button type="button" className="wk-settings-center__manage-button" onClick={() => setShowConsent(false)}>{t("base.common.cancel")}</button><button type="button" className="wk-settings-center__manage-button wk-settings-center__manage-button--primary" disabled={consentLoading || consentError || consentAccepting || !consentContent} onClick={() => { void acceptConsent(); }}>{t("base.navRail.voiceNotice.accept")}</button></div>
     </div>
   </div>;
   const shortcut = getVoiceShortcut(settings, os);
@@ -386,7 +406,7 @@ function ResourceCard({ id, title, description, status, statusLabel, category, a
   if (category === "clients") {
     return <article className="wk-settings-center__resource-card wk-settings-center__resource-card--clients" data-resource-status={status}>
       <div className="wk-settings-center__client-head"><span className="wk-settings-center__resource-icon" aria-hidden="true"><ResourceBrandIcon id={id} /></span><h4>{title}</h4></div>
-      {isMobile ? <div className="wk-settings-center__resource-qr" aria-label={`${title} QR code`} aria-busy={qrState.status === "loading"}>{qrState.status === "ready" ? <QRCodeSVG value={qrState.downloadUrl} size={104} /> : qrState.status === "loading" ? <Spin /> : <div className="wk-settings-center__resource-qr-error" role="alert"><span>{t("base.navRail.settingsCenter.value.loadFailed")}</span><button type="button" className="wk-settings-center__manage-button" onClick={qrState.retry}>{t("base.navRail.settingsCenter.action.retry")}</button></div>}</div> : <div className="wk-settings-center__client-status">{description}</div>}
+      {isMobile ? <div className="wk-settings-center__resource-qr" aria-label={`${title} QR code`} aria-busy={qrState.status === "loading"}>{qrState.status === "ready" ? <QRCodeSVG value={qrState.downloadUrl} size={104} /> : qrState.status === "loading" ? <Spin /> : <div className="wk-settings-center__resource-qr-error" role="alert"><span>{t("base.navRail.settingsCenter.value.qrLoadFailed")}</span><button type="button" className="wk-settings-center__manage-button" onClick={qrState.retry}>{t("base.navRail.settingsCenter.action.retry")}</button></div>}</div> : <div className="wk-settings-center__client-status">{description}</div>}
       {action && <div className="wk-settings-center__resource-actions">{action}</div>}
     </article>;
   }

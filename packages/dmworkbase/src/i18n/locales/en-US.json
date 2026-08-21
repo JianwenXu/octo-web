@@ -1625,6 +1625,7 @@
   "navRail.settingsCenter.value.saveFailed": "Save failed; the previous state was kept.",
   "navRail.settingsCenter.value.loadFailed": "Load failed; the previous state was kept.",
   "navRail.settingsCenter.action.retry": "Retry",
+  "navRail.settingsCenter.value.qrLoadFailed": "Could not load the download QR code.",
   "navRail.quickMute.menuTitle": "Pause notifications",
   "navRail.quickMute.menuHint": "Syncs across all devices signed in to this account",
   "navRail.quickMute.chooseDateTime": "Choose date and time",
