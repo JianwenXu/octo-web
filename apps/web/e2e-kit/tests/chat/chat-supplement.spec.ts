@@ -65,8 +65,9 @@ test.describe("@CH6 @p1 @chat @unread", () => {
     await openRecent(authedPage);
     await openMenu(authedPage);
 
-    await authedPage.getByText("清除未读", { exact: true }).click();
     const row = authedPage.locator(`[data-object-id="${GROUP_ID}"]`);
+    await expect(row.getByText("2", { exact: true })).toBeVisible();
+    await authedPage.getByText("清除未读", { exact: true }).click();
     await expect(row.getByText("2", { exact: true })).toHaveCount(0);
   });
 });

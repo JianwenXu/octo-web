@@ -2,22 +2,73 @@ import type { Page } from "@playwright/test";
 
 async function installChatFollowScenario(page: Page, scenario: string): Promise<void> {
   await page.addInitScript(() => {
+    const w = window as unknown as { __e2eChatFollowTaggingInstalled?: boolean };
+    if (w.__e2eChatFollowTaggingInstalled) return;
+    const shouldTag = (value: string): boolean => {
+      try {
+        const path = new URL(value, location.href).pathname;
+        return path.endsWith("/sidebar/sync") || path.includes("/follow/") || path.endsWith("/categories");
+      } catch {
+        return false;
+      }
+    };
+    const tagUrl = (value: string, current: string): string =>
+      `${value}${value.includes("?") ? "&" : "?"}e2e_chat_follow=${encodeURIComponent(current)}`;
     const originalOpen = XMLHttpRequest.prototype.open;
     XMLHttpRequest.prototype.open = function (method, url, ...rest) {
       const current = sessionStorage.getItem("__e2e_chat_follow_fixture__");
-      if (current) url += `${String(url).includes("?") ? "&" : "?"}e2e_chat_follow=${encodeURIComponent(current)}`;
+      if (current && shouldTag(String(url))) url = tagUrl(String(url), current);
       return originalOpen.call(this, method, url, ...rest);
     };
     const originalFetch = window.fetch;
     window.fetch = function (input, init) {
       const current = sessionStorage.getItem("__e2e_chat_follow_fixture__");
       if (!current) return originalFetch.call(this, input, init);
-      const url = typeof input === "string" ? input : input.url;
-      const next = `${url}${url.includes("?") ? "&" : "?"}e2e_chat_follow=${encodeURIComponent(current)}`;
-      return originalFetch.call(this, typeof input === "string" ? next : new Request(next, input), init);
+      const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+      if (!shouldTag(url)) return originalFetch.call(this, input, init);
+      if (input instanceof Request) {
+        const headers = new Headers(input.headers);
+        headers.set("x-e2e-chat-follow-scenario", current);
+        return originalFetch.call(this, new Request(input, { headers, ...init }), undefined);
+      }
+      return originalFetch.call(this, tagUrl(url, current), init);
     };
+    w.__e2eChatFollowTaggingInstalled = true;
   });
   await page.evaluate((value) => {
+    const w = window as unknown as { __e2eChatFollowTaggingInstalled?: boolean };
+    if (!w.__e2eChatFollowTaggingInstalled) {
+      const shouldTag = (input: string): boolean => {
+        try {
+          const path = new URL(input, location.href).pathname;
+          return path.endsWith("/sidebar/sync") || path.includes("/follow/") || path.endsWith("/categories");
+        } catch {
+          return false;
+        }
+      };
+      const tagUrl = (input: string, current: string): string =>
+        `${input}${input.includes("?") ? "&" : "?"}e2e_chat_follow=${encodeURIComponent(current)}`;
+      const originalOpen = XMLHttpRequest.prototype.open;
+      XMLHttpRequest.prototype.open = function (method, url, ...rest) {
+        const current = sessionStorage.getItem("__e2e_chat_follow_fixture__");
+        if (current && shouldTag(String(url))) url = tagUrl(String(url), current);
+        return originalOpen.call(this, method, url, ...rest);
+      };
+      const originalFetch = window.fetch;
+      window.fetch = function (input, init) {
+        const current = sessionStorage.getItem("__e2e_chat_follow_fixture__");
+        if (!current) return originalFetch.call(this, input, init);
+        const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+        if (!shouldTag(url)) return originalFetch.call(this, input, init);
+        if (input instanceof Request) {
+          const headers = new Headers(input.headers);
+          headers.set("x-e2e-chat-follow-scenario", current);
+          return originalFetch.call(this, new Request(input, { headers, ...init }), undefined);
+        }
+        return originalFetch.call(this, tagUrl(url, current), init);
+      };
+      w.__e2eChatFollowTaggingInstalled = true;
+    }
     sessionStorage.setItem("__e2e_chat_follow_fixture__", value);
   }, scenario);
 }

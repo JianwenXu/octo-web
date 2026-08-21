@@ -116,7 +116,9 @@ test("@CH10 @p1 @chat @composer Shift+Enter 插入换行而不发送", async ({
 
   await expect(editor).toContainText("第一行");
   await expect(editor).toContainText("第二行");
-  await expect(authedPage.getByText("第一行", { exact: true })).toHaveCount(0);
+  await expect(
+    authedPage.locator('[data-locate-message-row="true"]').getByText("第一行", { exact: true })
+  ).toHaveCount(0);
 });
 
 test("@CH9 @p1 @chat @message-context-menu 消息右键菜单提供消息操作", async ({
@@ -207,9 +209,13 @@ test("@CH37 @p1 @chat @forward 选择目标并完成转发", async ({ authedPage
   await authedPage.getByTestId("ctx-message-forward").click();
   const modal = authedPage.locator(".wk-fm");
   await expect(modal).toBeVisible();
+  const confirm = modal.getByRole("button", { name: "确认", exact: true });
+  await expect(confirm).toBeDisabled();
   await modal.getByText("全部群聊", { exact: true }).click();
   await modal.locator(".wk-fm-item").filter({ hasText: "E2E 转发目标群" }).click();
-  await modal.getByRole("button", { name: /确认/ }).click();
+  const selectedConfirm = modal.getByRole("button", { name: /确认\(1\)/ });
+  await expect(selectedConfirm).toBeEnabled();
+  await selectedConfirm.click();
   await expect(modal).toBeHidden({ timeout: 15_000 });
 });
 

@@ -6,6 +6,8 @@ import { registerS22SummaryChatPanelHistoryDetail } from "../../msw-handlers/s22
 
 const GROUP_ID = "e2e-chat-layout-group";
 const GROUP_NAME = "E2E Chat 布局群";
+const RECENT_ONLY_GROUP_ID = "e2e-chat-layout-recent-only";
+const RECENT_ONLY_GROUP_NAME = "E2E 最近未关注群";
 function seed(): MockSeed { return { currentUid: "e2e-user-1", spaceId: "e2e-space-001",
   users: [{ uid: "e2e-user-1", name: "E2E Tester", robot: 0 }, { uid: "e2e-user-2", name: "E2E Sender", robot: 0 }],
   groups: [{ group_no: GROUP_ID, name: GROUP_NAME }],
@@ -20,6 +22,18 @@ function sortSeed(): MockSeed { return { currentUid: "e2e-user-1", spaceId: "e2e
     { channelId: "e2e-chat-layout-group-a", channelType: 2, unread: 0, timestamp: 1720000000 },
     { channelId: "e2e-chat-layout-group-b", channelType: 2, unread: 0, timestamp: 1720000000 },
   ], messages: [], subscribers: [] }; }
+
+function recentAndFollowSeed(): MockSeed {
+  const base = seed();
+  return {
+    ...base,
+    groups: [...base.groups, { group_no: RECENT_ONLY_GROUP_ID, name: RECENT_ONLY_GROUP_NAME }],
+    conversations: [...base.conversations, {
+      channelId: RECENT_ONLY_GROUP_ID, channelType: 2, unread: 0,
+      timestamp: Math.floor(Date.now() / 1000) - 10,
+    }],
+  };
+}
 
 async function openChat(page: Parameters<typeof installMockImRuntime>[0]) {
   await page.getByRole("button", { name: "会话" }).click();
@@ -66,11 +80,14 @@ test("@CH22 @p1 @chat @sidebar @follow 关注 Tab 展示已关注会话", async 
 });
 
 test("@CH35 @p1 @chat @sidebar @follow 关注 Tab 展示真实关注会话", async ({ authedPage }) => {
-  await installMockImRuntime(authedPage, seed()); await registerChatLayoutFollowData(authedPage); await authedPage.reload(); await openChat(authedPage);
+  await installMockImRuntime(authedPage, recentAndFollowSeed()); await registerChatLayoutFollowData(authedPage); await authedPage.reload(); await openChat(authedPage);
   await authedPage.getByRole("button", { name: "最近", exact: true }).click();
   await expect(authedPage.getByText(GROUP_NAME, { exact: true })).toBeVisible({ timeout: 15_000 });
+  await expect(authedPage.getByText(RECENT_ONLY_GROUP_NAME, { exact: true })).toBeVisible({ timeout: 15_000 });
+  await registerChatLayoutFollowData(authedPage);
   await authedPage.getByRole("button", { name: "关注", exact: true }).click();
   await expect(authedPage.getByText(GROUP_NAME, { exact: true })).toBeVisible({ timeout: 15_000 });
+  await expect(authedPage.getByText(RECENT_ONLY_GROUP_NAME, { exact: true })).toHaveCount(0);
 });
 
 test("@CH41 @p1 @chat @sidebar @follow 取消关注后会话从关注列表移除", async ({ authedPage }) => {
@@ -120,7 +137,7 @@ test("@CH24 @p1 @chat @thread 群详情顶部打开子区列表", async ({ authe
 test("@CH32 @p1 @chat @thread 创建子区后列表显示新子区", async ({ authedPage }) => {
   await installMockImRuntime(authedPage, seed()); await authedPage.reload();
   await registerChatLayoutThreadCreate(authedPage);
-  await openConversation(authedPage, false);
+  await openConversation(authedPage, false, true);
   await authedPage.getByTestId("chat-thread-panel-entry").click();
   await authedPage.getByText("新建子区", { exact: true }).click();
   const dialog = authedPage.locator(".wk-thread-modal");
