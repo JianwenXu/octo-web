@@ -8,6 +8,7 @@ import { apiFetchJson } from "../../Service/apiFetch";
 import { checkVersionOnceWithStatus } from "../../Utils/versionChecker";
 import ChangelogMarkdown from "./ChangelogMarkdown";
 import SettingsCenter, { OpenSecretsRequest } from "./SettingsCenter";
+import type { AboutUpdateStatus } from "./settingsPages";
 
 export interface NavSettingsPanelProps {
     settingSelected: boolean;
@@ -28,13 +29,14 @@ interface NavSettingsPanelState {
     changelog: { notes: string; version: string; pub_date: string } | null;
     changelogLoading: boolean;
     showChangelog: boolean;
+    aboutUpdateStatus: AboutUpdateStatus;
 }
 
 /** The settings button owns one modal. Legacy flyout actions are intentionally not mounted here. */
 export default class NavSettingsPanel extends Component<NavSettingsPanelProps, NavSettingsPanelState> {
     private secretsSequence = 0;
 
-    state: NavSettingsPanelState = { secretsRequest: null, changelog: null, changelogLoading: false, showChangelog: false };
+    state: NavSettingsPanelState = { secretsRequest: null, changelog: null, changelogLoading: false, showChangelog: false, aboutUpdateStatus: { status: "latest" } };
 
     componentDidMount() {
         WKApp.mittBus.on("wk:open-secrets", this.handleOpenSecrets);
@@ -100,7 +102,8 @@ export default class NavSettingsPanel extends Component<NavSettingsPanelProps, N
                     onClose={this.closeSettings}
                     onLogout={() => { this.closeSettings(); void WKApp.shared.logoutUserInitiated(); }}
                     onSecretsClosed={() => this.setState({ secretsRequest: null })}
-                    onAbout={() => { void this.checkVersion(); }}
+                    onAbout={this.handleAboutAction}
+                    aboutUpdateStatus={this.state.aboutUpdateStatus}
                     onChangelog={() => { void this.showChangelog(); }}
                     onOpenOnboarding={this.openOnboarding}
                     openSecretsRequest={this.state.secretsRequest}
@@ -137,9 +140,25 @@ export default class NavSettingsPanel extends Component<NavSettingsPanelProps, N
 
     private checkVersion = async () => {
         const result = await checkVersionOnceWithStatus();
+        if (result.status !== "skipped") this.setState({ aboutUpdateStatus: result });
         if (result.status === "update") Toast.info(`${t("base.navRail.settingsPanel.versionAvailable")}: ${result.version}`);
         else if (result.status === "latest") Toast.success(t("base.navRail.settingsCenter.value.latestVersion"));
         else if (result.status === "skipped") return;
         else Toast.error(t("base.navRail.settingsCenter.value.updateCheckFailed"));
+    };
+
+    private handleAboutAction = () => {
+        if (this.state.aboutUpdateStatus.status !== "update") {
+            void this.checkVersion();
+            return;
+        }
+        const key = "wk_version_reload_count";
+        const count = Number(sessionStorage.getItem(key) || 0);
+        if (count < 3) {
+            sessionStorage.setItem(key, String(count + 1));
+            window.location.reload();
+        } else {
+            alert(t("base.navRail.versionBubble.reloadLimit"));
+        }
     };
 }

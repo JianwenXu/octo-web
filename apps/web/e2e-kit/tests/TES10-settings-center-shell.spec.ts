@@ -53,6 +53,9 @@ test("@p0 @TES10 settings center shell interaction", async ({ authedPage }, test
   await authedPage.getByTestId("settings-center-nav-about").click();
   await expect(authedPage.getByTestId("settings-center-content")).toContainText("Help and about");
   await expect(authedPage.getByTestId("settings-center-content")).toContainText("Current version");
+  await expect(authedPage.locator(".wk-settings-center__about-update-actions")).toBeVisible();
+  await expect(authedPage.getByTestId("settings-center-content").getByRole("status")).toContainText("You are using the latest version");
+  await expect(authedPage.getByRole("button", { name: "Check for updates" })).toBeVisible();
   await authedPage.screenshot({ path: frame("07-settings-center-about"), fullPage: true });
 
   await expect(authedPage.getByTestId("settings-center-logout")).toBeVisible();

@@ -77,9 +77,25 @@ describe("static settings pages", () => {
     const onOpenOnboarding = vi.fn();
     renderPage("about", { onAbout, onOpenOnboarding });
     expect(container.textContent).toContain("Octo Web");
-    act(() => container.querySelector(".wk-settings-center__about-update")?.dispatchEvent(new MouseEvent("click", { bubbles: true })));
-    act(() => container.querySelector("[aria-label=\"使用指南\"]")?.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    expect(container.textContent).toContain("检查是否有新版本，更新后刷新页面即可生效。");
+    expect(container.querySelector(".wk-settings-center__about-update-actions")).toBeTruthy();
+    act(() => (container.querySelector("[aria-label=\"使用指南\"]") as HTMLElement).click());
+    renderPage("about", { environment: { ...webEnvironment, target: "desktop" }, onAbout, onOpenOnboarding });
+    expect(container.querySelector(".wk-settings-center__about-update")).toBeTruthy();
+    act(() => (container.querySelector(".wk-settings-center__about-update") as HTMLElement).click());
     expect(onAbout).toHaveBeenCalledTimes(1);
     expect(onOpenOnboarding).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows about version actions on web and desktop", () => {
+    renderPage("about");
+    expect(container.querySelector(".wk-settings-center__about-update-actions")).toBeTruthy();
+    expect(container.querySelector(".wk-settings-status-tag")?.textContent).toContain("当前已是最新版本");
+    expect(container.querySelector(".wk-settings-center__about-update")?.textContent).toBe("检查更新");
+
+    renderPage("about", { environment: { ...webEnvironment, target: "desktop" } });
+    expect(container.querySelector(".wk-settings-center__about-update-actions")).toBeTruthy();
+    expect(container.querySelector(".wk-settings-status-tag")?.textContent).toContain("当前已是最新版本");
+    expect(container.querySelector(".wk-settings-center__about-update")?.textContent).toBe("检查更新");
   });
 });

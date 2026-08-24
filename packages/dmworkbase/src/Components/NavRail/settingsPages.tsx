@@ -21,12 +21,14 @@ import Checkbox from "../Checkbox";
 import { acceptVoiceInput } from "../../features/voice-input/useSpaceFeedbackSetting";
 import { Dap } from "../../Service/Dap";
 import { openElectronSystemSettings } from "../../electron/desktopBridge";
+import type { VersionCheckResult } from "../../Utils/versionChecker";
 
 export function SettingsRow({ title, description, trailing, children }: { title: string; description?: React.ReactNode; trailing?: React.ReactNode; children?: React.ReactNode }) { return <div className="wk-settings-center__row"><div className="wk-settings-center__row-main"><div className="wk-settings-center__row-title">{title}</div>{description && <div className="wk-settings-center__row-description">{description}</div>}</div>{children ?? trailing}</div>; }
 
 function SettingsSection({ title, children }: { title: string; children: React.ReactNode }) { return <section className="wk-settings-center__settings-section"><h3>{title}</h3>{children}</section>; }
 
 export type ResourceStatus = "available" | "unavailable" | "coming-soon";
+export type AboutUpdateStatus = { status: Extract<VersionCheckResult["status"], "latest" | "update" | "failed">; version?: string };
 type ResourceDefinition = {
   id: string;
   title: string;
@@ -87,7 +89,7 @@ function useMobileDownloadUrl(resourceId: string) {
   return url;
 }
 
-export function SettingsPage({ item, environment, accountCenterUrl, onSecrets, onAbout, onChangelog, onOpenOnboarding }: { item?: SettingsItem; environment: import("../../Runtime").RuntimeEnvironment; accountCenterUrl?: string; onSecrets?: () => void; onAbout?: () => void; onChangelog?: () => void; onOpenOnboarding?: () => void }) {
+export function SettingsPage({ item, environment, accountCenterUrl, onSecrets, onAbout, aboutUpdateStatus, onChangelog, onOpenOnboarding }: { item?: SettingsItem; environment: import("../../Runtime").RuntimeEnvironment; accountCenterUrl?: string; onSecrets?: () => void; onAbout?: () => void; aboutUpdateStatus?: AboutUpdateStatus; onChangelog?: () => void; onOpenOnboarding?: () => void }) {
   if (item?.id === "general") return <SettingsPageFrame title={t("base.navRail.settingsCenter.page.general.title")}><SettingsSection title={t("base.navRail.settingsCenter.section.displayLanguage")}><SettingsRow title={t("base.navRail.settingsCenter.row.language")} description={t("base.navRail.settingsCenter.row.languageDescription")} trailing={<select className="wk-settings-center__demo-select" aria-label={t("base.navRail.settingsCenter.row.language")} value={i18n.getLocale()} onChange={(event) => { const locale = event.target.value as Locale; i18n.setLocale(locale); if (WKApp.shared.isLogined()) void updateUserLanguagePreference(locale).catch(() => Toast.error(t("base.navRail.settingsCenter.value.saveFailed"))); }}><option value="zh-CN">{t("base.navRail.settingsCenter.language.zh")}</option><option value="en-US">{t("base.navRail.settingsCenter.language.en")}</option></select>} /><SettingsRow title={t("base.navRail.settingsCenter.row.darkMode")} description={t("base.navRail.settingsCenter.row.darkModeDescription")} trailing={<SettingsStatusTag tone="neutral" label={t("base.navRail.settingsCenter.value.comingSoon")} />} /></SettingsSection></SettingsPageFrame>;
   if (item?.id === "account") return <AccountSettingsPage accountCenterUrl={accountCenterUrl} onSecrets={onSecrets} />;
   if (item?.id === "notifications") {
@@ -98,7 +100,7 @@ export function SettingsPage({ item, environment, accountCenterUrl, onSecrets, o
   if (item?.id === "voice") return <VoiceInputSettingsPage environment={environment} />;
   if (item?.id === "shortcuts") return <ShortcutsSettingsPage environment={environment} />;
   if (item?.id === "devices") return <SettingsPageFrame title={t("base.navRail.settingsCenter.page.devices.title")}><div className="wk-settings-center__resource-sections">{settingsResourceGroups.map((group) => <ResourceSection key={group.titleKey} title={t(group.titleKey)} category={group.category}>{group.resources.map((resource) => <ResourceCard key={resource.id} {...resource} description={t(resource.descriptionKey)} statusLabel={t(resource.statusKey)} category={group.category} action={resource.url && resource.actionKey ? <a className="wk-settings-center__resource-action" href={resource.url} target="_blank" rel="noreferrer">↗ {t(resource.actionKey)}</a> : undefined} />)}</ResourceSection>)}</div></SettingsPageFrame>;
-  if (item?.id === "about") return <AboutSettingsPage onAbout={onAbout} onChangelog={onChangelog} onOpenOnboarding={onOpenOnboarding} />;
+  if (item?.id === "about") return <AboutSettingsPage environment={environment} onAbout={onAbout} aboutUpdateStatus={aboutUpdateStatus} onChangelog={onChangelog} onOpenOnboarding={onOpenOnboarding} />;
   return <SettingsPageFrame title={t("base.navRail.settingsCenter.page.fallback.title")} description={t("base.navRail.settingsCenter.page.fallback.description")}><SettingsRow title={t("base.navRail.settingsCenter.row.placeholder")} description={t("base.navRail.settingsCenter.placeholder")} /></SettingsPageFrame>;
 }
 
@@ -229,13 +231,29 @@ function NotificationsSettingsPage({ environment }: { environment: import("../..
   </SettingsPageFrame>;
 }
 function SettingsPageFrame({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) { return <div className="wk-settings-center__page"><header className="wk-settings-center__page-header"><h2>{title}</h2>{description && <p>{description}</p>}</header><section className="wk-settings-center__section-content">{children}</section></div>; }
-function AboutSettingsPage({ onAbout, onChangelog, onOpenOnboarding }: { onAbout?: () => void; onChangelog?: () => void; onOpenOnboarding?: () => void }) {
+function AboutSettingsPage({ environment, onAbout, aboutUpdateStatus = { status: "latest" }, onChangelog, onOpenOnboarding }: { environment: import("../../Runtime").RuntimeEnvironment; onAbout?: () => void; aboutUpdateStatus?: AboutUpdateStatus; onChangelog?: () => void; onOpenOnboarding?: () => void }) {
   const externalLink = (label: string, href: string) => <a className="wk-settings-center__external-link" href={href} target="_blank" rel="noreferrer" aria-label={label}>↗</a>;
+  const runtimeLabel = t(environment.target === "desktop" ? "base.navRail.settingsCenter.about.desktop" : "base.navRail.settingsCenter.about.web");
+  const platformLabel = t(environment.os === "macos" ? "base.navRail.settingsCenter.about.macos" : "base.navRail.settingsCenter.about.windows");
+  const isDesktop = environment.target === "desktop";
+  const updateAvailable = aboutUpdateStatus.status === "update";
+  const statusTone = aboutUpdateStatus.status === "failed" ? "danger" : updateAvailable ? "attention" : "success";
+  const statusLabel = aboutUpdateStatus.status === "failed" ? t("base.navRail.settingsCenter.value.updateCheckFailed") : updateAvailable ? t("base.navRail.settingsCenter.value.updateAvailable") : t("base.navRail.settingsCenter.value.latestVersion");
+  const updateDescription = updateAvailable && aboutUpdateStatus.version
+    ? `${t("base.navRail.settingsCenter.about.updateAvailableDescription")} ${aboutUpdateStatus.version}`
+    : t("base.navRail.settingsCenter.about.webUpdateDescription");
   return <SettingsPageFrame title={t("base.navRail.settingsCenter.page.about.title")}>
     <div className="wk-settings-center__about-identity">
       <img className="wk-settings-center__about-logo" src={octoLogo} alt={t("base.navRail.settingsCenter.about.octoLogoAlt")} />
-      <div className="wk-settings-center__about-copy"><strong>Octo Web</strong><span>{t("base.navRail.settingsCenter.page.about.versionPrefix")}{t("base.navRail.settingsCenter.about.versionSeparator")}{WKApp.config.appVersion}</span></div>
-      <button type="button" className="wk-settings-center__about-update" onClick={onAbout}>{t("base.navRail.settingsCenter.action.checkUpdate")}</button>
+      <div className="wk-settings-center__about-copy">
+        <strong>{isDesktop ? "Octo Desktop" : "Octo Web"}</strong>
+        <span>{runtimeLabel} · {platformLabel} · {t("base.navRail.settingsCenter.page.about.versionPrefix")}{t("base.navRail.settingsCenter.about.versionSeparator")}{WKApp.config.appVersion}</span>
+        <span>{updateAvailable ? updateDescription : t(isDesktop ? "base.navRail.settingsCenter.about.desktopUpdateDescription" : "base.navRail.settingsCenter.about.webUpdateDescription")}</span>
+      </div>
+      <div className="wk-settings-center__about-update-actions">
+        <SettingsStatusTag tone={statusTone} label={statusLabel} />
+        <button type="button" className="wk-settings-center__about-update" onClick={onAbout}>{updateAvailable ? t("base.navRail.settingsCenter.action.refresh") : t("base.navRail.settingsCenter.action.checkUpdate")}</button>
+      </div>
     </div>
     <SettingsSection title={t("base.navRail.settingsCenter.section.help")}>
       <SettingsRow title={t("base.navRail.settingsCenter.row.guide")} trailing={onOpenOnboarding ? <button type="button" className="wk-settings-center__about-icon-button" onClick={onOpenOnboarding} aria-label={t("base.navRail.settingsCenter.row.guide")}><ChevronIcon /></button> : undefined} />
