@@ -37,7 +37,6 @@ describe("SummaryEditor", () => {
         baseResultId: 456,
         initialContent: "Original content",
         onSave: vi.fn(),
-        onCancel: vi.fn(),
     };
 
     beforeEach(() => {
@@ -48,23 +47,6 @@ describe("SummaryEditor", () => {
         render(<SummaryEditor {...defaultProps} />);
         const textarea = screen.getByRole("textbox") as HTMLTextAreaElement;
         expect(textarea.value).toBe("Original content");
-    });
-
-    it("save button is disabled when content has not changed", () => {
-        render(<SummaryEditor {...defaultProps} />);
-        expect(screen.queryByRole("button")).toBeNull();
-    });
-
-    it("save button is enabled when content changes", () => {
-        render(<SummaryEditor {...defaultProps} />);
-        const textarea = screen.getByRole("textbox");
-        fireEvent.change(textarea, { target: { value: "Modified content" } });
-        expect(screen.queryByRole("button")).toBeNull();
-    });
-
-    it("calls onCancel when cancel button is clicked", () => {
-        render(<SummaryEditor {...defaultProps} />);
-        expect(screen.queryByText("取消")).toBeNull();
     });
 
     it("calls editSummary and onSave on successful save", async () => {

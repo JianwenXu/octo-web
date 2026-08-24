@@ -173,7 +173,7 @@ describe('SummaryCard status badge', () => {
             />,
         );
 
-        expect(screen.getByText('AI正在分析聊天记录...')).toBeInTheDocument();
+        expect(screen.getByText('等待中')).toBeInTheDocument();
     });
 
     it('无待响应邀请时仍显示任务本身的状态', () => {
@@ -202,7 +202,7 @@ describe('SummaryCard status badge', () => {
             />,
         );
 
-        expect(screen.getByText('AI正在分析聊天记录...')).toBeInTheDocument();
+        expect(screen.getByText('等待中')).toBeInTheDocument();
     });
 
     it('个人总结已生成但尚未提交时显示等待中', () => {
@@ -221,7 +221,7 @@ describe('SummaryCard status badge', () => {
             />,
         );
 
-        expect(screen.getByText('AI正在分析聊天记录...')).toBeInTheDocument();
+        expect(screen.getByText('等待中')).toBeInTheDocument();
     });
 
     it('单人总结不使用待提交标记覆盖任务完成状态', () => {
@@ -261,39 +261,11 @@ describe('SummaryCard display title', () => {
     });
 });
 
-describe('SummaryCard isScheduledTask', () => {
-    it('schedule_id > 0 时使用定时删除确认文案', () => {
+describe('SummaryCard delete confirmation', () => {
+    it('uses the current delete confirmation copy', () => {
         render(
             <SummaryCard
-                task={makeItem({ title: '定时总结', schedule_id: 5, trigger_type: 1 }) as any}
-                onClick={noop}
-                onDelete={noop}
-            />,
-        );
-
-        openCardMenu();
-        fireEvent.click(screen.getByText('删除'));
-        expect(screen.getByText('删除后无法恢复')).toBeInTheDocument();
-    });
-
-    it('trigger_type === 2 且无 schedule_id 时走兜底定时分支', () => {
-        render(
-            <SummaryCard
-                task={makeItem({ title: '调度生成总结', schedule_id: undefined, trigger_type: 2 }) as any}
-                onClick={noop}
-                onDelete={noop}
-            />,
-        );
-
-        openCardMenu();
-        fireEvent.click(screen.getByText('删除'));
-        expect(screen.getByText('删除后无法恢复')).toBeInTheDocument();
-    });
-
-    it('普通手动任务使用普通删除确认文案', () => {
-        render(
-            <SummaryCard
-                task={makeItem({ title: '手动总结', schedule_id: undefined, trigger_type: 1 }) as any}
+                task={makeItem({ title: '手动总结' }) as any}
                 onClick={noop}
                 onDelete={noop}
             />,

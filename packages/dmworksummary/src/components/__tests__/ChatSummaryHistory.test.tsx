@@ -77,12 +77,6 @@ vi.mock('@douyinfe/semi-icons', () => ({
     IconDelete: () => <svg data-testid="delete-icon" />,
 }));
 
-vi.mock('../TaskStatusBadge', () => ({
-    default: ({ status }: { status: number }) => (
-        <span data-testid="status-tag">{status === 3 ? '已完成' : status === 2 ? '进行中' : status}</span>
-    ),
-}));
-
 function render(ui: React.ReactElement, options?: any) {
     return rtlRender(ui, { legacyRoot: true, ...options });
 }

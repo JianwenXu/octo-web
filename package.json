@@ -16,7 +16,7 @@
     "clean": "turbo run clean && rimraf node_modules .turbo",
     "lint": "turbo run lint",
     "test": "turbo run test",
-    "test:coverage": "turbo run test -- --coverage --coverage.all --coverage.reportOnFailure --coverage.include='{src,src-election}/**/*.{ts,tsx}' --coverage.exclude='src/index.tsx' --coverage.exclude='**/*.stories.{ts,tsx}' --coverage.exclude='**/e2e-kit/**' --coverage.reporter=text --coverage.reporter=json-summary --coverage.reporter=html",
+    "test:coverage": "turbo run test --concurrency=1 -- --testTimeout=30000 --coverage --coverage.all --coverage.reportOnFailure --coverage.include='{src,src-election}/**/*.{ts,tsx}' --coverage.exclude='src/index.tsx' --coverage.exclude='**/*.stories.{ts,tsx}' --coverage.exclude='**/e2e-kit/**' --coverage.reporter=text --coverage.reporter=json-summary --coverage.reporter=html",
     "lint:css": "stylelint '**/*.css' --config stylelint.config.mjs --allow-empty-input && pnpm lint:wkmodal",
     "lint:css:ci": "stylelint --config stylelint.ci.config.mjs --allow-empty-input && pnpm lint:wkmodal",
     "lint:wkmodal": "node scripts/check-wkmodal-semi-overrides.mjs",

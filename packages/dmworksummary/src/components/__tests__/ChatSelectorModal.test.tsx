@@ -180,7 +180,6 @@ describe('ChatSelectorModal — include-archived toggle', () => {
         const utils = await open([ACTIVE_THREAD]);
 
         expect(utils.getByText('包含已归档子区')).toBeInTheDocument();
-        expect(utils.getByText('包含已归档子区')).toBeInTheDocument();
     });
 
     it('re-fetches with include_archived=true and renders an Archived tag when toggled on', async () => {

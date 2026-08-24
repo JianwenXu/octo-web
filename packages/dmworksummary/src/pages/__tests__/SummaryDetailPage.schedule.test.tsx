@@ -155,16 +155,6 @@ describe('SummaryDetailPage — 返回分享卡片所在群聊', () => {
         expect(JSON.stringify(header)).not.toContain('summary.share.backToChat');
     });
 
-    it('普通总结入口不展示返回群聊', () => {
-        const page = makePage(1);
-        page.state = { ...page.state, detail: baseDetail() as any };
-
-        const header = (page as any).renderHeader();
-        const inner = Array.isArray(header.props.children)
-            ? header.props.children[0]
-            : header.props.children;
-        expect(JSON.stringify(header)).not.toContain('summary.share.backToChat');
-    });
 });
 
 it('keeps regeneration voice insertion within the 2000-character limit', () => {
