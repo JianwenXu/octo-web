@@ -105,8 +105,6 @@ import type {
   ChatComposerViewHost,
   ChatComposerVoiceContext,
 } from "../ports";
-import { getVoiceShortcut, voiceSettingsStore, type VoiceSettings } from "../../../Service/VoiceSettingsStore";
-
 import { MAX_MESSAGE_LENGTH } from "../domain/constants";
 
 function commonRecoveredTarget(
@@ -124,25 +122,11 @@ function commonRecoveredTarget(
     : undefined;
 }
 
-// placeholder 格式化所需的平台快捷键标识（模块级常量，避免重复计算）
-const VOICE_OS = /Mac|iPhone|iPad/i.test(navigator.userAgent) ? "macos" : "windows";
-
 /** 根据频道类型和名称生成 placeholder 文本 */
-function buildPlaceholder(isDirect: boolean, name: string, t: typeof translate, settings: VoiceSettings): string {
-  const taskShortcut = VOICE_OS === "macos" ? "⌥" : "Alt";
-  const base = isDirect
-    ? (name ? t("base.messageInput.placeholder.directWithName", { values: { name } }) : t("base.messageInput.placeholder.direct"))
-    : (name ? t("base.messageInput.placeholder.replyWithName", { values: { name, shortcut: taskShortcut } }) : t("base.messageInput.placeholder.reply", { values: { shortcut: taskShortcut } }));
-  const shortcut = getVoiceShortcut(settings, VOICE_OS);
-  if (!settings.enabled || shortcut === "disabled") return base;
-  const label = shortcut === "alt-right"
-    ? t(VOICE_OS === "macos" ? "base.navRail.settingsCenter.value.rightOption" : "base.navRail.settingsCenter.value.rightAlt")
-    : shortcut === "shift-right"
-      ? t("base.navRail.settingsCenter.value.rightShift")
-      : t("base.navRail.settingsCenter.value.leftShift");
-  return `${base}${settings.speakingMode === "hold"
-    ? t("base.messageInput.placeholder.voiceHold", { values: { shortcut: label } })
-    : t("base.messageInput.placeholder.voiceToggle", { values: { shortcut: label } })}`;
+function buildPlaceholder(name: string, t: typeof translate): string {
+  return name
+    ? t("base.conversation.upload.sendTo", { values: { name } })
+    : t("base.messageInput.placeholder.direct");
 }
 
 // 从编辑器中提取附件节点（纯函数，避免闭包问题）
@@ -593,10 +577,6 @@ const ChatComposer: React.FC<ChatComposerProps> = (props) => {
   const [pendingPreEnqueueItems, setPendingPreEnqueueItems] = useState<
     PendingSendItem[]
   >([]);
-  const [voiceSettings, setVoiceSettings] = useState(() => voiceSettingsStore.get());
-
-  useEffect(() => voiceSettingsStore.subscribe(setVoiceSettings), []);
-
   useEffect(() => {
     composerMountedRef.current = true;
     const unsubscribe = attachmentStore.subscribe((items) => {
@@ -620,10 +600,8 @@ const ChatComposer: React.FC<ChatComposerProps> = (props) => {
   // 动态生成 placeholder（channelInfo 异步加载后通过 listener 自动更新）
   const [placeholder, setPlaceholder] = useState(() => {
     return buildPlaceholder(
-      channelSnapshot.isDirect,
       props.host.getChannelTitle() || "",
       t,
-      voiceSettings,
     );
   });
 
@@ -634,7 +612,7 @@ const ChatComposer: React.FC<ChatComposerProps> = (props) => {
     const updateName = (name: string) => {
       if (aborted) return;
       if (props.host.getChannel().key !== channelKey) return;
-      setPlaceholder(buildPlaceholder(channelSnapshot.isDirect, name, t, voiceSettings));
+      setPlaceholder(buildPlaceholder(name, t));
     };
 
     updateName(props.host.getChannelTitle() || "");
@@ -644,7 +622,7 @@ const ChatComposer: React.FC<ChatComposerProps> = (props) => {
       aborted = true;
       unsubscribeChannelTitle();
     };
-  }, [channelSnapshot.isDirect, channelSnapshot.key, props.host, t, voiceSettings]);
+  }, [channelSnapshot.key, props.host, t]);
 
   const memberInfos = useMemo<MemberInfo[]>(
     () => buildMemberInfos(props.members),

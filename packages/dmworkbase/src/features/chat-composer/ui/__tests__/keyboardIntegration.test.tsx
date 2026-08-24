@@ -32,22 +32,22 @@ describe("MessageInput keyboard integration", () => {
     });
     const view = render(<ChatComposer host={host} />);
 
-    await waitFor(() =>
-      expect(
-        view.container
-          .querySelector(".ProseMirror p")
-          ?.getAttribute("data-placeholder"),
-      ).toContain("Initial room"),
-    );
+    await waitFor(() => {
+      const placeholder = view.container
+        .querySelector(".ProseMirror p")
+        ?.getAttribute("data-placeholder");
+      expect(placeholder).toContain("发送给 Initial room");
+      expect(placeholder).not.toContain("↵");
+    });
 
     act(() => publishTitle?.("Renamed room"));
-    await waitFor(() =>
-      expect(
-        view.container
-          .querySelector(".ProseMirror p")
-          ?.getAttribute("data-placeholder"),
-      ).toContain("Renamed room"),
-    );
+    await waitFor(() => {
+      const placeholder = view.container
+        .querySelector(".ProseMirror p")
+        ?.getAttribute("data-placeholder");
+      expect(placeholder).toContain("发送给 Renamed room");
+      expect(placeholder).not.toContain("↵");
+    });
 
     view.unmount();
     expect(unsubscribe).toHaveBeenCalledOnce();
