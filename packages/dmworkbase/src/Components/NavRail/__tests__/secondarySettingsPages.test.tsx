@@ -59,8 +59,10 @@ describe("secondary settings pages", () => {
   it("renders voice settings in the settings center", () => {
     act(() => ReactDOM.render(<SettingsPage item={{ id: "voice", labelKey: "base.navRail.settingsCenter.item.voice" }} environment={environment} />, container));
     expect(container.textContent).toContain("语音输入");
-    expect(container.textContent).toContain("音频设备");
+    expect(container.textContent).toContain("麦克风输入");
     expect(container.textContent).not.toContain("OctoASR");
+    expect(container.textContent).toContain("启用后，点按");
+    expect(container.textContent).toContain("设置使用");
     expect(container.textContent).not.toContain("管理麦克风、快捷键和语音识别方式");
   });
 
