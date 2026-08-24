@@ -94,6 +94,27 @@ describe("voiceSettingsStore", () => {
     expect(migrated.localEnabled).toBe(false);
   });
 
+  it("does not overwrite local settings explicitly configured by the user", () => {
+    voiceSettingsStore.setUserId("legacy-user");
+    voiceSettingsStore.set({
+      localEnabled: true,
+      localTimeoutMs: 7000,
+      localProbeUrl: "http://localhost:9000/health",
+      localTranscribeUrl: "http://localhost:9000/transcribe",
+    });
+
+    const current = voiceSettingsStore.migrateServerConfig({
+      local_enabled: false,
+      local_timeout_ms: 1000,
+      local_probe_url: "http://localhost:8000/health",
+      local_transcribe_url: "http://localhost:8000/transcribe",
+    });
+
+    expect(current.localEnabled).toBe(true);
+    expect(current.localTimeoutMs).toBe(7000);
+    expect(current.localProbeUrl).toBe("http://localhost:9000/health");
+  });
+
   it("migrates an enabled legacy space setting to the old voice defaults", () => {
     voiceSettingsStore.setUserId("legacy-user");
 

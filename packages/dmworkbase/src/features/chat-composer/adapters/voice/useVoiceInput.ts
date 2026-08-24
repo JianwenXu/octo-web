@@ -258,11 +258,11 @@ export default function useVoiceInput(
         // speech service.
         const localConfigPromise = VoiceService.shared.getLocalConfig?.();
         const localConfigResult = localConfigPromise
-          ? localConfigPromise.then((localConfig) => ({ ok: true, localConfig })).catch((error: unknown) => ({
-            ok: (error as { status?: number })?.status === 404,
+          ? localConfigPromise.then((localConfig) => ({ ok: true, localConfig })).catch(() => ({
+            ok: false,
             localConfig: null,
           }))
-          : Promise.resolve({ ok: true, localConfig: null });
+          : Promise.resolve({ ok: false, localConfig: null });
         return localConfigResult.then(({ ok, localConfig }) => {
           if (cancelled || !mountedRef.current) return;
           const migratedSettings = ok

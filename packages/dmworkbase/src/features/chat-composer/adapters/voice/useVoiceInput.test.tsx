@@ -274,6 +274,7 @@ describe("useVoiceInput space lifecycle", () => {
     });
 
     expect(mocks.getLocalConfig).toHaveBeenCalledTimes(2);
+    expect(mocks.migrateServerConfig).toHaveBeenCalledTimes(1);
     expect(mocks.migrateServerConfig).toHaveBeenLastCalledWith(expect.objectContaining({ local_enabled: true, local_timeout_ms: 5000 }));
   });
 

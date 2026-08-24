@@ -23,6 +23,7 @@ export { VOICE_PROTOCOL_VERSION };
 // Keep the old marker untouched, but use a source-specific marker so users who
 // opened v1.14.0 before /voice/local-config was imported are still migrated.
 const LEGACY_LOCAL_CONFIG_MIGRATION = "legacy-local-config-migrated";
+const LOCAL_SETTINGS_USER_CONFIGURED = "local-settings-user-configured";
 const LEGACY_SPACE_SETTING_MIGRATION = "legacy-space-setting-migrated";
 const USER_SETTINGS_MARKER = "user-configured";
 const legacySpaceMigrationKey = (spaceId: string) => `${storageKey}.${LEGACY_SPACE_SETTING_MIGRATION}.${encodeURIComponent(spaceId)}`;
@@ -136,7 +137,12 @@ export const voiceSettingsStore = {
     };
     try {
       window.localStorage.setItem(storageKey, JSON.stringify(next));
-      if (!options.internal) window.localStorage.setItem(`${storageKey}.${USER_SETTINGS_MARKER}`, "1");
+      if (!options.internal) {
+        window.localStorage.setItem(`${storageKey}.${USER_SETTINGS_MARKER}`, "1");
+        if (Object.keys(patch).some((key) => key === "localEnabled" || key === "localTimeoutMs" || key === "localProbeUrl" || key === "localTranscribeUrl")) {
+          window.localStorage.setItem(`${storageKey}.${LOCAL_SETTINGS_USER_CONFIGURED}`, "1");
+        }
+      }
       current = next;
       listeners.forEach((listener) => listener({ ...current }));
       return { ...current };
@@ -153,6 +159,7 @@ export const voiceSettingsStore = {
     try {
       window.localStorage.removeItem(storageKey);
       window.localStorage.setItem(`${storageKey}.${USER_SETTINGS_MARKER}`, "1");
+      window.localStorage.setItem(`${storageKey}.${LOCAL_SETTINGS_USER_CONFIGURED}`, "1");
     } catch { /* unavailable storage */ }
     listeners.forEach((listener) => listener({ ...current }));
     return { ...current };
@@ -171,6 +178,10 @@ export const voiceSettingsStore = {
   }): VoiceSettings {
     try {
       if (window.localStorage.getItem(`${storageKey}.${LEGACY_LOCAL_CONFIG_MIGRATION}`) === "1") return { ...current };
+      if (window.localStorage.getItem(`${storageKey}.${LOCAL_SETTINGS_USER_CONFIGURED}`) === "1") {
+        window.localStorage.setItem(`${storageKey}.${LEGACY_LOCAL_CONFIG_MIGRATION}`, "1");
+        return { ...current };
+      }
       const patch: Partial<VoiceSettings> = {};
       if (typeof config.local_enabled === "boolean") patch.localEnabled = config.local_enabled;
       if (typeof config.local_timeout_ms === "number" && config.local_timeout_ms > 0) patch.localTimeoutMs = config.local_timeout_ms;
