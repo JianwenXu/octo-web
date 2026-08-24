@@ -186,7 +186,6 @@
 
 /* 输入框区域 */
 .wk-messageinput-inputbox {
-  position: relative;
   flex: 1;
   min-width: 0;
   display: flex;
@@ -487,18 +486,15 @@
   overflow: hidden;
   pointer-events: none;
   z-index: 1;
-  color: var(--text-tertiary);
-  font-size: 14px;
-  line-height: 20px;
+  font: var(--wk-text-body);
 }
 
 .wk-messageinput-placeholder-overlay.has-menu {
-  left: 36px;
+  left: calc(28px + var(--wk-sp-2));
 }
 
 .wk-messageinput-box--expanded .wk-messageinput-placeholder-overlay {
   align-items: flex-start;
-  padding-top: 0;
 }
 
 .wk-messageinput-placeholder-base {
@@ -515,12 +511,11 @@
   display: inline-flex;
   align-items: center;
   padding: 0 var(--wk-sp-1, 6px);
-  border: 1px solid var(--wk-border-subtle, rgba(28, 28, 35, 0.08));
-  border-radius: var(--wk-r-2, 4px);
-  background: var(--wk-bg-base, var(--input-bg));
-  color: var(--wk-text-tertiary, var(--text-tertiary));
-  font-size: 12px;
-  line-height: 18px;
+  border: 1px solid var(--wk-border-subtle);
+  border-radius: var(--wk-r-xs);
+  background: var(--wk-bg-base);
+  color: var(--wk-text-tertiary);
+  font: var(--wk-text-caption);
   white-space: nowrap;
 }
 

@@ -6,7 +6,7 @@ export type VoiceOs = "windows" | "macos";
 
 export interface VoiceSettings {
   enabled: boolean;
-  consent?: { protocolVersion: string; ackedAt: string };
+  consent?: { protocolVersion: string; ackedAt: string | null; migratedFrom?: "legacy-space-setting" };
   shortcutWindows: VoiceShortcut;
   shortcutMacos: VoiceShortcut;
   speakingMode: VoiceSpeakingMode;
@@ -22,6 +22,7 @@ export { VOICE_PROTOCOL_VERSION };
 const LEGACY_SERVER_MIGRATION = "legacy-server-config-migrated";
 const LEGACY_SPACE_SETTING_MIGRATION = "legacy-space-setting-migrated";
 const USER_SETTINGS_MARKER = "user-configured";
+const legacySpaceMigrationKey = (spaceId: string) => `${storageKey}.${LEGACY_SPACE_SETTING_MIGRATION}.${encodeURIComponent(spaceId)}`;
 
 export const VOICE_SETTINGS_DEFAULTS: VoiceSettings = {
   enabled: false,
@@ -42,6 +43,12 @@ const validModes = new Set<VoiceSpeakingMode>(["toggle", "hold"]);
 const listeners = new Set<(settings: VoiceSettings) => void>();
 const microphonePermissionListeners = new Set<(permission: PermissionState) => void>();
 let microphonePermission: PermissionState = "prompt";
+let microphonePermissionStatus: PermissionStatus | null = null;
+let microphonePermissionUndetectable = false;
+const microphonePermissionChangeHandler = () => {
+  const state = microphonePermissionStatus?.state;
+  if (state) setMicrophonePermission(state);
+};
 
 export function setMicrophonePermission(permission: PermissionState): void {
   microphonePermission = permission;
@@ -50,6 +57,8 @@ export function setMicrophonePermission(permission: PermissionState): void {
 
 export function getMicrophonePermission(): PermissionState { return microphonePermission; }
 
+export function isMicrophonePermissionUndetectable(): boolean { return microphonePermissionUndetectable; }
+
 export function subscribeMicrophonePermission(listener: (permission: PermissionState) => void): () => void {
   microphonePermissionListeners.add(listener);
   return () => microphonePermissionListeners.delete(listener);
@@ -57,17 +66,22 @@ export function subscribeMicrophonePermission(listener: (permission: PermissionS
 
 export async function refreshMicrophonePermission(): Promise<PermissionState> {
   if (!navigator.mediaDevices?.getUserMedia || !navigator.permissions?.query) {
-    setMicrophonePermission("prompt");
-    return "prompt";
+    microphonePermissionUndetectable = true;
+    setMicrophonePermission(microphonePermission);
+    return microphonePermission;
   }
   try {
     const status = await navigator.permissions.query({ name: "microphone" as PermissionName });
-    const permission = status.state === "granted" || status.state === "denied" ? status.state : "prompt";
-    setMicrophonePermission(permission);
-    return permission;
+    microphonePermissionStatus?.removeEventListener?.("change", microphonePermissionChangeHandler);
+    microphonePermissionStatus = status;
+    microphonePermissionUndetectable = false;
+    microphonePermissionStatus.addEventListener?.("change", microphonePermissionChangeHandler);
+    microphonePermissionChangeHandler();
+    return microphonePermission;
   } catch {
-    setMicrophonePermission("prompt");
-    return "prompt";
+    microphonePermissionUndetectable = true;
+    setMicrophonePermission(microphonePermission);
+    return microphonePermission;
   }
 }
 
@@ -164,33 +178,31 @@ export const voiceSettingsStore = {
     } catch { /* migration must not block voice input */ }
     return { ...current };
   },
-  migrateLegacySpaceSetting(voiceInputEnabled: number): VoiceSettings {
+  migrateLegacySpaceSetting(voiceInputEnabled: number, spaceId: string): VoiceSettings {
     try {
       const hasUserScopedStorage = storageKey !== VOICE_SETTINGS_KEY;
       const stored = JSON.parse(window.localStorage.getItem(storageKey) || "null") as Partial<VoiceSettings> | null;
-      const hasLocalVoicePreference = stored && [
-        "enabled",
-        "consent",
-        "shortcutWindows",
-        "shortcutMacos",
-        "speakingMode",
-        "microphoneDeviceId",
-      ].some((key) => Object.prototype.hasOwnProperty.call(stored, key));
-      const migrationKey = `${storageKey}.${LEGACY_SPACE_SETTING_MIGRATION}`;
+      const hasExplicitVoicePreference = Boolean(stored && (
+        stored.consent ||
+        stored.enabled === true ||
+        stored.shortcutWindows !== defaults.shortcutWindows ||
+        stored.shortcutMacos !== defaults.shortcutMacos ||
+        stored.speakingMode !== defaults.speakingMode ||
+        Boolean(stored.microphoneDeviceId)
+      ));
+      const migrationKey = legacySpaceMigrationKey(spaceId);
       const hasUserSettings = window.localStorage.getItem(`${storageKey}.${USER_SETTINGS_MARKER}`) === "1";
-      const hasGeneratedServerSettings = window.localStorage.getItem(`${storageKey}.${LEGACY_SERVER_MIGRATION}`) === "1";
-      if (!hasUserScopedStorage || hasUserSettings || (hasLocalVoicePreference && !hasGeneratedServerSettings) || window.localStorage.getItem(migrationKey) === "1") {
+      if (!hasUserScopedStorage || !spaceId || voiceInputEnabled !== 1 || hasUserSettings || hasExplicitVoicePreference || window.localStorage.getItem(migrationKey) === "1") {
         return { ...current };
       }
-      if (voiceInputEnabled === 1) {
-        current = this.set({
-          enabled: true,
-          consent: { protocolVersion: VOICE_PROTOCOL_VERSION, ackedAt: new Date().toISOString() },
-          shortcutWindows: "shift-left",
-          shortcutMacos: "shift-left",
-          speakingMode: "hold",
-        }, { internal: true });
-      }
+      current = this.set({
+        enabled: true,
+        // The legacy server flag is an existing opt-in, not a new consent interaction.
+        consent: { protocolVersion: VOICE_PROTOCOL_VERSION, ackedAt: null, migratedFrom: "legacy-space-setting" },
+        shortcutWindows: "shift-left",
+        shortcutMacos: "shift-left",
+        speakingMode: "hold",
+      }, { internal: true });
       window.localStorage.setItem(migrationKey, "1");
     } catch {
       // Migration must not block voice input.
@@ -209,6 +221,10 @@ export function getVoiceShortcut(settings: VoiceSettings, os: "windows" | "macos
 
 export function hasConfiguredVoiceShortcut(settings: VoiceSettings, os: VoiceOs): boolean {
   return getVoiceShortcut(settings, os) !== "disabled";
+}
+
+export function shouldShowVoiceShortcuts(settings: VoiceSettings, os: VoiceOs): boolean {
+  return settings.enabled && hasConfiguredVoiceShortcut(settings, os);
 }
 
 export function getVoiceShortcutLabelKey(shortcut: VoiceShortcut, os: VoiceOs): string {

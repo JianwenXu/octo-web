@@ -16,7 +16,7 @@ import { MeInfo } from "../MeInfo";
 import octoLogo from "../../assets/settings-center/octo-logo.png";
 import mininglampLogo from "../../assets/settings-center/mininglamp-logo.png";
 import { quickMuteStore } from "./QuickMuteStore";
-import { getMicrophonePermission, getVoiceShortcut, getVoiceShortcutLabelKey, hasConfiguredVoiceShortcut, setMicrophonePermission, VOICE_PROTOCOL_VERSION, VOICE_SETTINGS_DEFAULTS, voiceSettingsStore, type VoiceSettings, type VoiceShortcut } from "../../Service/VoiceSettingsStore";
+import { getMicrophonePermission, getVoiceShortcut, getVoiceShortcutLabelKey, shouldShowVoiceShortcuts, setMicrophonePermission, VOICE_PROTOCOL_VERSION, VOICE_SETTINGS_DEFAULTS, voiceSettingsStore, type VoiceSettings, type VoiceShortcut } from "../../Service/VoiceSettingsStore";
 import { getDocument } from "../../Service/DocumentService";
 import Checkbox from "../Checkbox";
 import { acceptVoiceInput } from "../../features/voice-input/useSpaceFeedbackSetting";
@@ -102,7 +102,7 @@ function DownloadsSettingsPage({ environment }: { environment: import("../../Run
 function ShortcutsSettingsPage({ environment }: { environment: import("../../Runtime").RuntimeEnvironment }) {
   const settings = useVoiceSettings();
   const os = getVoiceOs(environment);
-  if (!settings.enabled || !hasConfiguredVoiceShortcut(settings, os)) return null;
+  if (!shouldShowVoiceShortcuts(settings, os)) return null;
   return <SettingsPageFrame title={t("base.navRail.settingsCenter.page.shortcuts.title")}><div className="wk-settings-center__shortcut-catalog"><section className="wk-settings-center__shortcut-group"><h3>{t("base.navRail.settingsCenter.shortcut.voice")}</h3><ShortcutRow label={t("base.navRail.settingsCenter.shortcut.holdToTalk")} keys={[t(getVoiceShortcutLabelKey(getVoiceShortcut(settings, os), os)), voiceModeLabel(settings.speakingMode)]} /><ShortcutRow label={t("base.navRail.settingsCenter.shortcut.cancelVoice")} keys={["Esc"]} /></section></div></SettingsPageFrame>;
 }
 
@@ -243,7 +243,7 @@ function useVoiceSettings() {
   React.useEffect(() => voiceSettingsStore.subscribe(setSettings), []);
   return settings;
 }
-function getVoiceOs(environment: import("../../Runtime").RuntimeEnvironment): "windows" | "macos" { return environment.os === "macos" || (environment.os === "unknown" && /Mac|iPhone|iPad/i.test(navigator.userAgent)) ? "macos" : "windows"; }
+export function getVoiceOs(environment: import("../../Runtime").RuntimeEnvironment): "windows" | "macos" { return environment.os === "macos" || (environment.os === "unknown" && /Mac|iPhone|iPad/i.test(navigator.userAgent)) ? "macos" : "windows"; }
 function voiceShortcutLabel(shortcut: VoiceShortcut, os: "windows" | "macos") { return t(getVoiceShortcutLabelKey(shortcut, os)); }
 function voiceModeLabel(mode: VoiceSettings["speakingMode"]) { return t(mode === "hold" ? "base.navRail.settingsCenter.value.hold" : "base.navRail.settingsCenter.value.toggle"); }
 function VoiceInputSettingsPage({ environment }: { environment: import("../../Runtime").RuntimeEnvironment }) {
@@ -273,7 +273,7 @@ function VoiceInputSettingsPage({ environment }: { environment: import("../../Ru
     setDevices(audioInputs);
     const selectedId = voiceSettingsStore.get().microphoneDeviceId;
     if (getMicrophonePermission() === "granted" && selectedId && !audioInputs.some((device) => device.deviceId === selectedId)) {
-      voiceSettingsStore.set({ microphoneDeviceId: "" });
+      voiceSettingsStore.set({ microphoneDeviceId: "" }, { internal: true });
     }
   }, []);
   const refreshPermission = React.useCallback(async () => {

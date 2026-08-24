@@ -12,9 +12,11 @@ test("@TES16 @p1 @settings-center @voice @chat @consumer 设置语音后对话�
 
   await closeSettings(authedPage);
   await expect.poll(() => getComposerPlaceholder(authedPage)).toBe("发送给 TES16 语音设置群");
+  await expect(authedPage.locator(".wk-messageinput-shortcut-hint")).toHaveCount(1);
   await expect.poll(() => getComposerVoiceShortcutHint(authedPage)).toBe("按住左 Shift 进行语音输入");
 
   await authedPage.getByRole("textbox").fill("测试");
+  await expect(authedPage.locator(".wk-messageinput-shortcut-hint")).toHaveCount(0);
   await expect.poll(() => getComposerVoiceShortcutHint(authedPage)).toBe("");
   await authedPage.getByRole("textbox").fill("");
   await expect.poll(() => getComposerVoiceShortcutHint(authedPage)).toBe("按住左 Shift 进行语音输入");

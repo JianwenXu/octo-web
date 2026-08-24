@@ -13,6 +13,7 @@ test("@TES18 @p1 @settings-center @voice @chat @persistence 刷新后语音设�
   await content.getByRole("combobox", { name: "说话方式" }).selectOption("hold");
   await closeSettings(authedPage);
   await expect.poll(() => getComposerPlaceholder(authedPage)).toBe("发送给 TES18 持久化群");
+  await expect(authedPage.locator(".wk-messageinput-shortcut-hint")).toHaveCount(1);
   await expect.poll(() => getComposerVoiceShortcutHint(authedPage)).toBe("按住左 Shift 进行语音输入");
 
   await authedPage.reload();
@@ -20,6 +21,7 @@ test("@TES18 @p1 @settings-center @voice @chat @persistence 刷新后语音设�
   await authedPage.getByText("TES18 持久化群", { exact: true }).click();
   await authedPage.getByRole("textbox").waitFor({ state: "visible", timeout: 15_000 });
   await expect.poll(() => getComposerPlaceholder(authedPage)).toBe("发送给 TES18 持久化群");
+  await expect(authedPage.locator(".wk-messageinput-shortcut-hint")).toHaveCount(1);
   await expect.poll(() => getComposerVoiceShortcutHint(authedPage)).toBe("按住左 Shift 进行语音输入");
 
   const refreshedContent = await openVoiceSettings(authedPage);

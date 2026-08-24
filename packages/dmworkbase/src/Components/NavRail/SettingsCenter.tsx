@@ -5,9 +5,9 @@ import WKModal from "../WKModal";
 import "./SettingsCenter.css";
 import { detectRuntimeEnvironment, type RuntimeEnvironment } from "../../Runtime";
 import { getAvailableSettingsGroups, type SettingsItem } from "./settingsRegistry";
-import { SettingsPage } from "./settingsPages";
+import { getVoiceOs, SettingsPage } from "./settingsPages";
 import SecretsSettingsPanel from "../SecretsSettings/SecretsSettingsPanel";
-import { hasConfiguredVoiceShortcut, voiceSettingsStore } from "../../Service/VoiceSettingsStore";
+import { shouldShowVoiceShortcuts, voiceSettingsStore } from "../../Service/VoiceSettingsStore";
 
 const settingsIcons = { general: SlidersHorizontal, account: UserRound, notifications: Bell, voice: Mic, "desktop-behavior": Monitor, downloads: FolderDown, shortcuts: Keyboard, devices: MonitorSmartphone, about: Info } as const;
 
@@ -46,7 +46,7 @@ export default function SettingsCenter({ visible, isDesktop = false, environment
   const availableGroups = useMemo(
     () => getAvailableSettingsGroups({ environment: runtimeEnvironment }).map((group) => ({
       ...group,
-      items: group.items.filter((item) => item.id !== "shortcuts" || (voiceSettings.enabled && hasConfiguredVoiceShortcut(voiceSettings, runtimeEnvironment.os))),
+      items: group.items.filter((item) => item.id !== "shortcuts" || shouldShowVoiceShortcuts(voiceSettings, getVoiceOs(runtimeEnvironment))),
     })).filter((group) => group.items.length > 0),
     [runtimeEnvironment, voiceSettings],
   );
@@ -74,7 +74,7 @@ export default function SettingsCenter({ visible, isDesktop = false, environment
     }
   }, [visible]);
   React.useEffect(() => {
-    if (selectedId === "shortcuts" && (!voiceSettings.enabled || !hasConfiguredVoiceShortcut(voiceSettings, runtimeEnvironment.os))) {
+    if (selectedId === "shortcuts" && !shouldShowVoiceShortcuts(voiceSettings, getVoiceOs(runtimeEnvironment))) {
       setSelectedId(availableGroups[0]?.items[0]?.id ?? "general");
     }
   }, [availableGroups, runtimeEnvironment.os, selectedId, voiceSettings]);

@@ -109,7 +109,7 @@ export async function fetchAndApplySpaceSetting(
   try {
     const setting = await getSpaceSetting(spaceId);
     if (!isSpaceActive()) return;
-    voiceSettingsStore.migrateLegacySpaceSetting(setting.voice_input_enabled);
+    voiceSettingsStore.migrateLegacySpaceSetting(setting.voice_input_enabled, spaceId);
     setSharedSpaceSetting(setting, true, spaceId);
 
     if (

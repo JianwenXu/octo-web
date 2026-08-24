@@ -105,7 +105,7 @@ import type {
   ChatComposerViewHost,
   ChatComposerVoiceContext,
 } from "../ports";
-import { getMicrophonePermission, getVoiceShortcut, getVoiceShortcutLabelKey, refreshMicrophonePermission, subscribeMicrophonePermission, voiceSettingsStore, type VoiceSettings } from "../../../Service/VoiceSettingsStore";
+import { getMicrophonePermission, getVoiceShortcut, getVoiceShortcutLabelKey, isMicrophonePermissionUndetectable, refreshMicrophonePermission, subscribeMicrophonePermission, voiceSettingsStore, type VoiceSettings } from "../../../Service/VoiceSettingsStore";
 
 import { MAX_MESSAGE_LENGTH } from "../domain/constants";
 
@@ -134,9 +134,9 @@ function buildPlaceholder(name: string, t: typeof translate): string {
     : t("base.messageInput.placeholder.direct");
 }
 
-function voiceShortcutHint(t: typeof translate, settings: VoiceSettings, permission: PermissionState): string | undefined {
+function voiceShortcutHint(t: typeof translate, settings: VoiceSettings, permission: PermissionState, permissionUndetectable: boolean): string | undefined {
   const shortcut = getVoiceShortcut(settings, VOICE_OS);
-  if (!settings.enabled || shortcut === "disabled" || permission !== "granted") return undefined;
+  if (!settings.enabled || shortcut === "disabled" || (permission !== "granted" && !permissionUndetectable)) return undefined;
   const label = t(getVoiceShortcutLabelKey(shortcut, VOICE_OS));
   return settings.speakingMode === "hold"
     ? t("base.messageInput.shortcutHint.hold", { values: { shortcut: label } })
@@ -641,7 +641,7 @@ const ChatComposer: React.FC<ChatComposerProps> = (props) => {
       aborted = true;
       unsubscribeChannelTitle();
     };
-  }, [channelSnapshot.isDirect, channelSnapshot.key, props.host, t]);
+  }, [channelSnapshot.key, props.host, t]);
 
   const memberInfos = useMemo<MemberInfo[]>(
     () => buildMemberInfos(props.members),
@@ -1596,7 +1596,7 @@ const ChatComposer: React.FC<ChatComposerProps> = (props) => {
     !editorIsEmpty ||
     editorAttachments.length > 0 ||
     topAttachments.length > 0;
-  const shortcutHint = voiceShortcutHint(t, voiceSettings, microphonePermission);
+  const shortcutHint = voiceShortcutHint(t, voiceSettings, microphonePermission, isMicrophonePermissionUndetectable());
 
   // 设置 inputRef
   useEffect(() => {
@@ -1774,7 +1774,7 @@ const ChatComposer: React.FC<ChatComposerProps> = (props) => {
               </div>
             )}
             <div className="wk-messageinput-editor">
-              <EditorContent editor={editor} />
+              <EditorContent editor={editor} aria-label={placeholder} />
             </div>
           </div>
 
