@@ -87,6 +87,21 @@ describe("voiceSettingsStore", () => {
     expect(restoredStore.get().speakingMode).toBe("toggle");
   });
 
+  it("preserves a legacy disabled shortcut during migration", async () => {
+    localStorage.setItem(VOICE_SETTINGS_KEY, JSON.stringify({
+      enabled: true,
+      consent: { protocolVersion: VOICE_PROTOCOL_VERSION, ackedAt: new Date().toISOString() },
+      shortcutWindows: "disabled",
+      shortcutMacos: "disabled",
+    }));
+    vi.resetModules();
+    const { voiceSettingsStore: restoredStore } = await import("../VoiceSettingsStore");
+
+    expect(restoredStore.get().shortcutEnabled).toBe(false);
+    expect(restoredStore.get().shortcutWindows).toBe("disabled");
+    expect(restoredStore.get().shortcutMacos).toBe("disabled");
+  });
+
   it("rolls back the in-memory value when persistence fails", () => {
     voiceSettingsStore.set({ enabled: true });
     const originalStorage = window.localStorage;

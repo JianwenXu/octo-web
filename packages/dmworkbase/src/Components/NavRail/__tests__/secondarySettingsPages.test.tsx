@@ -61,8 +61,8 @@ describe("secondary settings pages", () => {
     expect(container.textContent).toContain("语音输入");
     expect(container.textContent).toContain("麦克风输入");
     expect(container.textContent).not.toContain("OctoASR");
-    expect(container.textContent).toContain("启用后，点按");
-    expect(container.textContent).toContain("设置使用");
+    expect(container.textContent).toContain("开启后，可将说话内容转换成文字");
+    expect(container.textContent).not.toContain("快捷键使用方式");
     expect(container.textContent).not.toContain("管理麦克风、快捷键和语音识别方式");
   });
 

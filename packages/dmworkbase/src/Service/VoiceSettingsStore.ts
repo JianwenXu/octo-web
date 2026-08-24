@@ -55,6 +55,22 @@ export function subscribeMicrophonePermission(listener: (permission: PermissionS
   return () => microphonePermissionListeners.delete(listener);
 }
 
+export async function refreshMicrophonePermission(): Promise<PermissionState> {
+  if (!navigator.mediaDevices?.getUserMedia || !navigator.permissions?.query) {
+    setMicrophonePermission("prompt");
+    return "prompt";
+  }
+  try {
+    const status = await navigator.permissions.query({ name: "microphone" as PermissionName });
+    const permission = status.state === "granted" || status.state === "denied" ? status.state : "prompt";
+    setMicrophonePermission(permission);
+    return permission;
+  } catch {
+    setMicrophonePermission("prompt");
+    return "prompt";
+  }
+}
+
 function normalizeLocalUrl(value: unknown, fallback: string): string {
   if (typeof value !== "string" || !value.trim()) return fallback;
   try {
@@ -75,9 +91,11 @@ function read(key = storageKey): VoiceSettings {
       ...defaults,
       ...value,
       enabled: value.enabled === true && value.consent?.protocolVersion === VOICE_PROTOCOL_VERSION,
-      shortcutEnabled: value.shortcutEnabled !== false,
-      shortcutWindows: value.shortcutWindows === "disabled" ? "alt-right" : defaults.shortcutWindows,
-      shortcutMacos: value.shortcutMacos === "disabled" ? "alt-right" : defaults.shortcutMacos,
+      shortcutEnabled: typeof value.shortcutEnabled === "boolean"
+        ? value.shortcutEnabled
+        : value.shortcutWindows !== "disabled" && value.shortcutMacos !== "disabled",
+      shortcutWindows: value.shortcutWindows === "disabled" ? "disabled" : defaults.shortcutWindows,
+      shortcutMacos: value.shortcutMacos === "disabled" ? "disabled" : defaults.shortcutMacos,
       speakingMode: validModes.has(value.speakingMode as VoiceSpeakingMode) ? value.speakingMode! : defaults.speakingMode,
       localTimeoutMs: typeof value.localTimeoutMs === "number" && value.localTimeoutMs > 0 ? value.localTimeoutMs : defaults.localTimeoutMs,
       microphoneDeviceId: typeof value.microphoneDeviceId === "string" ? value.microphoneDeviceId : "",

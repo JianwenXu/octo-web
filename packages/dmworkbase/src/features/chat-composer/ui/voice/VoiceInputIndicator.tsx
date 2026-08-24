@@ -14,7 +14,7 @@ import type {
   ChatComposerVoiceHost,
 } from "../../ports";
 import { useI18n } from "../../../../i18n";
-import { getMicrophonePermission, getVoiceShortcut, subscribeMicrophonePermission, voiceSettingsStore, voiceShortcutMatches } from "../../../../Service/VoiceSettingsStore";
+import { getMicrophonePermission, getVoiceShortcut, refreshMicrophonePermission, subscribeMicrophonePermission, voiceSettingsStore, voiceShortcutMatches } from "../../../../Service/VoiceSettingsStore";
 
 type ReplaceMode = "all" | "selection" | "insert";
 
@@ -60,6 +60,7 @@ export default function VoiceInputIndicator({
   const [microphonePermission, setMicrophonePermission] = useState(() => getMicrophonePermission());
   useEffect(() => voiceSettingsStore.subscribe(setVoiceSettings), []);
   useEffect(() => subscribeMicrophonePermission(setMicrophonePermission), []);
+  useEffect(() => { void refreshMicrophonePermission(); }, []);
   const shortcutStartedRef = useRef(false);
   const holdShortcutDownRef = useRef(false);
   const {

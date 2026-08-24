@@ -11,7 +11,7 @@ const VOICE_STORAGE_KEY = "octo.voice-input.v1.e2e-user-1";
 
 async function grantVoicePermission(page: Page): Promise<void> {
   await page.context().grantPermissions(["microphone"], {
-    origin: new URL(process.env.E2E_BASE_URL ?? "http://localhost:3000").origin,
+    origin: new URL(process.env.E2E_BASE_URL ?? `http://localhost:${process.env.PW_PREVIEW_PORT ?? "3000"}`).origin,
   });
 }
 
@@ -39,6 +39,9 @@ export async function prepareVoiceSettings(page: Page, settings: VoiceSeed): Pro
 export async function prepareVoiceConversation(page: Page, settings: VoiceSeed, name: string): Promise<void> {
   await grantVoicePermission(page);
   await page.addInitScript(({ key, settings: value, conversationName, protocolVersion }) => {
+    for (const os of ["windows", "macos"]) {
+      for (const mode of ["toggle", "hold"]) localStorage.removeItem(`${key}.learned.${os}.${mode}`);
+    }
     if (!localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify({
       enabled: value.enabled ?? true,
       shortcutEnabled: value.shortcutEnabled,
@@ -98,8 +101,7 @@ export async function closeSettings(page: Page): Promise<void> {
 }
 
 export async function getComposerPlaceholder(page: Page): Promise<string> {
-  const textbox = page.getByRole("textbox");
-  return (await textbox.locator("p[data-placeholder]").getAttribute("data-placeholder", { timeout: 1_000 })) ?? "";
+  return (await page.locator(".wk-messageinput-placeholder-base").textContent({ timeout: 1_000 })) ?? "";
 }
 
 export async function getComposerVoiceShortcutHint(page: Page): Promise<string> {

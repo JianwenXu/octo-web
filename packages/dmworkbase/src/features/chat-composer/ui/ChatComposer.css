@@ -197,6 +197,7 @@
 .wk-messageinput-placeholder-overlay {
   position: absolute;
   inset: 0;
+  z-index: 0;
   display: flex;
   min-width: 0;
   align-items: center;
@@ -206,6 +207,15 @@
   color: var(--text-tertiary);
   font-size: 14px;
   line-height: 20px;
+}
+
+.wk-messageinput-placeholder-overlay.has-menu {
+  left: 36px;
+}
+
+.wk-messageinput-box--expanded .wk-messageinput-placeholder-overlay {
+  align-items: flex-start;
+  top: 12px;
 }
 
 .wk-messageinput-placeholder-base {

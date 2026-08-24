@@ -105,7 +105,7 @@ import type {
   ChatComposerViewHost,
   ChatComposerVoiceContext,
 } from "../ports";
-import { getMicrophonePermission, isShortcutLearned, subscribeMicrophonePermission, voiceSettingsStore, type VoiceSettings } from "../../../Service/VoiceSettingsStore";
+import { getMicrophonePermission, isShortcutLearned, refreshMicrophonePermission, subscribeMicrophonePermission, voiceSettingsStore, type VoiceSettings } from "../../../Service/VoiceSettingsStore";
 
 import { MAX_MESSAGE_LENGTH } from "../domain/constants";
 
@@ -125,7 +125,7 @@ function commonRecoveredTarget(
 }
 
 /** 根据频道类型和名称生成 placeholder 文本 */
-function buildPlaceholder(_isDirect: boolean, name: string, t: typeof translate, _settings: VoiceSettings): string {
+function buildPlaceholder(name: string, t: typeof translate): string {
   return name
     ? t("base.messageInput.placeholder.directWithName", { values: { name } })
     : t("base.messageInput.placeholder.direct");
@@ -593,6 +593,7 @@ const ChatComposer: React.FC<ChatComposerProps> = (props) => {
 
   useEffect(() => voiceSettingsStore.subscribe(setVoiceSettings), []);
   useEffect(() => subscribeMicrophonePermission(setMicrophonePermission), []);
+  useEffect(() => { void refreshMicrophonePermission(); }, []);
 
   useEffect(() => {
     composerMountedRef.current = true;
@@ -617,10 +618,8 @@ const ChatComposer: React.FC<ChatComposerProps> = (props) => {
   // 动态生成 placeholder（channelInfo 异步加载后通过 listener 自动更新）
   const [placeholder, setPlaceholder] = useState(() => {
     return buildPlaceholder(
-      channelSnapshot.isDirect,
       props.host.getChannelTitle() || "",
       t,
-      voiceSettings,
     );
   });
 
@@ -631,7 +630,7 @@ const ChatComposer: React.FC<ChatComposerProps> = (props) => {
     const updateName = (name: string) => {
       if (aborted) return;
       if (props.host.getChannel().key !== channelKey) return;
-      setPlaceholder(buildPlaceholder(channelSnapshot.isDirect, name, t, voiceSettings));
+      setPlaceholder(buildPlaceholder(name, t));
     };
 
     updateName(props.host.getChannelTitle() || "");
@@ -1601,6 +1600,7 @@ const ChatComposer: React.FC<ChatComposerProps> = (props) => {
     }
   }, [editor, onInputRef]);
 
+  const shortcutHint = voiceShortcutHint(t, voiceSettings, microphonePermission);
   return (
     <div
       className={clazz("wk-messageinput-box", {
@@ -1764,11 +1764,11 @@ const ChatComposer: React.FC<ChatComposerProps> = (props) => {
               </div>
             )}
             {editor && editorIsEmpty && (
-              <div className="wk-messageinput-placeholder-overlay" aria-hidden="true">
+              <div className={`wk-messageinput-placeholder-overlay${botCommands && botCommands.length > 0 ? " has-menu" : ""}`} aria-hidden="true">
                 <span className="wk-messageinput-placeholder-base">{placeholder}</span>
-                {voiceShortcutHint(t, voiceSettings, microphonePermission) && (
+                {shortcutHint && (
                   <span className="wk-messageinput-shortcut-hint">
-                    {voiceShortcutHint(t, voiceSettings, microphonePermission)}
+                    {shortcutHint}
                   </span>
                 )}
               </div>

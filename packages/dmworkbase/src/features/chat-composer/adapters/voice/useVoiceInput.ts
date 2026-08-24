@@ -448,7 +448,7 @@ export default function useVoiceInput(
         setIsRecording(false);
 
         try {
-          if (blob.size === 0) {
+          if (blob.size === 0 || Date.now() - startTimeRef.current < 1000) {
             Toast.warning(t("base.voiceInput.error.noSpeech"));
             return;
           }
