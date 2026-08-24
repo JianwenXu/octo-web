@@ -30,8 +30,8 @@ describe("voiceShortcutMatches", () => {
 
 describe("voiceSettingsStore", () => {
   beforeEach(() => {
-    localStorage.clear();
     voiceSettingsStore.reset();
+    localStorage.clear();
   });
 
   it("defaults to disabled and persists validated local settings", () => {
@@ -71,6 +71,41 @@ describe("voiceSettingsStore", () => {
     const unchanged = voiceSettingsStore.migrateServerConfig({ local_enabled: false, local_probe_url: "http://localhost:8888" });
     expect(unchanged.localEnabled).toBe(true);
     expect(unchanged.localProbeUrl).toBe("http://localhost:9999/");
+  });
+
+  it("migrates an enabled legacy space setting to the old voice defaults", () => {
+    voiceSettingsStore.setUserId("legacy-user");
+
+    const migrated = voiceSettingsStore.migrateLegacySpaceSetting(1);
+
+    expect(migrated.enabled).toBe(true);
+    expect(migrated.shortcutWindows).toBe("shift-left");
+    expect(migrated.shortcutMacos).toBe("shift-left");
+    expect(migrated.speakingMode).toBe("hold");
+    expect(migrated.consent?.protocolVersion).toBe(VOICE_PROTOCOL_VERSION);
+    expect(localStorage.getItem(`${VOICE_SETTINGS_KEY}.legacy-user.legacy-space-setting-migrated`)).toBe("1");
+  });
+
+  it("does not overwrite an existing user setting during legacy migration", () => {
+    voiceSettingsStore.setUserId("legacy-user");
+    voiceSettingsStore.set({ enabled: false, shortcutWindows: "alt-right", speakingMode: "toggle" });
+
+    const current = voiceSettingsStore.migrateLegacySpaceSetting(1);
+
+    expect(current.enabled).toBe(false);
+    expect(current.shortcutWindows).toBe("alt-right");
+    expect(current.speakingMode).toBe("toggle");
+  });
+
+  it("migrates the legacy space setting after local ASR config migration", () => {
+    voiceSettingsStore.setUserId("legacy-user");
+    voiceSettingsStore.migrateServerConfig({ local_enabled: false, local_timeout_ms: 5000 });
+
+    const migrated = voiceSettingsStore.migrateLegacySpaceSetting(1);
+
+    expect(migrated.enabled).toBe(true);
+    expect(migrated.shortcutWindows).toBe("shift-left");
+    expect(migrated.speakingMode).toBe("hold");
   });
 
   it("isolates settings and consent by user id", () => {

@@ -2,6 +2,7 @@ import { VOICE_PROTOCOL_VERSION } from "./VoiceProtocol";
 
 export type VoiceShortcut = "alt-right" | "shift-right" | "shift-left" | "disabled";
 export type VoiceSpeakingMode = "toggle" | "hold";
+export type VoiceOs = "windows" | "macos";
 
 export interface VoiceSettings {
   enabled: boolean;
@@ -19,6 +20,8 @@ export interface VoiceSettings {
 export const VOICE_SETTINGS_KEY = "octo.voice-input.v1";
 export { VOICE_PROTOCOL_VERSION };
 const LEGACY_SERVER_MIGRATION = "legacy-server-config-migrated";
+const LEGACY_SPACE_SETTING_MIGRATION = "legacy-space-setting-migrated";
+const USER_SETTINGS_MARKER = "user-configured";
 
 export const VOICE_SETTINGS_DEFAULTS: VoiceSettings = {
   enabled: false,
@@ -50,6 +53,22 @@ export function getMicrophonePermission(): PermissionState { return microphonePe
 export function subscribeMicrophonePermission(listener: (permission: PermissionState) => void): () => void {
   microphonePermissionListeners.add(listener);
   return () => microphonePermissionListeners.delete(listener);
+}
+
+export async function refreshMicrophonePermission(): Promise<PermissionState> {
+  if (!navigator.mediaDevices?.getUserMedia || !navigator.permissions?.query) {
+    setMicrophonePermission("prompt");
+    return "prompt";
+  }
+  try {
+    const status = await navigator.permissions.query({ name: "microphone" as PermissionName });
+    const permission = status.state === "granted" || status.state === "denied" ? status.state : "prompt";
+    setMicrophonePermission(permission);
+    return permission;
+  } catch {
+    setMicrophonePermission("prompt");
+    return "prompt";
+  }
 }
 
 function normalizeLocalUrl(value: unknown, fallback: string): string {
@@ -90,7 +109,7 @@ let current = read();
 
 export const voiceSettingsStore = {
   get(): VoiceSettings { return { ...current }; },
-  set(patch: Partial<VoiceSettings>): VoiceSettings {
+  set(patch: Partial<VoiceSettings>, options: { internal?: boolean } = {}): VoiceSettings {
     const previous = current;
     const next = {
       ...current,
@@ -100,6 +119,7 @@ export const voiceSettingsStore = {
     };
     try {
       window.localStorage.setItem(storageKey, JSON.stringify(next));
+      if (!options.internal) window.localStorage.setItem(`${storageKey}.${USER_SETTINGS_MARKER}`, "1");
       current = next;
       listeners.forEach((listener) => listener({ ...current }));
       return { ...current };
@@ -113,7 +133,10 @@ export const voiceSettingsStore = {
   },
   reset(): VoiceSettings {
     current = { ...defaults };
-    try { window.localStorage.removeItem(storageKey); } catch { /* unavailable storage */ }
+    try {
+      window.localStorage.removeItem(storageKey);
+      window.localStorage.setItem(`${storageKey}.${USER_SETTINGS_MARKER}`, "1");
+    } catch { /* unavailable storage */ }
     listeners.forEach((listener) => listener({ ...current }));
     return { ...current };
   },
@@ -136,9 +159,42 @@ export const voiceSettingsStore = {
       if (typeof config.local_timeout_ms === "number" && config.local_timeout_ms > 0) patch.localTimeoutMs = config.local_timeout_ms;
       if (config.local_probe_url) patch.localProbeUrl = config.local_probe_url;
       if (config.local_transcribe_url) patch.localTranscribeUrl = config.local_transcribe_url;
-      if (Object.keys(patch).length > 0) current = this.set(patch);
+      if (Object.keys(patch).length > 0) current = this.set(patch, { internal: true });
       window.localStorage.setItem(`${storageKey}.${LEGACY_SERVER_MIGRATION}`, "1");
     } catch { /* migration must not block voice input */ }
+    return { ...current };
+  },
+  migrateLegacySpaceSetting(voiceInputEnabled: number): VoiceSettings {
+    try {
+      const hasUserScopedStorage = storageKey !== VOICE_SETTINGS_KEY;
+      const stored = JSON.parse(window.localStorage.getItem(storageKey) || "null") as Partial<VoiceSettings> | null;
+      const hasLocalVoicePreference = stored && [
+        "enabled",
+        "consent",
+        "shortcutWindows",
+        "shortcutMacos",
+        "speakingMode",
+        "microphoneDeviceId",
+      ].some((key) => Object.prototype.hasOwnProperty.call(stored, key));
+      const migrationKey = `${storageKey}.${LEGACY_SPACE_SETTING_MIGRATION}`;
+      const hasUserSettings = window.localStorage.getItem(`${storageKey}.${USER_SETTINGS_MARKER}`) === "1";
+      const hasGeneratedServerSettings = window.localStorage.getItem(`${storageKey}.${LEGACY_SERVER_MIGRATION}`) === "1";
+      if (!hasUserScopedStorage || hasUserSettings || (hasLocalVoicePreference && !hasGeneratedServerSettings) || window.localStorage.getItem(migrationKey) === "1") {
+        return { ...current };
+      }
+      if (voiceInputEnabled === 1) {
+        current = this.set({
+          enabled: true,
+          consent: { protocolVersion: VOICE_PROTOCOL_VERSION, ackedAt: new Date().toISOString() },
+          shortcutWindows: "shift-left",
+          shortcutMacos: "shift-left",
+          speakingMode: "hold",
+        }, { internal: true });
+      }
+      window.localStorage.setItem(migrationKey, "1");
+    } catch {
+      // Migration must not block voice input.
+    }
     return { ...current };
   },
   subscribe(listener: (settings: VoiceSettings) => void): () => void {
@@ -149,6 +205,19 @@ export const voiceSettingsStore = {
 
 export function getVoiceShortcut(settings: VoiceSettings, os: "windows" | "macos"): VoiceShortcut {
   return os === "macos" ? settings.shortcutMacos : settings.shortcutWindows;
+}
+
+export function hasConfiguredVoiceShortcut(settings: VoiceSettings, os: VoiceOs): boolean {
+  return getVoiceShortcut(settings, os) !== "disabled";
+}
+
+export function getVoiceShortcutLabelKey(shortcut: VoiceShortcut, os: VoiceOs): string {
+  if (shortcut === "alt-right") return os === "macos"
+    ? "base.navRail.settingsCenter.value.rightOption"
+    : "base.navRail.settingsCenter.value.rightAlt";
+  if (shortcut === "shift-right") return "base.navRail.settingsCenter.value.rightShift";
+  if (shortcut === "shift-left") return "base.navRail.settingsCenter.value.leftShift";
+  return "base.navRail.settingsCenter.value.disabled";
 }
 
 /**
