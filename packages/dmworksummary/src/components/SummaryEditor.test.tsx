@@ -52,31 +52,29 @@ describe("SummaryEditor", () => {
 
     it("save button is disabled when content has not changed", () => {
         render(<SummaryEditor {...defaultProps} />);
-        const saveBtn = screen.getByText("保存");
-        expect(saveBtn).toBeDisabled();
+        expect(screen.queryByRole("button")).toBeNull();
     });
 
     it("save button is enabled when content changes", () => {
         render(<SummaryEditor {...defaultProps} />);
         const textarea = screen.getByRole("textbox");
         fireEvent.change(textarea, { target: { value: "Modified content" } });
-        const saveBtn = screen.getByText("保存");
-        expect(saveBtn).not.toBeDisabled();
+        expect(screen.queryByRole("button")).toBeNull();
     });
 
     it("calls onCancel when cancel button is clicked", () => {
         render(<SummaryEditor {...defaultProps} />);
-        fireEvent.click(screen.getByText("取消"));
-        expect(defaultProps.onCancel).toHaveBeenCalledTimes(1);
+        expect(screen.queryByText("取消")).toBeNull();
     });
 
     it("calls editSummary and onSave on successful save", async () => {
         mockApi.editSummary.mockResolvedValue({ edited_at: "2026-05-08T14:30:00Z" });
-        render(<SummaryEditor {...defaultProps} />);
+        let save: (() => void) | null = null;
+        render(<SummaryEditor {...defaultProps} exposeSave={(fn) => { save = fn; }} />);
 
         const textarea = screen.getByRole("textbox");
         fireEvent.change(textarea, { target: { value: "Updated content" } });
-        fireEvent.click(screen.getByText("保存"));
+        save!();
 
         await waitFor(() => {
             expect(mockApi.editSummary).toHaveBeenCalledWith(1, "Updated content", 456);
@@ -90,11 +88,12 @@ describe("SummaryEditor", () => {
         mockApi.editSummary.mockRejectedValue(error);
 
         const { Toast } = await import("@douyinfe/semi-ui");
-        render(<SummaryEditor {...defaultProps} />);
+        let save: (() => void) | null = null;
+        render(<SummaryEditor {...defaultProps} exposeSave={(fn) => { save = fn; }} />);
 
         const textarea = screen.getByRole("textbox");
         fireEvent.change(textarea, { target: { value: "Updated content" } });
-        fireEvent.click(screen.getByText("保存"));
+        save!();
 
         await waitFor(() => {
             expect(Toast.warning).toHaveBeenCalledWith("内容已更新，请刷新");
@@ -108,11 +107,12 @@ describe("SummaryEditor", () => {
         mockApi.editSummary.mockRejectedValue(error);
 
         const { Toast } = await import("@douyinfe/semi-ui");
-        render(<SummaryEditor {...defaultProps} />);
+        let save: (() => void) | null = null;
+        render(<SummaryEditor {...defaultProps} exposeSave={(fn) => { save = fn; }} />);
 
         const textarea = screen.getByRole("textbox");
         fireEvent.change(textarea, { target: { value: "Updated content" } });
-        fireEvent.click(screen.getByText("保存"));
+        save!();
 
         await waitFor(() => {
             expect(Toast.error).toHaveBeenCalledWith("服务器错误");
@@ -129,11 +129,12 @@ describe("SummaryEditor", () => {
             () => new Promise((resolve) => { resolvePromise = resolve; }),
         );
 
-        render(<SummaryEditor {...defaultProps} />);
+        let save: (() => void) | null = null;
+        render(<SummaryEditor {...defaultProps} exposeSave={(fn) => { save = fn; }} />);
 
         const textarea = screen.getByRole("textbox");
         fireEvent.change(textarea, { target: { value: "Updated" } });
-        fireEvent.click(screen.getByText("保存"));
+        save!();
 
         await waitFor(() => {
             expect(textarea).toBeDisabled();

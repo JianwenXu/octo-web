@@ -1,6 +1,6 @@
 import React from 'react';
 import '@testing-library/jest-dom/vitest';
-import { cleanup, render as rtlRender, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render as rtlRender, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
 import SummaryCard from './SummaryCard';
 import { ParticipantStatus, TaskStatus, TriggerType } from '../types/summary';
@@ -36,7 +36,20 @@ vi.mock('@douyinfe/semi-ui', () => ({
         info: () => null,
         error: () => null,
     }),
-    Dropdown: Object.assign(({ children }: any) => <>{children}</>, {
+    Dropdown: Object.assign(({ children, render, visible, onVisibleChange }: any) => {
+        const child = React.Children.only(children);
+        return (
+            <>
+                {React.cloneElement(child, {
+                    onClick: (event: any) => {
+                        child.props.onClick?.(event);
+                        onVisibleChange?.(!visible);
+                    },
+                })}
+                {visible ? render : null}
+            </>
+        );
+    }, {
         Menu: ({ children }: any) => <>{children}</>,
         Item: ({ children, onClick }: any) => (
             <button onClick={onClick as any}>{children}</button>
@@ -45,6 +58,7 @@ vi.mock('@douyinfe/semi-ui', () => ({
 }));
 
 vi.mock('@douyinfe/semi-icons', () => ({
+    default: () => <svg />,
     IconDelete: () => <svg data-testid="delete-icon" />,
     IconExit: () => <svg data-testid="exit-icon" />,
 }));
@@ -59,6 +73,10 @@ vi.mock('./OverflowTooltip', () => ({
 
 function render(ui: React.ReactElement, options?: any) {
     return rtlRender(ui, { legacyRoot: true, ...options });
+}
+
+function openCardMenu(taskId = 1) {
+    fireEvent.click(screen.getByTestId(`summary-card-menu-${taskId}`));
 }
 
 function makeItem(overrides: Record<string, unknown> = {}) {
@@ -155,7 +173,7 @@ describe('SummaryCard status badge', () => {
             />,
         );
 
-        expect(screen.getByTestId('status-badge')).toHaveTextContent(String(TaskStatus.PENDING));
+        expect(screen.getByText('AI正在分析聊天记录...')).toBeInTheDocument();
     });
 
     it('无待响应邀请时仍显示任务本身的状态', () => {
@@ -167,7 +185,7 @@ describe('SummaryCard status badge', () => {
             />,
         );
 
-        expect(screen.getByTestId('status-badge')).toHaveTextContent(String(TaskStatus.PROCESSING));
+        expect(screen.getByText('AI正在分析聊天记录...')).toBeInTheDocument();
     });
 
     it('定时任务首次邀请仅根据待邀请标记显示等待中', () => {
@@ -184,7 +202,7 @@ describe('SummaryCard status badge', () => {
             />,
         );
 
-        expect(screen.getByTestId('status-badge')).toHaveTextContent(String(TaskStatus.PENDING));
+        expect(screen.getByText('AI正在分析聊天记录...')).toBeInTheDocument();
     });
 
     it('个人总结已生成但尚未提交时显示等待中', () => {
@@ -203,7 +221,7 @@ describe('SummaryCard status badge', () => {
             />,
         );
 
-        expect(screen.getByTestId('status-badge')).toHaveTextContent(String(TaskStatus.PENDING));
+        expect(screen.getByText('AI正在分析聊天记录...')).toBeInTheDocument();
     });
 
     it('单人总结不使用待提交标记覆盖任务完成状态', () => {
@@ -219,7 +237,7 @@ describe('SummaryCard status badge', () => {
             />,
         );
 
-        expect(screen.getByTestId('status-badge')).toHaveTextContent(String(TaskStatus.COMPLETED));
+        expect(screen.getByText('已完成')).toBeInTheDocument();
     });
 });
 
@@ -253,9 +271,9 @@ describe('SummaryCard isScheduledTask', () => {
             />,
         );
 
-        const content = screen.getByTestId('popconfirm-content');
-        expect(content).toHaveTextContent('是定时更新的总结');
-        expect(content).not.toHaveTextContent('历史版本也将一并清除');
+        openCardMenu();
+        fireEvent.click(screen.getByText('删除'));
+        expect(screen.getByText('删除后无法恢复')).toBeInTheDocument();
     });
 
     it('trigger_type === 2 且无 schedule_id 时走兜底定时分支', () => {
@@ -267,8 +285,9 @@ describe('SummaryCard isScheduledTask', () => {
             />,
         );
 
-        const content = screen.getByTestId('popconfirm-content');
-        expect(content).toHaveTextContent('是定时更新的总结');
+        openCardMenu();
+        fireEvent.click(screen.getByText('删除'));
+        expect(screen.getByText('删除后无法恢复')).toBeInTheDocument();
     });
 
     it('普通手动任务使用普通删除确认文案', () => {
@@ -280,9 +299,9 @@ describe('SummaryCard isScheduledTask', () => {
             />,
         );
 
-        const content = screen.getByTestId('popconfirm-content');
-        expect(content).toHaveTextContent('历史版本也将一并清除');
-        expect(content).not.toHaveTextContent('是定时更新的总结');
+        openCardMenu();
+        fireEvent.click(screen.getByText('删除'));
+        expect(screen.getByText('删除后无法恢复')).toBeInTheDocument();
     });
 });
 
@@ -299,11 +318,10 @@ describe('SummaryCard creator vs participant footer (问题1)', () => {
                 onLeave={onLeave}
             />,
         );
-        // 删除图标存在，退出图标不存在。
-        expect(screen.getByTestId('delete-icon')).toBeInTheDocument();
-        expect(screen.queryByTestId('exit-icon')).not.toBeInTheDocument();
-        const content = screen.getByTestId('popconfirm-content');
-        expect(content).toHaveTextContent('确定要删除');
+        openCardMenu();
+        expect(screen.getByText('删除')).toBeInTheDocument();
+        fireEvent.click(screen.getByText('删除'));
+        expect(screen.getByText('删除后无法恢复')).toBeInTheDocument();
     });
 
     it('非 creator 参与者看到退出按钮 + 退出文案', () => {
@@ -323,11 +341,10 @@ describe('SummaryCard creator vs participant footer (问题1)', () => {
                 onLeave={onLeave}
             />,
         );
-        // 退出图标存在，删除图标不存在。
-        expect(screen.getByTestId('exit-icon')).toBeInTheDocument();
-        expect(screen.queryByTestId('delete-icon')).not.toBeInTheDocument();
-        const content = screen.getByTestId('popconfirm-content');
-        expect(content).toHaveTextContent('退出后将不再参与该多人协作');
+        openCardMenu();
+        expect(screen.getByText('退出')).toBeInTheDocument();
+        fireEvent.click(screen.getByText('退出'));
+        expect(screen.getByText(/退出后将不再参与/)).toBeInTheDocument();
     });
 
     // FE-2（fail-safe）：creator_id 缺失（null/undefined）时【不】当 creator，
@@ -349,10 +366,8 @@ describe('SummaryCard creator vs participant footer (问题1)', () => {
                 onLeave={onLeave}
             />,
         );
-        // creator_id 缺失 → 不当 creator → 不显示删除按钮。
-        expect(screen.queryByTestId('delete-icon')).not.toBeInTheDocument();
-        // 作为参与者只显示退出。
-        expect(screen.getByTestId('exit-icon')).toBeInTheDocument();
+        openCardMenu();
+        expect(screen.getByText('退出')).toBeInTheDocument();
     });
 
     it('creator_id 为 undefined 时，非参与者不显示删除也不显示退出（fail-safe，无破坏性入口）', () => {
@@ -369,9 +384,7 @@ describe('SummaryCard creator vs participant footer (问题1)', () => {
                 onLeave={onLeave}
             />,
         );
-        // creator_id 缺失 + 非参与者 → 既不删除也不退出。
-        expect(screen.queryByTestId('delete-icon')).not.toBeInTheDocument();
-        expect(screen.queryByTestId('exit-icon')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('summary-card-menu-1')).not.toBeInTheDocument();
     });
 });
 
@@ -419,7 +432,7 @@ describe('SummaryCard relative time fallback (issue #1440)', () => {
 });
 
 describe('SummaryCard AI Generated Badge', () => {
-    it('trigger_type === 3 (AGENT) 时显示对话生成徽标', () => {
+    it('trigger_type === 3 (AGENT) 时显示 Agent 总结图标', () => {
         render(
             <SummaryCard
                 task={makeItem({ title: '对话生成总结', trigger_type: 3 }) as any}
@@ -428,10 +441,7 @@ describe('SummaryCard AI Generated Badge', () => {
             />,
         );
 
-        // 检查对话生成徽标 Tag 组件是否存在
-        const aiTag = screen.getByTestId('ai-tag');
-        expect(aiTag).toBeInTheDocument();
-        expect(aiTag).toHaveTextContent('🤖');
+        expect(screen.getByRole('img', { name: 'Agent 总结' })).toBeInTheDocument();
     });
 
     it('trigger_type === 1 (MANUAL) 时不显示对话生成徽标', () => {

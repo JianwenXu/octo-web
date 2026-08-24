@@ -1,4 +1,7 @@
 import { evaluatePasswordStrength, validatePassword } from '@octo/login/src/passwordStrength';
+import { i18n } from '@octo/base/src/i18n/instance';
+
+i18n.setLocale('zh-CN', { notify: false, persist: false });
 
 describe('evaluatePasswordStrength', () => {
     describe('empty password', () => {
