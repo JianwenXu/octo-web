@@ -1695,7 +1695,6 @@
   "navRail.settingsCenter.about.updateAvailableDescription": "发现新版本，刷新页面后生效：{{version}}",
   "navRail.settingsCenter.about.latestVersionDescription": "当前已是最新版本。",
   "navRail.settingsCenter.about.updateCheckFailedDescription": "暂时无法确认版本状态，请稍后重试。",
-  "navRail.settingsCenter.about.desktopUpdateDescription": "当前已经是最新版本。",
   "navRail.settingsCenter.row.updateCheck": "更新检查",
   "navRail.settingsCenter.row.updateCheckDescription": "复用现有版本检查和更新日志能力",
   "navRail.settingsCenter.action.check": "检查",

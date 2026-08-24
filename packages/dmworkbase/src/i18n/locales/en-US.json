@@ -1695,7 +1695,6 @@
   "navRail.settingsCenter.about.updateAvailableDescription": "A new version is available. Refresh to apply: {{version}}",
   "navRail.settingsCenter.about.latestVersionDescription": "You are using the latest version.",
   "navRail.settingsCenter.about.updateCheckFailedDescription": "The version could not be checked. Please try again later.",
-  "navRail.settingsCenter.about.desktopUpdateDescription": "You are using the latest version.",
   "navRail.settingsCenter.row.updateCheck": "Check for updates",
   "navRail.settingsCenter.row.updateCheckDescription": "Use the existing update check and changelog",
   "navRail.settingsCenter.action.check": "Check",
