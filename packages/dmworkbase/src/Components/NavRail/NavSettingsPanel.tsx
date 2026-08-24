@@ -6,6 +6,7 @@ import { t } from "../../i18n";
 import { checkVersionOnceWithStatus } from "../../Utils/versionChecker";
 import ChangelogMarkdown from "./ChangelogMarkdown";
 import SettingsCenter, { OpenSecretsRequest } from "./SettingsCenter";
+import type { AboutUpdateStatus } from "./settingsPages";
 
 export interface NavSettingsPanelProps {
     settingSelected: boolean;
@@ -30,7 +31,7 @@ interface NavSettingsPanelState {
 export default class NavSettingsPanel extends Component<NavSettingsPanelProps, NavSettingsPanelState> {
     private secretsSequence = 0;
 
-    state: NavSettingsPanelState = { secretsRequest: null, aboutUpdateStatus: { status: "latest" } };
+    state: NavSettingsPanelState = { secretsRequest: null, aboutUpdateStatus: { status: "skipped" } };
 
     componentDidMount() {
         WKApp.mittBus.on("wk:open-secrets", this.handleOpenSecrets);

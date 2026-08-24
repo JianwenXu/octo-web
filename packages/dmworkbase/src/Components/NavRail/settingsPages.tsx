@@ -30,7 +30,7 @@ export function SettingsRow({ title, description, trailing, children }: { title:
 function SettingsSection({ title, children }: { title: string; children: React.ReactNode }) { return <section className="wk-settings-center__settings-section"><h3>{title}</h3>{children}</section>; }
 
 export type ResourceStatus = "available" | "unavailable" | "coming-soon";
-export type AboutUpdateStatus = { status: Extract<VersionCheckResult["status"], "latest" | "update" | "failed">; version?: string };
+export type AboutUpdateStatus = { status: Extract<VersionCheckResult["status"], "latest" | "update" | "failed" | "skipped">; version?: string };
 type ResourceDefinition = {
   id: string;
   titleKey: string;
@@ -218,17 +218,22 @@ function NotificationsSettingsPage({ environment }: { environment: import("../..
   </SettingsPageFrame>;
 }
 function SettingsPageFrame({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) { return <div className="wk-settings-center__page"><header className="wk-settings-center__page-header"><h2>{title}</h2>{description && <p>{description}</p>}</header><section className="wk-settings-center__section-content">{children}</section></div>; }
-function AboutSettingsPage({ environment, onAbout, aboutUpdateStatus = { status: "latest" }, onOpenOnboarding }: { environment: import("../../Runtime").RuntimeEnvironment; onAbout?: () => void; aboutUpdateStatus?: AboutUpdateStatus; onOpenOnboarding?: () => void }) {
+function AboutSettingsPage({ environment, onAbout, aboutUpdateStatus = { status: "skipped" }, onOpenOnboarding }: { environment: import("../../Runtime").RuntimeEnvironment; onAbout?: () => void; aboutUpdateStatus?: AboutUpdateStatus; onOpenOnboarding?: () => void }) {
   const productManualUrl = "/product-docs";
   const runtimeLabel = t(environment.target === "desktop" ? "base.navRail.settingsCenter.about.desktop" : "base.navRail.settingsCenter.about.web");
-  const platformLabel = t(environment.os === "macos" ? "base.navRail.settingsCenter.about.macos" : "base.navRail.settingsCenter.about.windows");
+  const platformKey = environment.os === "macos" ? "base.navRail.settingsCenter.about.macos" : environment.os === "windows" ? "base.navRail.settingsCenter.about.windows" : environment.os === "linux" ? "base.navRail.settingsCenter.about.linux" : undefined;
+  const platformLabel = platformKey ? t(platformKey) : "";
   const isDesktop = environment.target === "desktop";
   const updateAvailable = aboutUpdateStatus.status === "update";
-  const statusTone = aboutUpdateStatus.status === "failed" ? "danger" : updateAvailable ? "attention" : "success";
-  const statusLabel = aboutUpdateStatus.status === "failed" ? t("base.navRail.settingsCenter.value.updateCheckFailed") : updateAvailable ? t("base.navRail.settingsCenter.value.updateAvailable") : t("base.navRail.settingsCenter.value.latestVersion");
+  const statusTone = aboutUpdateStatus.status === "failed" ? "danger" : updateAvailable ? "attention" : aboutUpdateStatus.status === "latest" ? "success" : "neutral";
+  const statusLabel = aboutUpdateStatus.status === "failed" ? t("base.navRail.settingsCenter.value.updateCheckFailed") : updateAvailable ? t("base.navRail.settingsCenter.value.updateAvailable") : aboutUpdateStatus.status === "latest" ? t("base.navRail.settingsCenter.value.latestVersion") : t("base.navRail.settingsCenter.value.updateNotChecked");
   const updateDescription = updateAvailable && aboutUpdateStatus.version
-    ? `${t("base.navRail.settingsCenter.about.updateAvailableDescription")} ${aboutUpdateStatus.version}`
-    : t("base.navRail.settingsCenter.about.webUpdateDescription");
+    ? t("base.navRail.settingsCenter.about.updateAvailableDescription", { values: { version: aboutUpdateStatus.version } })
+    : aboutUpdateStatus.status === "failed"
+      ? t("base.navRail.settingsCenter.about.updateCheckFailedDescription")
+      : aboutUpdateStatus.status === "latest"
+        ? t("base.navRail.settingsCenter.about.latestVersionDescription")
+        : t("base.navRail.settingsCenter.about.webUpdateDescription");
   const externalLink = (label: string, href: string) => {
     const handleClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
       const linksBridge = getElectronLinksBridge();
@@ -252,7 +257,7 @@ function AboutSettingsPage({ environment, onAbout, aboutUpdateStatus = { status:
   return <SettingsPageFrame title={t("base.navRail.settingsCenter.page.about.title")}>
     <div className="wk-settings-center__about-identity">
       <img className="wk-settings-center__about-logo" src={octoLogo} alt={t("base.navRail.settingsCenter.about.octoLogoAlt")} />
-      <div className="wk-settings-center__about-copy"><strong>{isDesktop ? "Octo Desktop" : "Octo Web"}</strong><span>{runtimeLabel} · {platformLabel} · {t("base.navRail.settingsCenter.page.about.versionPrefix")}{t("base.navRail.settingsCenter.about.versionSeparator")}{WKApp.config.appVersion}</span><span>{updateAvailable ? updateDescription : t(isDesktop ? "base.navRail.settingsCenter.about.desktopUpdateDescription" : "base.navRail.settingsCenter.about.webUpdateDescription")}</span></div>
+      <div className="wk-settings-center__about-copy"><strong>{isDesktop ? "Octo Desktop" : "Octo Web"}</strong><span>{[runtimeLabel, platformLabel, `${t("base.navRail.settingsCenter.page.about.versionPrefix")}${t("base.navRail.settingsCenter.about.versionSeparator")}${WKApp.config.appVersion}`].filter(Boolean).join(" · ")}</span><span>{updateDescription}</span></div>
       <div className="wk-settings-center__about-update-actions"><SettingsStatusTag tone={statusTone} label={statusLabel} /><button type="button" className="wk-settings-center__about-update" onClick={onAbout}>{updateAvailable ? t("base.navRail.settingsCenter.action.refresh") : t("base.navRail.settingsCenter.action.checkUpdate")}</button></div>
     </div>
     <SettingsSection title={t("base.navRail.settingsCenter.section.help")}>

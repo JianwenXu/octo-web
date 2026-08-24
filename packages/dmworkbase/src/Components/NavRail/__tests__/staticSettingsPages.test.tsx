@@ -98,12 +98,23 @@ describe("static settings pages", () => {
   it("shows about version actions on web and desktop", () => {
     renderPage("about");
     expect(container.querySelector(".wk-settings-center__about-update-actions")).toBeTruthy();
-    expect(container.querySelector(".wk-settings-status-tag")?.textContent).toContain("当前已是最新版本");
+    expect(container.querySelector(".wk-settings-status-tag")?.textContent).toContain("尚未检查");
     expect(container.querySelector(".wk-settings-center__about-update")?.textContent).toBe("检查更新");
 
     renderPage("about", { environment: { ...webEnvironment, target: "desktop" } });
     expect(container.querySelector(".wk-settings-center__about-update-actions")).toBeTruthy();
-    expect(container.querySelector(".wk-settings-status-tag")?.textContent).toContain("当前已是最新版本");
+    expect(container.querySelector(".wk-settings-status-tag")?.textContent).toContain("尚未检查");
     expect(container.querySelector(".wk-settings-center__about-update")?.textContent).toBe("检查更新");
+  });
+
+  it("keeps the about copy aligned with the version status", () => {
+    renderPage("about", { aboutUpdateStatus: { status: "update", version: "2.0.0" } });
+    expect(container.querySelector(".wk-settings-status-tag")?.textContent).toContain("发现新版本");
+    expect(container.textContent).toContain("发现新版本，刷新页面后生效：2.0.0");
+    expect(container.querySelector(".wk-settings-center__about-update")?.textContent).toBe("刷新");
+
+    renderPage("about", { aboutUpdateStatus: { status: "failed" } });
+    expect(container.querySelector(".wk-settings-status-tag")?.textContent).toContain("检查更新失败");
+    expect(container.textContent).toContain("暂时无法确认版本状态");
   });
 });
