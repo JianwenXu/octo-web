@@ -23,6 +23,7 @@ const mockState = vi.hoisted(() => ({
   contactsList: [] as any[],
   loginUid: "self-uid",
   loginName: "Me",
+  getGlobalFileTypes: vi.fn(),
 }));
 
 vi.mock("../../../App", () => ({
@@ -71,12 +72,19 @@ vi.mock("wukongimjssdk", () => ({
   },
 }));
 
+vi.mock("../../../Service/SearchService", () => ({
+  default: {
+    getGlobalFileTypes: mockState.getGlobalFileTypes,
+  },
+}));
+
 import { createGlobalSearchApiDataSource } from "../dataSource";
 
 describe("loadSenderCandidates (via searchSenders)", () => {
   beforeEach(() => {
     mockState.commonDataSource = undefined;
     mockState.contactsList = [];
+    mockState.getGlobalFileTypes.mockReset();
   });
 
   it("§1: maps ChannelInfo[] from commonDataSource.searchFriends into ChannelSearchSender", async () => {
@@ -211,5 +219,18 @@ describe("loadSenderCandidates (via searchSenders)", () => {
 
     const ds = createGlobalSearchApiDataSource();
     await expect(ds.searchSenders("")).resolves.toBeDefined();
+  });
+
+  it("caches file type categories and shares the configured cache", async () => {
+    const categories = [{ key: "image", label: "Images", exts: ["png"] }];
+    mockState.getGlobalFileTypes.mockResolvedValue(categories);
+    const cache = { get: vi.fn(() => undefined), set: vi.fn() };
+    const ds = createGlobalSearchApiDataSource({ fileTypeCategoriesCache: cache });
+
+    await expect(ds.getFileTypeCategories()).resolves.toEqual(categories);
+    await expect(ds.getFileTypeCategories()).resolves.toEqual(categories);
+
+    expect(mockState.getGlobalFileTypes).toHaveBeenCalledOnce();
+    expect(cache.set).toHaveBeenCalledWith(categories);
   });
 });
