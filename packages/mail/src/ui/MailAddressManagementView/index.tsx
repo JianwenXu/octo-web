@@ -15,6 +15,11 @@ import {
   X,
 } from "lucide-react";
 import type { AgentMailbox, AgentOutboundMode } from "../../bridge/types";
+import {
+  agentMailboxLocalpartMaxLength,
+  agentMailboxLocalpartMinLength,
+  isValidAgentMailboxLocalpart,
+} from "../../utils";
 import "./index.css";
 
 interface Translator {
@@ -68,6 +73,14 @@ export default function MailAddressManagementView(
   props: MailAddressManagementViewProps
 ) {
   const { t } = props;
+  const normalizedLocalpart = props.localpart.trim();
+  const localpartValidationMessage = normalizedLocalpart
+    ? normalizedLocalpart.length < agentMailboxLocalpartMinLength
+      ? t("mail.addresses.localpartTooShort")
+      : !isValidAgentMailboxLocalpart(normalizedLocalpart)
+      ? t("mail.addresses.localpartInvalid")
+      : ""
+    : "";
   return (
     <main className="octo-mail-addresses">
       <section className="octo-mail-addresses__header">
@@ -280,6 +293,14 @@ export default function MailAddressManagementView(
                 <input
                   value={props.localpart}
                   disabled={props.mailboxes.length >= props.maxMailboxes}
+                  minLength={agentMailboxLocalpartMinLength}
+                  maxLength={agentMailboxLocalpartMaxLength}
+                  aria-invalid={Boolean(localpartValidationMessage)}
+                  aria-describedby={
+                    localpartValidationMessage
+                      ? "octo-mail-addresses-localpart-validation"
+                      : "octo-mail-addresses-create-hint"
+                  }
                   placeholder={t("mail.addresses.placeholder")}
                   onChange={(event) =>
                     props.onLocalpartChange(event.target.value.toLowerCase())
@@ -295,7 +316,7 @@ export default function MailAddressManagementView(
               type="button"
               disabled={
                 props.submitting ||
-                !props.localpart.trim() ||
+                !isValidAgentMailboxLocalpart(props.localpart) ||
                 !props.domain ||
                 props.mailboxes.length >= props.maxMailboxes
               }
@@ -309,7 +330,20 @@ export default function MailAddressManagementView(
               {t("mail.addresses.create")}
             </button>
           </div>
-          <p className="octo-mail-addresses__hint">
+          {localpartValidationMessage ? (
+            <p
+              id="octo-mail-addresses-localpart-validation"
+              className="octo-mail-addresses__validation"
+              role="alert"
+            >
+              <AlertCircle size={14} />
+              {localpartValidationMessage}
+            </p>
+          ) : null}
+          <p
+            id="octo-mail-addresses-create-hint"
+            className="octo-mail-addresses__hint"
+          >
             {t("mail.addresses.createLimitHint", {
               values: {
                 count: props.mailboxes.length,
@@ -374,6 +408,38 @@ export default function MailAddressManagementView(
                 {t("mail.agentMailboxes.cliSetup")}
               </button>
             </div>
+            <dl className="octo-mail-setup-dialog__method-guide">
+              <div>
+                <dt>{t("mail.agentMailboxes.setupScenarioLabel")}</dt>
+                <dd>
+                  {t(
+                    props.setupMethod === "cli"
+                      ? "mail.agentMailboxes.cliSetupScenario"
+                      : "mail.agentMailboxes.openClawSetupScenario"
+                  )}
+                </dd>
+              </div>
+              <div>
+                <dt>{t("mail.agentMailboxes.setupBenefitLabel")}</dt>
+                <dd>
+                  {t(
+                    props.setupMethod === "cli"
+                      ? "mail.agentMailboxes.cliSetupBenefit"
+                      : "mail.agentMailboxes.openClawSetupBenefit"
+                  )}
+                </dd>
+              </div>
+              <div>
+                <dt>{t("mail.agentMailboxes.setupNoticeLabel")}</dt>
+                <dd>
+                  {t(
+                    props.setupMethod === "cli"
+                      ? "mail.agentMailboxes.cliSetupNotice"
+                      : "mail.agentMailboxes.openClawSetupNotice"
+                  )}
+                </dd>
+              </div>
+            </dl>
             <div className="octo-mail-setup-dialog__divider" />
             <h3>
               {t(

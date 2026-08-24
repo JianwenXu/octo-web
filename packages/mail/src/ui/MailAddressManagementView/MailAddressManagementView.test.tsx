@@ -77,6 +77,50 @@ describe("MailAddressManagementView automation mode", () => {
     expect(createButton?.disabled).toBe(true);
   });
 
+  it.each(["bot1", "admin", "postmaster"])(
+    "disables mailbox creation for invalid name %s",
+    (localpart) => {
+      const container = document.createElement("div");
+      const root = createRoot(container);
+      containers.push({ container, root });
+      document.body.appendChild(container);
+      const invalidProps = props(vi.fn());
+      invalidProps.localpart = localpart;
+
+      act(() => {
+        root.render(<MailAddressManagementView {...invalidProps} />);
+      });
+
+      const createButton = Array.from(
+        container.querySelectorAll("button")
+      ).find((button) => button.textContent?.includes("mail.addresses.create"));
+      expect(createButton?.disabled).toBe(true);
+    }
+  );
+
+  it("explains why a short mailbox name cannot be created", () => {
+    const container = document.createElement("div");
+    const root = createRoot(container);
+    containers.push({ container, root });
+    document.body.appendChild(container);
+    const invalidProps = props(vi.fn());
+    invalidProps.localpart = "11";
+
+    act(() => {
+      root.render(<MailAddressManagementView {...invalidProps} />);
+    });
+
+    const input = container.querySelector("input");
+    const validation = container.querySelector(
+      "#octo-mail-addresses-localpart-validation"
+    );
+    expect(input?.getAttribute("aria-invalid")).toBe("true");
+    expect(input?.getAttribute("aria-describedby")).toBe(validation?.id);
+    expect(validation?.textContent).toContain(
+      "mail.addresses.localpartTooShort"
+    );
+  });
+
   it("offers CLI setup without changing or closing the existing setup dialog", () => {
     const onSetupMethodChange = vi.fn();
     const onCloseSetup = vi.fn();
@@ -101,6 +145,12 @@ describe("MailAddressManagementView automation mode", () => {
     expect(methods).toHaveLength(2);
     expect(methods[0]?.getAttribute("aria-pressed")).toBe("true");
     expect(methods[1]?.getAttribute("aria-pressed")).toBe("false");
+    expect(container.textContent).toContain(
+      "mail.agentMailboxes.openClawSetupScenario"
+    );
+    expect(container.textContent).not.toContain(
+      "mail.agentMailboxes.cliSetupScenario"
+    );
 
     act(() => {
       methods[1]?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
@@ -108,6 +158,25 @@ describe("MailAddressManagementView automation mode", () => {
     expect(onSetupMethodChange).toHaveBeenCalledWith("cli");
     expect(onCloseSetup).not.toHaveBeenCalled();
     expect(container.querySelector('[role="dialog"]')).not.toBeNull();
+
+    act(() => {
+      root.render(
+        <MailAddressManagementView {...setupProps} setupMethod="cli" />
+      );
+    });
+    const updatedMethods = Array.from(
+      container.querySelectorAll<HTMLButtonElement>(
+        ".octo-mail-setup-dialog__methods button"
+      )
+    );
+    expect(updatedMethods[0]?.getAttribute("aria-pressed")).toBe("false");
+    expect(updatedMethods[1]?.getAttribute("aria-pressed")).toBe("true");
+    expect(container.textContent).toContain(
+      "mail.agentMailboxes.cliSetupScenario"
+    );
+    expect(container.textContent).not.toContain(
+      "mail.agentMailboxes.openClawSetupScenario"
+    );
   });
 });
 
