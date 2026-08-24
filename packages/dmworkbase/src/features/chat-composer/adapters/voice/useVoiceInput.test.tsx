@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   getConfig: vi.fn(),
+  getLocalConfig: vi.fn(),
   getVoiceContext: vi.fn(),
   transcribe: vi.fn(),
   clearVoiceContextCache: vi.fn(),
@@ -58,6 +59,7 @@ vi.mock("../../../../Service/VoiceService", () => ({
   default: {
     shared: {
       getConfig: (...args: unknown[]) => mocks.getConfig(...args),
+      getLocalConfig: (...args: unknown[]) => mocks.getLocalConfig(...args),
       getVoiceContext: (...args: unknown[]) => mocks.getVoiceContext(...args),
       transcribe: (...args: unknown[]) => mocks.transcribe(...args),
       clearVoiceContextCache: (...args: unknown[]) =>
@@ -205,6 +207,7 @@ beforeEach(() => {
     localTimeoutMs: 10000,
   });
   mocks.getConfig.mockResolvedValue({ enabled: true });
+  mocks.getLocalConfig.mockResolvedValue({ enabled: false, timeout_ms: null, probe_url: null, transcribe_url: null });
   mocks.getVoiceContext.mockResolvedValue({ has_context: false });
   mocks.fetchAndApplySpaceSetting.mockResolvedValue(undefined);
   mocks.probeLocal.mockResolvedValue(false);
@@ -230,6 +233,23 @@ afterEach(() => {
 });
 
 describe("useVoiceInput space lifecycle", () => {
+  it("loads legacy local service settings for migration", async () => {
+    mocks.getLocalConfig.mockResolvedValue({
+      enabled: true,
+      timeout_ms: 5000,
+      probe_url: "http://127.0.0.1:9000/",
+      transcribe_url: "http://127.0.0.1:9000/v1/voice/transcribe",
+    });
+    const current = createHost("space-a");
+
+    await act(async () => {
+      ReactDOM.render(<Probe host={current.host} onTranscribed={() => undefined} />, container);
+      await flush();
+    });
+
+    expect(mocks.getLocalConfig).toHaveBeenCalledTimes(1);
+  });
+
   it("applies local voice settings to the runtime model service", async () => {
     Object.assign(mocks.localVoiceSettings, {
       localEnabled: true,
