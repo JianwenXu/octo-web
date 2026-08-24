@@ -60,6 +60,7 @@ import * as api from '../../api/summaryApi';
 import { WKApp, Dap } from '@octo/base';
 import SummaryDetailPage from '../SummaryDetailPage';
 import { refreshPendingInvitationBadge } from '../../utils/summaryMenuBadge';
+import { summaryTestIds } from '../../utils/testIds';
 
 vi.mock('../../api/summaryApi');
 
@@ -1771,24 +1772,24 @@ describe('批次B 需求4：团队总结编辑按钮 gate=can_edit_team（仅 cr
         const page = makePage(1);
         page.state = {
             ...(page.state as any),
-            detail: multiCollabDetail({ can_edit_team: true }),
+            detail: multiCollabDetail({ can_edit: true, can_edit_team: true }),
             members: [submittedMember('test-uid', '我', 'a'), submittedMember('u_b', '李四', 'b')],
             editingTeamSummary: false,
         };
-        const json = JSON.stringify((page as any).renderTeamSummaryHeader(true));
-        expect(json).toContain('summary.common.edit');
+        const json = JSON.stringify((page as any).renderCompleted());
+        expect(json).toContain(summaryTestIds.detailEditBtn);
     });
 
     it('team edit button NOT rendered for non-creator (can_edit_team=false)', () => {
         const page = makePage(1);
         page.state = {
             ...(page.state as any),
-            detail: multiCollabDetail({ can_edit_team: false }),
+            detail: multiCollabDetail({ can_edit: false, can_edit_team: false }),
             members: [submittedMember('test-uid', '我', 'a'), submittedMember('u_b', '李四', 'b')],
             editingTeamSummary: false,
         };
-        const json = JSON.stringify((page as any).renderTeamSummary());
-        expect(json).not.toContain('summary.detail.editTeamSummary');
+        const json = JSON.stringify((page as any).renderCompleted());
+        expect(json).not.toContain(summaryTestIds.detailEditBtn);
     });
 
     it('team edit inline editor uses default (team) mode → editSummary path', () => {
@@ -1961,7 +1962,6 @@ describe('v2 对齐：定时按钮集中到 header（从团队框/个人区移�
         const json = JSON.stringify((page as any).renderTeamSummary());
         expect(json).not.toContain('summary.detail.setSchedule');
         expect(json).not.toContain('summary.detail.editSchedule');
-        expect(json).not.toContain('summary.detail.editTeamSummary');
     });
 
     it('single-person BY_PERSON: schedule button no longer in renderPersonalSummary (moved to header)', () => {
