@@ -19,7 +19,10 @@ export interface VoiceSettings {
 
 export const VOICE_SETTINGS_KEY = "octo.voice-input.v1";
 export { VOICE_PROTOCOL_VERSION };
-const LEGACY_SERVER_MIGRATION = "legacy-server-config-migrated";
+// This migration used to share the marker written by the /voice/config path.
+// Keep the old marker untouched, but use a source-specific marker so users who
+// opened v1.14.0 before /voice/local-config was imported are still migrated.
+const LEGACY_LOCAL_CONFIG_MIGRATION = "legacy-local-config-migrated";
 const LEGACY_SPACE_SETTING_MIGRATION = "legacy-space-setting-migrated";
 const USER_SETTINGS_MARKER = "user-configured";
 const legacySpaceMigrationKey = (spaceId: string) => `${storageKey}.${LEGACY_SPACE_SETTING_MIGRATION}.${encodeURIComponent(spaceId)}`;
@@ -167,14 +170,14 @@ export const voiceSettingsStore = {
     local_transcribe_url?: string;
   }): VoiceSettings {
     try {
-      if (window.localStorage.getItem(`${storageKey}.${LEGACY_SERVER_MIGRATION}`) === "1") return { ...current };
+      if (window.localStorage.getItem(`${storageKey}.${LEGACY_LOCAL_CONFIG_MIGRATION}`) === "1") return { ...current };
       const patch: Partial<VoiceSettings> = {};
       if (typeof config.local_enabled === "boolean") patch.localEnabled = config.local_enabled;
       if (typeof config.local_timeout_ms === "number" && config.local_timeout_ms > 0) patch.localTimeoutMs = config.local_timeout_ms;
       if (config.local_probe_url) patch.localProbeUrl = config.local_probe_url;
       if (config.local_transcribe_url) patch.localTranscribeUrl = config.local_transcribe_url;
       if (Object.keys(patch).length > 0) current = this.set(patch, { internal: true });
-      window.localStorage.setItem(`${storageKey}.${LEGACY_SERVER_MIGRATION}`, "1");
+      window.localStorage.setItem(`${storageKey}.${LEGACY_LOCAL_CONFIG_MIGRATION}`, "1");
     } catch { /* migration must not block voice input */ }
     return { ...current };
   },

@@ -257,18 +257,26 @@ export default function useVoiceInput(
         // local engine is enabled; /voice/config only describes the remote
         // speech service.
         const localConfigPromise = VoiceService.shared.getLocalConfig?.();
-        return (localConfigPromise ? localConfigPromise.catch(() => null) : Promise.resolve(null)).then((localConfig) => {
+        const localConfigResult = localConfigPromise
+          ? localConfigPromise.then((localConfig) => ({ ok: true, localConfig })).catch((error: unknown) => ({
+            ok: (error as { status?: number })?.status === 404,
+            localConfig: null,
+          }))
+          : Promise.resolve({ ok: true, localConfig: null });
+        return localConfigResult.then(({ ok, localConfig }) => {
           if (cancelled || !mountedRef.current) return;
-          const migratedSettings = voiceSettingsStore.migrateServerConfig?.(
-            localConfig
-              ? {
-                local_enabled: localConfig.enabled,
-                local_timeout_ms: localConfig.timeout_ms ?? undefined,
-                local_probe_url: localConfig.probe_url ?? undefined,
-                local_transcribe_url: localConfig.transcribe_url ?? undefined,
-              }
-              : config,
-          ) ?? voiceSettingsStore.get();
+          const migratedSettings = ok
+            ? voiceSettingsStore.migrateServerConfig?.(
+              localConfig
+                ? {
+                  local_enabled: localConfig.enabled,
+                  local_timeout_ms: localConfig.timeout_ms ?? undefined,
+                  local_probe_url: localConfig.probe_url ?? undefined,
+                  local_transcribe_url: localConfig.transcribe_url ?? undefined,
+                }
+                : {},
+            ) ?? voiceSettingsStore.get()
+            : voiceSettingsStore.get();
           setIsVoiceEnabled(config.enabled || migratedSettings.localEnabled);
         });
       })

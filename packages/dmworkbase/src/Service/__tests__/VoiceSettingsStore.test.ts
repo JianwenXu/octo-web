@@ -73,6 +73,27 @@ describe("voiceSettingsStore", () => {
     expect(unchanged.localProbeUrl).toBe("http://localhost:9999/");
   });
 
+  it("uses a new marker when the old server-config marker already exists", () => {
+    voiceSettingsStore.setUserId("legacy-user");
+    localStorage.setItem(`${VOICE_SETTINGS_KEY}.legacy-user.legacy-server-config-migrated`, "1");
+
+    const migrated = voiceSettingsStore.migrateServerConfig({
+      local_enabled: true,
+      local_timeout_ms: 4500,
+    });
+
+    expect(migrated.localEnabled).toBe(true);
+    expect(migrated.localTimeoutMs).toBe(4500);
+  });
+
+  it("preserves a disabled legacy local voice setting", () => {
+    voiceSettingsStore.setUserId("legacy-user");
+
+    const migrated = voiceSettingsStore.migrateServerConfig({ local_enabled: false });
+
+    expect(migrated.localEnabled).toBe(false);
+  });
+
   it("migrates an enabled legacy space setting to the old voice defaults", () => {
     voiceSettingsStore.setUserId("legacy-user");
 
