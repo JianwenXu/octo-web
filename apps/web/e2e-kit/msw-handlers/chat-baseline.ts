@@ -35,6 +35,21 @@ function appConfig() {
   return { ...MOCK_APP_CONFIG, mail_on: mailOn ? "1" : "0" };
 }
 
+function summaryStandaloneScenario(): boolean {
+  try { return sessionStorage.getItem("__e2e_scenario") === "s26-summary-standalone-links"; }
+  catch { return false; }
+}
+
+function spaceInviteLoginScenario(): boolean {
+  try { return sessionStorage.getItem("__e2e_scenario") === "sp2-space-invite-login"; }
+  catch { return false; }
+}
+
+function v1VoiceScenario(): boolean {
+  try { return sessionStorage.getItem("__e2e_scenario") === "v1-chat-voice-input"; }
+  catch { return false; }
+}
+
 // Space fixture (单 space, 用户是 owner).
 const MOCK_SPACE = {
   space_id: MOCK_SPACE_ID,
@@ -94,12 +109,30 @@ export const chatBaselineHandlers = [
   ),
   http.get("*/api/v1/health", () => HttpResponse.json({ ok: true })),
   http.get("*/health", () => HttpResponse.json({ ok: true })),
-  http.get("*/voice/config", () =>
-    HttpResponse.json({ enable: 0, provider: "", config: {} })
+  http.get("*/voice/config", () => v1VoiceScenario()
+    ? HttpResponse.json({ enabled: true, max_file_size: 5_000_000, max_duration: 60 })
+    : HttpResponse.json({ enable: 0, provider: "", config: {} })
   ),
   http.get("*/voice/local-config", () =>
     HttpResponse.json({ enabled: false, timeout_ms: null, probe_url: null, transcribe_url: null })
   ),
+  http.post("*/voice/transcribe", () => v1VoiceScenario()
+    ? HttpResponse.json({ text: "E2E 语音转写结果", m: "e2e" })
+    : HttpResponse.json({ msg: "disabled" }, { status: 404 })),
+  http.post("*/user/login", () => {
+    if (!spaceInviteLoginScenario()) return HttpResponse.json({ msg: "not found" }, { status: 404 });
+    return HttpResponse.json({ uid: "e2e-user-1", token: "e2e-mock-token", app_id: "e2e-app", short_no: "10000", name: "E2E Tester", sex: 1 });
+  }),
+  http.post("*/user/emaillogin", () => {
+    if (!spaceInviteLoginScenario()) return HttpResponse.json({ msg: "not found" }, { status: 404 });
+    return HttpResponse.json({ uid: "e2e-user-1", token: "e2e-mock-token", app_id: "e2e-app", short_no: "10000", name: "E2E Tester", sex: 1 });
+  }),
+  http.get("*/space/invite/SP2-INVITE", () => spaceInviteLoginScenario()
+    ? HttpResponse.json({ invite_code: "SP2-INVITE", space_id: "sp2-invite-space", space_name: "SP2 邀请空间", member_count: 1, max_users: 100 })
+    : HttpResponse.json({ msg: "not found" }, { status: 404 })),
+  http.post("*/space/join", () => spaceInviteLoginScenario()
+    ? HttpResponse.json({ space_id: "sp2-invite-space", status: "JOINED" })
+    : HttpResponse.json({ msg: "not found" }, { status: 404 })),
   http.get("*/api/v1/common/updater/android/1.0", () =>
     HttpResponse.json({ url: "https://example.com/download/android" })
   ),
@@ -137,7 +170,19 @@ export const chatBaselineHandlers = [
   ),
 
   // === Space ===
-  http.get("*/space/my", () => HttpResponse.json([MOCK_SPACE])),
+  http.get("*/space/my", () => {
+    let scenario = "";
+    try { scenario = sessionStorage.getItem("__e2e_scenario") || ""; } catch { /* no-op */ }
+    if (scenario === "sp1-space-gate") return HttpResponse.json([]);
+    if (scenario === "sp1-space-gate-created") {
+      return HttpResponse.json([{ ...MOCK_SPACE, space_id: "sp1-created-space", name: "SP1 新组织", space_no: "sp1-created-space" }]);
+    }
+    if (scenario === "sp2-space-invite-login") {
+      const joined = localStorage.getItem("currentSpaceId") === "sp2-invite-space";
+      return HttpResponse.json([joined ? { ...MOCK_SPACE, space_id: "sp2-invite-space", name: "SP2 邀请空间", space_no: "sp2-invite-space" } : MOCK_SPACE]);
+    }
+    return HttpResponse.json([MOCK_SPACE]);
+  }),
   http.get("*/spaces/:spaceId/categories", ({ request }) => HttpResponse.json(
     chatFollowScenario(request)
       ? [{ category_id: "e2e-category", name: "工作", sort: 0, is_default: false,
@@ -228,6 +273,27 @@ export const chatBaselineHandlers = [
   http.get("*/summary/api/v1/summaries", () =>
     HttpResponse.json({ code: 0, message: "ok", data: { items: [], total: 0 } })
   ),
+  http.get("*/summary/api/v1/summaries/e2e-task-026", () => {
+    if (!summaryStandaloneScenario()) return HttpResponse.json({ code: 404, message: "not found" }, { status: 404 });
+    return HttpResponse.json({ code: 0, message: "ok", data: {
+      task_id: 2601, task_no: "e2e-task-026", title: "S26 独立总结详情", topic: "S26 独立总结详情",
+      summary_mode: 1, status: 3, trigger_type: 1, time_range_start: "2026-08-24T00:00:00Z", time_range_end: "2026-08-25T00:00:00Z",
+      sources: [{ source_type: 1, source_id: "s26-source", source_name: "S26 项目群" }], participants: [],
+      result: { content: "## S26 独立详情\n\n这是从任务链接直接打开的总结正文。", abstract: "S26 独立详情摘要", total_msg_count: 8, version: 1, citations: [], team_citations: [] },
+      error_message: null, creator_id: "e2e-user-1", creator_name: "E2E Tester", origin_channel_id: "s26-source", origin_channel_type: 2,
+      created_at: "2026-08-25T08:00:00Z", updated_at: "2026-08-25T08:05:00Z", result_version: 1, preview: "S26 独立详情摘要", content: "## S26 独立详情\n\n这是从任务链接直接打开的总结正文。",
+    } });
+  }),
+  http.post("*/summary/api/v1/summaries/2601/read", () => HttpResponse.json({ code: 0, message: "ok", data: { is_unread: false, has_pending_invitation: false, needs_attention: false } })),
+  http.get("*/summary/api/v1/summaries/2601/versions", () => HttpResponse.json({ code: 0, message: "ok", data: { versions: [], keep_limit: 3 } })),
+  http.get("*/summary/api/v1/summary-shares/e2e-share-026", () => {
+    if (!summaryStandaloneScenario()) return HttpResponse.json({ code: 404, message: "not found" }, { status: 404 });
+    return HttpResponse.json({ code: 0, message: "ok", data: { share_id: "e2e-share-026", source_accessible: true, snapshot: {
+      id: 2602, task_id: 2601, task_no: "e2e-task-026", space_id: "e2e-space-001", title: "S26 分享总结", source_name: "S26 项目群", source_count: 1,
+      participant_count: 2, message_count: 8, time_range_start: "2026-08-24T00:00:00Z", time_range_end: "2026-08-25T00:00:00Z", summary_mode: 1, result_version: 1,
+      preview: "S26 分享正文", content: "## S26 分享详情\n\n这是从分享链接直接打开的总结正文。", created_at: "2026-08-25T08:00:00Z",
+    } } });
+  }),
   http.get("*/summary/api/v1/summary-templates", () =>
     HttpResponse.json({ templates: [], custom_template_limit: 30 })
   ),
