@@ -9,10 +9,10 @@
 | 项目 | 当前值 |
 | --- | ---: |
 | 测试文件 | 384 |
-| 测试用例 | 3424 |
+| 测试用例 | 3429 |
 | Statements | 51.07% |
-| Branches | 44.18% |
-| Functions | 47.66% |
+| Branches | 44.21% |
+| Functions | 47.68% |
 | Lines | 51.81% |
 
 当前 CI 门槛：
@@ -140,6 +140,14 @@ Lines      >= 50%
 4. 覆盖率门禁通过，且覆盖率没有因新增源码而非预期下降。
 5. PR 描述记录测试范围、用例数和覆盖率变化。
 
-## 8. 下一批执行项
+## 8. 当前批次与执行顺序
 
-下一批从 `GlobalSearchVM.ts` 开始，先覆盖搜索请求生命周期和竞态保护，再补 DataSource 的 channel candidates；完成后重新评估是否可以把全包门槛提升到 `52 / 45 / 49 / 53`。
+本节只负责把第 4 节的阶段落成可执行批次，不另行定义一套顺序。当前从第 4 节的“阶段一：Utils 收尾”开始；阶段一完成后，再进入“阶段二：GlobalSearch 核心逻辑”，其第一批就是 `GlobalSearchVM.ts`，随后才是 DataSource 的 channel candidates。
+
+| 批次 | 对应阶段 | 执行范围 | 完成后动作 |
+| --- | --- | --- | --- |
+| 当前批次 | 阶段一：Utils 收尾 | `clipboard.ts`、`filehelper.ts` 剩余 icon/边界分支、`download.ts` Electron IPC、`time.ts`、`t2s.ts` | 跑聚焦测试和全量覆盖率，记录结果 |
+| 下一批 | 阶段二：GlobalSearch 核心逻辑 | 先做 `GlobalSearchVM.ts` 的请求生命周期和竞态保护，再做 DataSource channel candidates | 重新评估覆盖率变化和下一阶段范围 |
+| 后续批次 | 阶段三及以后 | 按第 4 节的阶段三、四、五依次执行 | 每完成 2～3 个模块，再评估是否提升门槛 |
+
+因此，`GlobalSearchVM.ts` 不是当前批次，而是阶段一完成后的下一批；只有阶段一完成并通过第 7 节的完成标准后，才开始阶段二。门槛是否提升到 `52 / 45 / 49 / 53`，也放到阶段一和阶段二的结果出来后，按第 5 节的规则决定。
