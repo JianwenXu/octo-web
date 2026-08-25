@@ -25,6 +25,7 @@ const mocks = vi.hoisted(() => ({
     if (typeof config.local_timeout_ms === "number") mocks.localVoiceSettings.localTimeoutMs = config.local_timeout_ms;
     return mocks.localVoiceSettings;
   }),
+  needsLocalConfigMigration: vi.fn(() => true),
   setMicrophonePermission: vi.fn(),
   getUserMedia: vi.fn(),
   toastWarning: vi.fn(),
@@ -101,6 +102,7 @@ vi.mock("../../../../Service/VoiceSettingsStore", () => ({
     get: () => mocks.localVoiceSettings,
     set: (patch: Record<string, unknown>) => { Object.assign(mocks.localVoiceSettings, patch); mocks.setVoiceSettings(patch); return mocks.localVoiceSettings; },
     migrateServerConfig: (config: Record<string, unknown>) => mocks.migrateServerConfig(config),
+    needsLocalConfigMigration: () => mocks.needsLocalConfigMigration(),
     subscribe: () => () => {},
   },
 }));
@@ -214,6 +216,7 @@ beforeEach(() => {
   });
   mocks.getConfig.mockResolvedValue({ enabled: true });
   mocks.getLocalConfig.mockResolvedValue({ enabled: false, timeout_ms: null, probe_url: null, transcribe_url: null });
+  mocks.needsLocalConfigMigration.mockReturnValue(true);
   mocks.getVoiceContext.mockResolvedValue({ has_context: false });
   mocks.fetchAndApplySpaceSetting.mockResolvedValue(undefined);
   mocks.probeLocal.mockResolvedValue(false);
@@ -255,6 +258,18 @@ describe("useVoiceInput space lifecycle", () => {
 
     expect(mocks.getLocalConfig).toHaveBeenCalledTimes(1);
     expect(mocks.migrateServerConfig).toHaveBeenCalledWith(expect.objectContaining({ local_enabled: true, local_timeout_ms: 5000 }));
+  });
+
+  it("does not request legacy settings after migration is complete", async () => {
+    mocks.needsLocalConfigMigration.mockReturnValue(false);
+    const current = createHost("space-a");
+
+    await act(async () => {
+      ReactDOM.render(<Probe host={current.host} onTranscribed={() => undefined} />, container);
+      await flush();
+    });
+
+    expect(mocks.getLocalConfig).not.toHaveBeenCalled();
   });
 
   it("retries legacy local settings after a transient read failure", async () => {

@@ -115,6 +115,20 @@ describe("voiceSettingsStore", () => {
     expect(current.localProbeUrl).toBe("http://localhost:9000/health");
   });
 
+  it("recognizes v1.14 local settings without the new marker", () => {
+    voiceSettingsStore.setUserId("legacy-user");
+    localStorage.setItem(`${VOICE_SETTINGS_KEY}.legacy-user.user-configured`, "1");
+    localStorage.setItem(`${VOICE_SETTINGS_KEY}.legacy-user`, JSON.stringify({
+      ...voiceSettingsStore.get(),
+      localEnabled: true,
+      localProbeUrl: "http://localhost:9000/health",
+    }));
+    voiceSettingsStore.setUserId("legacy-user");
+
+    expect(voiceSettingsStore.needsLocalConfigMigration()).toBe(false);
+    expect(voiceSettingsStore.migrateServerConfig({ local_enabled: false }).localEnabled).toBe(true);
+  });
+
   it("migrates an enabled legacy space setting to the old voice defaults", () => {
     voiceSettingsStore.setUserId("legacy-user");
 

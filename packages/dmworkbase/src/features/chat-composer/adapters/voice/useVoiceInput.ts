@@ -251,6 +251,9 @@ export default function useVoiceInput(
         feedbackUrlRef.current = config.feedback_url;
         setSharedVoiceConfig(config);
         reconcileSpaceSetting(config.feedback_url);
+        setIsVoiceEnabled(config.enabled || voiceSettingsStore.get().localEnabled);
+
+        if (voiceSettingsStore.needsLocalConfigMigration?.() === false) return;
 
         // Legacy local ASR settings live behind a separate endpoint. The new
         // settings store must import those values before deciding whether the

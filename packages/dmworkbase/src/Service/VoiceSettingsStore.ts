@@ -101,6 +101,26 @@ function normalizeLocalUrl(value: unknown, fallback: string): string {
 
 let storageKey = VOICE_SETTINGS_KEY;
 
+function hasExplicitLocalSettings(): boolean {
+  try {
+    if (window.localStorage.getItem(`${storageKey}.${LOCAL_SETTINGS_USER_CONFIGURED}`) === "1") return true;
+    if (window.localStorage.getItem(`${storageKey}.${USER_SETTINGS_MARKER}`) !== "1") return false;
+    const stored = JSON.parse(window.localStorage.getItem(storageKey) || "null") as Partial<VoiceSettings> | null;
+    return Boolean(stored && (
+      stored.localEnabled === true ||
+      (typeof stored.localTimeoutMs === "number" && stored.localTimeoutMs !== defaults.localTimeoutMs) ||
+      (typeof stored.localProbeUrl === "string" && stored.localProbeUrl !== defaults.localProbeUrl) ||
+      (typeof stored.localTranscribeUrl === "string" && stored.localTranscribeUrl !== defaults.localTranscribeUrl)
+    ));
+  } catch {
+    return false;
+  }
+}
+
+function hasCompletedOrSkippedLocalMigration(): boolean {
+  return window.localStorage.getItem(`${storageKey}.${LEGACY_LOCAL_CONFIG_MIGRATION}`) === "1" || hasExplicitLocalSettings();
+}
+
 function read(key = storageKey): VoiceSettings {
   try {
     const value = JSON.parse(window.localStorage.getItem(key) || "null") as Partial<VoiceSettings> | null;
@@ -170,6 +190,13 @@ export const voiceSettingsStore = {
     listeners.forEach((listener) => listener({ ...current }));
     return { ...current };
   },
+  needsLocalConfigMigration(): boolean {
+    try {
+      return !hasCompletedOrSkippedLocalMigration();
+    } catch {
+      return true;
+    }
+  },
   migrateServerConfig(config: {
     local_enabled?: boolean;
     local_timeout_ms?: number;
@@ -178,7 +205,7 @@ export const voiceSettingsStore = {
   }): VoiceSettings {
     try {
       if (window.localStorage.getItem(`${storageKey}.${LEGACY_LOCAL_CONFIG_MIGRATION}`) === "1") return { ...current };
-      if (window.localStorage.getItem(`${storageKey}.${LOCAL_SETTINGS_USER_CONFIGURED}`) === "1") {
+      if (hasExplicitLocalSettings()) {
         window.localStorage.setItem(`${storageKey}.${LEGACY_LOCAL_CONFIG_MIGRATION}`, "1");
         return { ...current };
       }
