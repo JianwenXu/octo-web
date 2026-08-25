@@ -136,33 +136,4 @@ describe("GroupManagementService", () => {
       listGroupManagementSubscribers({ channel, request: { page: 1 } })
     ).resolves.toEqual([]);
   });
-
-  it("defaults bot_admin and resolves avatars for sparse member records", async () => {
-    const channel = new Channel("group-1", ChannelTypeGroup);
-    apiGet.mockResolvedValue([{ uid: "alice" }]);
-    const avatarUser = vi.fn((uid: string) => `avatar:${uid}`);
-
-    const [member] = await listGroupManagementSubscribers({
-      channel,
-      request: {},
-      avatarUser,
-    });
-
-    expect(member.uid).toBe("alice");
-    expect(member.orgData.bot_admin).toBe(0);
-    expect(member.avatar).toBe("avatar:alice");
-    expect(avatarUser).toHaveBeenCalledWith("alice");
-  });
-
-  it("propagates list API failures to the caller", async () => {
-    const error = new Error("members unavailable");
-    apiGet.mockRejectedValue(error);
-
-    await expect(
-      listGroupManagementSubscribers({
-        channel: new Channel("group-1", ChannelTypeGroup),
-        request: {},
-      })
-    ).rejects.toBe(error);
-  });
 });

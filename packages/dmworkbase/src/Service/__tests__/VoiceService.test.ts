@@ -20,7 +20,7 @@ import VoiceService from "../VoiceService";
 
 describe("VoiceService transcription routing", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
     mocks.localTranscribe.mockResolvedValue(null);
     mocks.post.mockResolvedValue({ text: "云端结果", m: "remote" });
     mocks.get.mockResolvedValue({});
@@ -86,6 +86,8 @@ describe("VoiceService transcription routing", () => {
 
     await expect(VoiceService.shared.getConfig()).resolves.toEqual({ enabled: true });
     await expect(VoiceService.shared.getLocalConfig()).resolves.toEqual({ status: 200 });
+    expect(mocks.get).toHaveBeenNthCalledWith(1, "/voice/config");
+    expect(mocks.get).toHaveBeenNthCalledWith(2, "/voice/local-config");
     await VoiceService.shared.putLocalConfig({ enabled: true });
     await VoiceService.shared.deleteLocalConfig();
     await VoiceService.shared.resetLocalConfig({ enabled: false });
@@ -98,14 +100,17 @@ describe("VoiceService transcription routing", () => {
   it("caches voice context per space and clearVoiceContextCache forces a refresh", async () => {
     const first = { status: 200, has_context: true, context: "one", updated_at: "1" };
     const second = { status: 200, has_context: false, context: "", updated_at: "2" };
-    mocks.get.mockResolvedValueOnce(first).mockResolvedValueOnce(second);
+    const third = { status: 200, has_context: true, context: "three", updated_at: "3" };
+    mocks.get.mockResolvedValueOnce(first).mockResolvedValueOnce(second).mockResolvedValueOnce(third);
 
     await expect(VoiceService.shared.getVoiceContext("space-1")).resolves.toEqual(first);
     await expect(VoiceService.shared.getVoiceContext("space-1")).resolves.toEqual(first);
     expect(mocks.get).toHaveBeenCalledOnce();
+    await expect(VoiceService.shared.getVoiceContext("space-2")).resolves.toEqual(second);
+    expect(mocks.get).toHaveBeenCalledTimes(2);
 
     VoiceService.shared.clearVoiceContextCache("space-1");
-    await expect(VoiceService.shared.getVoiceContext("space-1")).resolves.toEqual(second);
-    expect(mocks.get).toHaveBeenCalledTimes(2);
+    await expect(VoiceService.shared.getVoiceContext("space-1")).resolves.toEqual(third);
+    expect(mocks.get).toHaveBeenCalledTimes(3);
   });
 });

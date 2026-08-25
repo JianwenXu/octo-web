@@ -274,14 +274,34 @@ describe("loadSenderCandidates (via searchSenders)", () => {
       { channel: { channelID: "thread-1", channelType: 5 } },
     ];
     const groups = [
-      { channel: { channelID: "group-1", channelType: 2 }, name: "Duplicate" },
-      { channelID: "group-2", channelType: 2, displayName: "Alpha" },
+      {
+        channel: { channelID: "group-1", channelType: 2 },
+        title: "Duplicate",
+        orgData: { displayName: "Duplicate", group_no: "group-1" },
+      },
+      {
+        channel: { channelID: "group-2", channelType: 2 },
+        title: "Alpha",
+        orgData: { displayName: "Alpha", group_no: "group-2" },
+      },
     ];
     const ds = createGlobalSearchApiDataSource();
     const groupSaveList = mockState.groupSaveList;
     groupSaveList.mockResolvedValue(groups);
 
-    await expect(ds.searchChannels("alpha")).resolves.toEqual([
+    await expect(ds.searchChannels("")).resolves.toEqual([
+      {
+        channelId: "group-1",
+        channelType: 2,
+        name: "info:group-1",
+        avatarUrl: "avatar://ch/group-1/2",
+      },
+      {
+        channelId: "thread-1",
+        channelType: 5,
+        name: "info:thread-1",
+        avatarUrl: "avatar://ch/thread-1/5",
+      },
       {
         channelId: "group-2",
         channelType: 2,

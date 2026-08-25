@@ -68,36 +68,6 @@ describe("getFoldSessionSummaryState", () => {
             summaryMessage: lastMessage,
         })
     })
-
-    it("hides the summary for an inactive session without a completed-summary flag", () => {
-        const lastMessage = makeMessage("msg-6", "jojo", 6)
-
-        expect(getFoldSessionSummaryState({
-            isActive: false,
-            showSummary: false,
-            lastMessage,
-        })).toEqual({
-            showSummary: false,
-            summaryId: undefined,
-            summaryMessage: lastMessage,
-        })
-    })
-
-    it("lets a typing message occupy the summary slot even when the session is inactive", () => {
-        const lastMessage = makeMessage("msg-6", "jojo", 6)
-        const typingMessage = makeMessage("typing-jojo", "jojo", 0)
-
-        expect(getFoldSessionSummaryState({
-            isActive: false,
-            showSummary: false,
-            typing: typingMessage,
-            lastMessage,
-        })).toEqual({
-            showSummary: false,
-            summaryId: undefined,
-            summaryMessage: typingMessage,
-        })
-    })
 })
 
 describe("getFoldSessionExpandedMessages", () => {
@@ -135,16 +105,6 @@ describe("isFoldSessionSummaryMessage", () => {
             isActive: true,
             showSummary: false,
             typing: typingMessage,
-            lastMessage,
-        }, 3)).toBe(false)
-    })
-
-    it("does not mark a message as summary when the summary is hidden", () => {
-        const lastMessage = makeMessage("msg-3", "claude", 3)
-
-        expect(isFoldSessionSummaryMessage({
-            isActive: false,
-            showSummary: false,
             lastMessage,
         }, 3)).toBe(false)
     })

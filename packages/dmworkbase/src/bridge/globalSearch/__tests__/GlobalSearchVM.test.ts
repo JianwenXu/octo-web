@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => {
   class ProviderListener {
@@ -92,6 +92,10 @@ const result = (overrides: Record<string, unknown> = {}) => ({
 });
 
 describe("GlobalSearchVM", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.remoteConfig.docsOn = false;
@@ -166,16 +170,15 @@ describe("GlobalSearchVM", () => {
       expect(mocks.searchLegacyGlobal).toHaveBeenCalledOnce()
     );
     expect(vm.keyword).toBe("hello");
-    vi.useRealTimers();
   });
 
   it("ignores stale responses and stale failures", async () => {
-    let resolveFirst!: (value: unknown) => void;
-    const first = new Promise((resolve) => {
-      resolveFirst = resolve;
+    let rejectFirst!: (reason?: unknown) => void;
+    const staleRequest = new Promise((_, reject) => {
+      rejectFirst = reject;
     });
     mocks.searchLegacyGlobal
-      .mockReturnValueOnce(first)
+      .mockReturnValueOnce(staleRequest)
       .mockResolvedValueOnce(result({ friends: [{ channel_id: "new" }] }));
     const vm = new GlobalSearchVM();
 
@@ -187,10 +190,12 @@ describe("GlobalSearchVM", () => {
       expect(vm.searchResult?.friends[0].channel_id).toBe("new")
     );
 
-    resolveFirst(result({ friends: [{ channel_id: "old" }] }));
-    await Promise.resolve();
+    const notificationsBeforeStaleFailure = vm.notifyListener.mock.calls.length;
+    rejectFirst(new Error("stale failure"));
+    await new Promise((resolve) => setTimeout(resolve, 0));
     expect(vm.searchResult.friends[0].channel_id).toBe("new");
     expect(vm.searchError).toBeNull();
+    expect(vm.notifyListener).toHaveBeenCalledTimes(notificationsBeforeStaleFailure);
   });
 
   it("concatenates load-more messages and guards duplicate loads", async () => {
@@ -202,8 +207,9 @@ describe("GlobalSearchVM", () => {
     const first = new Promise((resolve) => {
       resolveFirst = resolve;
     });
+    const firstMessages = Array.from({ length: 20 }, (_, index) => message(`m${index + 1}`));
     mocks.searchLegacyGlobal
-      .mockResolvedValueOnce(result({ messages: [message("m1")] }))
+      .mockResolvedValueOnce(result({ messages: firstMessages }))
       .mockReturnValueOnce(first);
     const vm = new GlobalSearchVM();
 
@@ -217,7 +223,11 @@ describe("GlobalSearchVM", () => {
 
     resolveFirst(result({ messages: [message("m2")] }));
     await vi.waitFor(() => expect(vm.loadMoreing).toBe(false));
-    expect(vm.searchResult.messages).toEqual([message("m1"), message("m2")]);
+    expect(vm.searchResult.messages).toEqual([...firstMessages, message("m2")]);
+
+    const callsAfterFinished = mocks.searchLegacyGlobal.mock.calls.length;
+    vm.loadMore();
+    expect(mocks.searchLegacyGlobal).toHaveBeenCalledTimes(callsAfterFinished);
   });
 
   it("resets loading state and exposes an error for the current request", async () => {
@@ -254,7 +264,10 @@ describe("GlobalSearchVM", () => {
     const vm = new GlobalSearchVM();
     expect(vm.tabList.map((tab) => tab.itemKey)).not.toContain("docs");
 
+    mocks.remoteConfig.docsSearchOn = false;
     mocks.remoteConfig.docsOn = true;
+    expect(vm.tabList.map((tab) => tab.itemKey)).not.toContain("docs");
+    mocks.remoteConfig.docsSearchOn = true;
     expect(vm.tabList.map((tab) => tab.itemKey)).toContain("docs");
   });
 

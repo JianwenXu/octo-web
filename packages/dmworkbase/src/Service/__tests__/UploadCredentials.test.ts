@@ -31,6 +31,7 @@ describe("precheckUploadCredentials", () => {
 
     afterEach(() => {
         vi.restoreAllMocks()
+        axios.defaults.adapter = undefined
     })
 
     it("成功路径: 后端返回完整凭证, 静默 resolve", async () => {
@@ -155,5 +156,30 @@ describe("precheckUploadCredentials", () => {
 
         await expect(uploadChatMedia(fakeFile("a.txt", "text/plain"), fakeChannel, "txt"))
             .rejects.toMatchObject({ msg: "上传失败" })
+    })
+
+    it("uploadChatMedia: axios 直传拒绝时透传网络错误", async () => {
+        vi.spyOn(client, "get").mockResolvedValue({
+            uploadUrl: "https://cos.example/upload",
+            downloadUrl: "https://cos.example/download",
+            contentType: "text/plain",
+        } as any)
+        vi.spyOn(axios, "put").mockRejectedValue(new Error("server rejected"))
+
+        await expect(uploadChatMedia(fakeFile("a.txt", "text/plain"), fakeChannel, "txt"))
+            .rejects.toMatchObject({ msg: "server rejected" })
+    })
+
+    it("uploadChatMedia: scales timeout for files larger than the floor", async () => {
+        vi.spyOn(client, "get").mockResolvedValue({
+            uploadUrl: "https://cos.example/upload",
+            downloadUrl: "https://cos.example/download",
+            contentType: "application/octet-stream",
+        } as any)
+        const put = vi.spyOn(axios, "put").mockResolvedValue({ status: 204 } as any)
+
+        await uploadChatMedia(fakeFile("large.bin", "application/octet-stream", 13 * 1024 * 1024), fakeChannel, "bin")
+
+        expect(put.mock.calls[0][2]).toEqual(expect.objectContaining({ timeout: 130000 }))
     })
 })
