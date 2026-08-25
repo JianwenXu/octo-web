@@ -15,6 +15,18 @@ describe("sanitizeHighlight", () => {
       .toBe("<mark>A &amp; B</mark> &#39;quoted&#39;");
   });
 
+  it("escapes attribute-bearing mark tags instead of treating them as markup", () => {
+    expect(sanitizeHighlight('<mark onmouseover="alert(1)">x</mark>')).toBe(
+      '&lt;mark onmouseover=&quot;alert(1)&quot;&gt;x</mark>'
+    );
+  });
+
+  it("preserves nested mark tags as-is", () => {
+    expect(sanitizeHighlight("<mark><mark>key</mark></mark>")).toBe(
+      "<mark><mark>key</mark></mark>"
+    );
+  });
+
   it("returns an empty string unchanged", () => {
     expect(sanitizeHighlight("")).toBe("");
   });

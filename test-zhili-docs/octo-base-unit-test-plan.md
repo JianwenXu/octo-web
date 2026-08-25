@@ -24,7 +24,7 @@ Functions  >= 46%
 Lines      >= 50%
 ```
 
-覆盖率使用 Vitest V8，并显式统计 `src/**/*.{ts,tsx}`，排除测试文件和 Story 文件。
+覆盖率使用 Vitest V8。`test:coverage` 命令显式统计 `src/**/*.{ts,tsx}`，并排除测试文件和 Story 文件；普通 `test` 命令只运行测试，不生成覆盖率报告。
 
 ## 3. 已完成
 

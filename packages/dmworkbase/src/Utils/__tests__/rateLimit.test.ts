@@ -36,7 +36,9 @@ describe("debounce", () => {
 describe("throttle", () => {
   afterEach(() => vi.useRealTimers());
 
-  it("invokes immediately and schedules only the first trailing call", () => {
+  it("replays the first suppressed arguments on the trailing call", () => {
+    // Characterize the current throttle contract. Callers that pass pooled
+    // React events must extract stable values before invoking this helper.
     vi.useFakeTimers();
     const fn = vi.fn();
     const throttled = throttle(fn, 100);

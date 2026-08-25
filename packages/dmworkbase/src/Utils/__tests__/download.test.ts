@@ -18,7 +18,7 @@ describe('downloadFile', () => {
 
   beforeEach(() => {
     capturedAnchor = null
-    vi.clearAllMocks()
+    vi.resetAllMocks()
     vi.spyOn(document.body, 'appendChild').mockImplementation((node: Node) => {
       capturedAnchor = node as HTMLAnchorElement
       ;(node as HTMLAnchorElement).click = vi.fn()
@@ -90,6 +90,7 @@ describe('downloadFile', () => {
     await downloadFile('/files/a.txt', 'a.txt')
 
     expect(WKApp.apiClient.get).not.toHaveBeenCalled()
-    expect(capturedAnchor?.href).toBe('http://localhost:3000/files/a.txt')
+    expect(capturedAnchor).not.toBeNull()
+    expect(capturedAnchor!.href).toBe(`${window.location.origin}/files/a.txt`)
   })
 })
