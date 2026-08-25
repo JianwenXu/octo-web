@@ -80,7 +80,14 @@ export default class SpaceGate extends Component<{}, SpaceGateState> {
 
         this._enterTimer = setTimeout(() => {
             this._enterTimer = null;
-            if (this._isMounted && document.querySelector(".wk-spacegate")) {
+            // In MSW-backed E2E, the reload can race the Service Worker taking
+            // control of the fresh document and leak the first /space/my/avatar
+            // requests to Vite's proxy. The state update above is sufficient to
+            // leave the gate in this controlled test path; production keeps the
+            // historical reload behavior.
+            const mswReady = (globalThis as { __MSW_READY__?: boolean }).__MSW_READY__ === true;
+            const e2eSpaceGate = sessionStorage.getItem("__e2e_scenario") === "sp1-space-gate-created";
+            if (this._isMounted && document.querySelector(".wk-spacegate") && !mswReady && !e2eSpaceGate) {
                 window.location.reload();
             }
         }, 300);

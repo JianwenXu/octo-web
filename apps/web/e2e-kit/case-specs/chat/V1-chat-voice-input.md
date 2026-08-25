@@ -18,7 +18,7 @@
 
 - fixture: `fixtures-authed`，使用 Chat mock IM。
 - Per-case MSW handler: `e2e-kit/msw-handlers/v1-chat-voice-input.ts`
-- baseline 根据 `sessionStorage.__e2e_scenario=v1-chat-voice-input` 返回启用的语音配置。
+- Per-case handler 根据 `sessionStorage.__e2e_scenario=v1-chat-voice-input` 返回启用的语音配置。
 - 使用 Chat mock IM runtime 准备一个可打开的会话。
 
 ## 用户操作步骤
@@ -29,7 +29,7 @@
 ## 预期结果
 
 - Composer 显示语音输入入口。
-- 入口 title 为「语音输入 (长按 Shift)」，表示当前配置可用。
+- 入口 title 为「语音输入 (长按 Shift)」，并且入口可见，表示当前配置已启用且网络能力可用。
 
 ## 反例
 

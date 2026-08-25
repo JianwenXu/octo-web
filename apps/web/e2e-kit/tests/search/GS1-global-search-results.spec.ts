@@ -13,5 +13,7 @@ test("@GS1 @p1 @search @global-search 全局搜索消息与联系人", async ({ 
   await expect(authedPage.getByText("E2E 全局搜索消息", { exact: true })).toBeVisible({ timeout: 10_000 });
   await authedPage.getByRole("button", { name: "联系人" }).click();
   await expect(authedPage.getByText("GS1 联系人", { exact: true })).toBeVisible();
+  await authedPage.getByRole("button", { name: "文件" }).click();
+  await expect(authedPage.getByText("GS1 文件.pdf", { exact: true })).toBeVisible();
   await expect(search).toHaveValue("E2E 全局搜索");
 });

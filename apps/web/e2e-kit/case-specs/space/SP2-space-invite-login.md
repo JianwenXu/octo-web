@@ -17,8 +17,7 @@
 - fixture: `pagePlain`，通过 init script 或页面交互准备登录态切换。
 - Per-case MSW handler: `e2e-kit/msw-handlers/sp2-space-invite-login.ts`
   - 邀请详情返回 `invite_code`、`space_id`、`space_name`。
-  - 登录后的自动加入返回 `space_id`。
-- 不验证请求 body，仅验证登录后 UI 状态。
+  - 登录后的自动加入校验请求中的 `invite_code` 并返回 `space_id`。
 
 ## 用户操作步骤
 
