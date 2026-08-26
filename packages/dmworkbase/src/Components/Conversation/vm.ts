@@ -1953,7 +1953,11 @@ export default class ConversationVM extends ProviderListener {
         const [olderRemoteMessages, newerRemoteMessages] = await Promise.all([
             WKApp.conversationProvider.syncMessages(this.channel, olderOpts),
             WKApp.conversationProvider.syncMessages(this.channel, newerOpts),
-        ])
+        ]).catch((error) => {
+            this.loading = false
+            this.notifyListener()
+            throw error
+        })
         const toAvailableMessageWraps = (remoteMessages?: Message[]) => {
             const messages = new Array<Message>()
             if (remoteMessages && remoteMessages.length > 0) {

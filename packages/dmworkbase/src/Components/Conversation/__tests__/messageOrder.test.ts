@@ -467,6 +467,15 @@ describe("ConversationVM message ordering", () => {
         expect(vm.loading).toBe(false)
     })
 
+    it("clears loading when locating an unloaded message fails", async () => {
+        sdkState.syncMessages.mockRejectedValueOnce(new Error("locate failed"))
+        const vm = new ConversationVM(channel)
+
+        await expect(vm.requestMessagesAroundMessageSeq(56)).rejects.toThrow("locate failed")
+
+        expect(vm.loading).toBe(false)
+    })
+
     it("clears loading state when the initial message sync fails", async () => {
         sdkState.syncMessages.mockRejectedValueOnce(new Error("sync failed"))
         const vm = new ConversationVM(channel)

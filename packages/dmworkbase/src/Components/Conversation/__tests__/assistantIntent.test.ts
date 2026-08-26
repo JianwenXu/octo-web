@@ -968,6 +968,7 @@ describe("Conversation attachment and viewport helpers", () => {
 
   it("shows user info with group context and verification code", async () => {
     const { default: app } = await import("../../../App")
+    const originalBaseContext = app.shared.baseContext
     ;(app.shared as any).baseContext = { showUserInfo: vi.fn() }
     const showUserInfo = vi.spyOn(app.shared.baseContext, "showUserInfo").mockImplementation(() => {})
     const conversation = new Conversation({ channel })
@@ -981,6 +982,7 @@ describe("Conversation attachment and viewport helpers", () => {
     conversation.showUser("u2")
     expect(showUserInfo).toHaveBeenCalledWith("u2", undefined, undefined)
     showUserInfo.mockRestore()
+    app.shared.baseContext = originalBaseContext
   })
 
   it("builds the conversation render tree for normal and auxiliary channels", () => {
