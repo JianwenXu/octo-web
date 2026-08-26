@@ -37,6 +37,10 @@ export async function registerS26SummaryStandaloneLinks(page: Page): Promise<voi
       id: 2602, task_id: 2601, task_no: "e2e-share-026", space_id: "e2e-space-001", title: "S26 分享总结", source_name: "S26 项目群", source_count: 1, participant_count: 2, message_count: 8, time_range_start: "2026-08-24T00:00:00Z", time_range_end: "2026-08-25T00:00:00Z", summary_mode: 1, result_version: 1, preview: "S26 分享正文", content: "## S26 分享详情\n\n这是从分享链接直接打开的总结正文。", created_at: "2026-08-25T08:00:00Z",
     } } };
     msw.worker.use(
+      // `/s` is intentionally malformed and falls through to the regular
+      // Summary list route. Keep that bootstrap request inside MSW so the
+      // fail-closed proxy check does not mistake it for a backend outage.
+      msw.http.get("*/summary/api/v1/summaries", () => msw.HttpResponse.json({ code: 0, message: "ok", data: { items: [], total: 0 } })),
       msw.http.get("*/summary/api/v1/summaries/e2e-task-026", () => msw.HttpResponse.json(detail)),
       msw.http.post("*/summary/api/v1/summaries/2601/read", () => msw.HttpResponse.json({ code: 0, message: "ok", data: { is_unread: false, has_pending_invitation: false, needs_attention: false } })),
       msw.http.get("*/summary/api/v1/summaries/2601/versions", () => msw.HttpResponse.json({ code: 0, message: "ok", data: { versions: [], keep_limit: 3 } })),
