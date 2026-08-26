@@ -14,7 +14,7 @@
 
 ## 前置条件
 
-- fixture: `fixtures-authed`，在 case 内覆盖当前 Space 与 `/space/my` 返回为空。
+- fixture: `fixtures-authed`，在 case 内以场景数据覆盖当前 Space 与 `/space/my` 返回为空。
 - Per-case MSW handler: `e2e-kit/msw-handlers/sp1-space-gate-create.ts`
   - `GET space/my` 返回空数组。
   - 创建 Space 返回 `space_id`、`name` 等真实 Space 字段。

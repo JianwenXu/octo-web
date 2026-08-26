@@ -10,7 +10,7 @@ export async function registerS26SummaryStandaloneLinks(page: Page): Promise<voi
       };
       HttpResponse: { json: (body: unknown, init?: unknown) => unknown };
     };
-    const win = window as unknown as { __msw?: Msw; __s26MswInstalled?: boolean; __s26MswTimer?: number };
+    const win = window as unknown as { __msw?: Msw; __s26MswInstalled?: boolean; __s26MswTimer?: number; __s26MswError?: string };
     const msw = win.__msw;
     if (!msw) {
       if (!win.__s26MswTimer) {
@@ -18,7 +18,7 @@ export async function registerS26SummaryStandaloneLinks(page: Page): Promise<voi
         win.__s26MswTimer = window.setInterval(() => {
           if (++attempts > 300) {
             window.clearInterval(win.__s26MswTimer);
-            throw new Error("[S26] MSW worker 未在 3 秒内就绪");
+            win.__s26MswError = "[S26] MSW worker 未在 3 秒内就绪";
           }
           if (install()) window.clearInterval(win.__s26MswTimer);
         }, 10);

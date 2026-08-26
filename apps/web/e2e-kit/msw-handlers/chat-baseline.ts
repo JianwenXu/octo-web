@@ -35,17 +35,11 @@ function appConfig() {
   return { ...MOCK_APP_CONFIG, mail_on: mailOn ? "1" : "0" };
 }
 
-function e2eScenario(request?: Request): string {
-  const cookie = request?.headers.get("cookie")?.match(/(?:^|;\s*)e2e_scenario=([^;]+)/)?.[1];
-  if (cookie) return decodeURIComponent(cookie);
+function e2eScenario(_request?: Request): string {
   try {
     const fromStorage = sessionStorage.getItem("__e2e_scenario");
     if (fromStorage) return fromStorage;
-  } catch { /* fall back to request URL */ }
-  try {
-    const fromUrl = new URL(request?.url ?? "").searchParams.get("e2e_scenario");
-    if (fromUrl) return fromUrl;
-  } catch { /* fall back to session storage */ }
+  } catch { /* fall back to the default fixture */ }
   return "";
 }
 

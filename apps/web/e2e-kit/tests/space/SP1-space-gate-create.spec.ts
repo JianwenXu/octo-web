@@ -18,16 +18,17 @@ test("@SP1 @p0 @space @space-gate 无 Space 后创建组织进入主界面", asy
     const ss = sessionStorage;
     ss.setItem("octo.session.sid", sid);
     if (!ss.getItem("__e2e_scenario")) ss.setItem("__e2e_scenario", "sp1-space-gate");
-    document.cookie = "e2e_scenario=sp1-space-gate; path=/";
-    ls.removeItem("currentSpaceId");
+    const scenario = ss.getItem("__e2e_scenario");
+    if (scenario !== "sp1-space-gate-created") ls.removeItem("currentSpaceId");
     ls.setItem("octo:locale", locale);
     ls.setItem("octo:onboarding:seen", "seen");
     for (const [key, value] of Object.entries(suffixed)) ls.setItem(`${key}${sid}`, value);
   }, { sid: E2E_SID, suffixed: AUTH_KEYS_SUFFIXED, locale: MOCK_LOCALE });
-  await pagePlain.goto(`/?sid=${E2E_SID}&e2e_scenario=sp1-space-gate`);
+  await pagePlain.goto(`/?sid=${E2E_SID}`);
   await pagePlain.waitForFunction(() => (globalThis as unknown as { __MSW_READY__?: boolean }).__MSW_READY__ === true);
   await registerSP1SpaceGateCreate(pagePlain);
 
+  await expect(pagePlain.getByText("输入邀请码加入你的组织", { exact: true })).toBeVisible();
   await expect(pagePlain.getByRole("heading", { name: "欢迎使用 Octo！" })).toBeVisible();
   await expect(pagePlain.getByRole("button", { name: /创建新组织/ })).toBeVisible();
   await expect(pagePlain.getByText("Chat", { exact: true })).toHaveCount(0);
@@ -36,13 +37,9 @@ test("@SP1 @p0 @space @space-gate 无 Space 后创建组织进入主界面", asy
   const dialog = pagePlain.getByRole("dialog");
   await expect(dialog).toBeVisible();
   await dialog.getByPlaceholder("输入组织名称").fill("SP1 新组织");
-  await pagePlain.evaluate(() => {
-    sessionStorage.setItem("__e2e_scenario", "sp1-space-gate-created");
-    document.cookie = "e2e_scenario=sp1-space-gate-created; path=/";
-  });
-  const createRequest = pagePlain.waitForRequest("**/api/v1/space/create");
+  const createResponse = pagePlain.waitForResponse("**/api/v1/space/create");
   await dialog.getByRole("button", { name: "创建", exact: true }).click();
-  await createRequest;
+  await expect((await createResponse).status()).toBe(200);
   created = true;
   await expect(pagePlain.getByRole("button", { name: "切换组织" })).toContainText("SP1 新组织", { timeout: 15_000 });
   await expect(pagePlain.getByRole("heading", { name: "欢迎使用 Octo！" })).toHaveCount(0);

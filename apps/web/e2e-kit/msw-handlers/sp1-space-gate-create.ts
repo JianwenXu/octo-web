@@ -11,7 +11,7 @@ export async function registerSP1SpaceGateCreate(page: Page): Promise<void> {
       };
       HttpResponse: { json: (body: unknown, init?: unknown) => unknown };
     };
-    const win = window as unknown as { __msw?: Msw; __sp1MswInstalled?: boolean; __sp1MswTimer?: number };
+    const win = window as unknown as { __msw?: Msw; __sp1MswInstalled?: boolean; __sp1MswTimer?: number; __sp1MswError?: string };
     const msw = win.__msw;
     if (!msw) {
       if (!win.__sp1MswTimer) {
@@ -19,7 +19,7 @@ export async function registerSP1SpaceGateCreate(page: Page): Promise<void> {
         win.__sp1MswTimer = window.setInterval(() => {
           if (++attempts > 300) {
             window.clearInterval(win.__sp1MswTimer);
-            throw new Error("[SP1] MSW worker 未在 3 秒内就绪");
+            win.__sp1MswError = "[SP1] MSW worker 未在 3 秒内就绪";
           }
           if (install()) window.clearInterval(win.__sp1MswTimer);
         }, 10);
@@ -34,9 +34,13 @@ export async function registerSP1SpaceGateCreate(page: Page): Promise<void> {
       space_no: "sp1-created-space", owner: "e2e-user-1", status: 1, role: 1,
     };
     msw.worker.use(
+      msw.http.get("*/space/my", () =>
+        msw.HttpResponse.json(sessionStorage.getItem("__e2e_scenario") === "sp1-space-gate-created" ? [space] : [])
+      ),
       msw.http.post("*/space/create", async ({ request }: { request: Request }) => {
         const body = await request.json().catch(() => null) as { name?: string } | null;
         if (body?.name !== space.name) return msw.HttpResponse.json({ msg: "invalid space name" }, { status: 400 });
+        sessionStorage.setItem("__e2e_scenario", "sp1-space-gate-created");
         return msw.HttpResponse.json({ space_id: space.space_id, name: space.name });
       }),
       msw.http.post("*/space/sp1-created-space/invite", () =>

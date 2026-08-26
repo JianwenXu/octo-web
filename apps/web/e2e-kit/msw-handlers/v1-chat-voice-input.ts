@@ -7,7 +7,7 @@ export async function registerV1ChatVoiceInput(page: Page): Promise<void> {
       http: { get: (path: string, resolver: (info: unknown) => unknown) => unknown };
       HttpResponse: { json: (body: unknown) => unknown };
     };
-    const win = window as unknown as { __msw?: Msw; __v1MswInstalled?: boolean; __v1MswTimer?: number };
+    const win = window as unknown as { __msw?: Msw; __v1MswInstalled?: boolean; __v1MswTimer?: number; __v1MswError?: string };
     const msw = win.__msw;
     if (!msw) {
       if (!win.__v1MswTimer) {
@@ -15,7 +15,7 @@ export async function registerV1ChatVoiceInput(page: Page): Promise<void> {
         win.__v1MswTimer = window.setInterval(() => {
           if (++attempts > 300) {
             window.clearInterval(win.__v1MswTimer);
-            throw new Error("[V1] MSW worker 未在 3 秒内就绪");
+            win.__v1MswError = "[V1] MSW worker 未在 3 秒内就绪";
           }
           if (install()) window.clearInterval(win.__v1MswTimer);
         }, 10);

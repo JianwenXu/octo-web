@@ -8,5 +8,5 @@ test("@V1 @p1 @chat @voice Chat 语音配置开启后显示语音入口", async 
   await prepareVoiceConversation(authedPage, { shortcutWindows: "shift-right", speakingMode: "toggle" }, "V1 语音群");
   const voiceButton = authedPage.getByRole("button", { name: "语音输入 (长按 Shift)" });
   await expect(voiceButton).toBeVisible({ timeout: 15_000 });
-  await expect(voiceButton).toHaveAttribute("title", "语音输入 (长按 Shift)");
+  await expect(voiceButton).not.toHaveClass(/wk-vib__btn--disabled/);
 });

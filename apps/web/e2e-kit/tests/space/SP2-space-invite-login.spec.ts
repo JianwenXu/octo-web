@@ -4,8 +4,8 @@ import { registerSP2SpaceInviteLogin } from "../../msw-handlers/sp2-space-invite
 test("@SP2 @p1 @space @invite @login 邀请链接登录后自动加入 Space", async ({ pagePlain }) => {
   await pagePlain.addInitScript(({ sid, auth, spaceKey, spaceId, localeKey, locale, onboardingKey, scenario }) => {
     if (!sessionStorage.getItem("__e2e_scenario")) {
-    localStorage.clear();
-      sessionStorage.setItem("octo.session.sid", sid); sessionStorage.setItem("__e2e_scenario", scenario); document.cookie = `e2e_scenario=${scenario}; path=/`;
+      localStorage.clear();
+      sessionStorage.setItem("octo.session.sid", sid); sessionStorage.setItem("__e2e_scenario", scenario);
       for (const [key, value] of Object.entries(auth)) localStorage.setItem(`${key}${sid}`, value);
       localStorage.setItem(spaceKey, spaceId); localStorage.setItem(localeKey, locale); localStorage.setItem(onboardingKey, "seen");
     }
@@ -22,8 +22,13 @@ test("@SP2 @p1 @space @invite @login 邀请链接登录后自动加入 Space", a
   await pagePlain.goto(`/?sid=${E2E_SID}`);
   await pagePlain.waitForFunction(() => (globalThis as { __MSW_READY__?: boolean }).__MSW_READY__ === true);
   await registerSP2SpaceInviteLogin(pagePlain);
-  await pagePlain.goto(`/?sid=${E2E_SID}&invite=SP2-INVITE&e2e_scenario=sp2-space-invite-login`);
+  await pagePlain.goto(`/?sid=${E2E_SID}&invite=SP2-INVITE`);
   await pagePlain.waitForFunction(() => (globalThis as { __MSW_READY__?: boolean }).__MSW_READY__ === true);
+  await pagePlain.waitForFunction(() => {
+    const w = globalThis as { __sp2MswInstalled?: boolean; __sp2MswError?: string };
+    if (w.__sp2MswError) throw new Error(w.__sp2MswError);
+    return w.__sp2MswInstalled === true;
+  });
   await expect(pagePlain.getByTestId("invite-landing-login-cta")).toBeVisible({ timeout: 15_000 });
   await pagePlain.getByTestId("invite-landing-login-cta").click();
   await expect(pagePlain.locator('input[name="username"]')).toBeVisible({ timeout: 15_000 });
@@ -34,9 +39,6 @@ test("@SP2 @p1 @space @invite @login 邀请链接登录后自动加入 Space", a
   const joinRequest = pagePlain.waitForRequest("**/api/v1/space/join**");
   await pagePlain.getByRole("button", { name: "登录" }).click();
   expect((await (await joinRequest).postDataJSON() as { invite_code?: string }).invite_code).toBe("SP2-INVITE");
-  const skipOnboarding = pagePlain.locator(".wk-onboarding-intro-skip");
-  await skipOnboarding.waitFor({ state: "visible", timeout: 3_000 });
-  await skipOnboarding.click();
   await expect(pagePlain.getByRole("button", { name: "切换组织" })).toContainText("SP2 邀请空间", { timeout: 15_000 });
   await expect(pagePlain.getByTestId("invite-landing-login-cta")).toHaveCount(0);
 });
