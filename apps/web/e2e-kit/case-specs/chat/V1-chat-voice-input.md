@@ -18,7 +18,7 @@
 
 - fixture: `fixtures-authed`，使用 Chat mock IM。
 - Per-case MSW handler: `e2e-kit/msw-handlers/v1-chat-voice-input.ts`
-- Per-case handler 根据 `sessionStorage.__e2e_scenario=v1-chat-voice-input` 返回启用的语音配置。
+- Per-case handler 仅在 `sessionStorage.__e2e_scenario=v1-chat-voice-input` 时返回启用的语音配置。
 - 使用 Chat mock IM runtime 准备一个可打开的会话。
 
 ## 用户操作步骤

@@ -7,6 +7,7 @@ test("@S26 @p1 @summary @deep-link 独立详情与分享链接", async ({ pagePl
     const ss = sessionStorage;
     ss.setItem("octo.session.sid", sid);
     ss.setItem("__e2e_scenario", scenario);
+    document.cookie = `e2e_scenario=${scenario}; path=/`;
     for (const [key, value] of Object.entries(auth)) ls.setItem(`${key}${sid}`, value);
     ls.setItem(spaceKey, spaceId); ls.setItem(localeKey, locale); ls.setItem(onboardingKey, "seen");
   }, { sid: E2E_SID, auth: AUTH_KEYS_SUFFIXED, spaceKey: SPACE_STORAGE_KEY, spaceId: "e2e-space-001", localeKey: LOCALE_STORAGE_KEY, locale: MOCK_LOCALE, onboardingKey: ONBOARDING_STORAGE_KEY, scenario: "s26-summary-standalone-links" });

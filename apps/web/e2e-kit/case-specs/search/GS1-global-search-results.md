@@ -17,7 +17,7 @@
 - fixture: `fixtures-authed`，使用已有 Chat baseline 与 mock IM。
 - Per-case MSW handler: `e2e-kit/msw-handlers/gs1-global-search-results.ts`
   - 返回真实全局搜索结果结构，分别包含 message、contact、file 结果。
-- 不断言请求次数或请求 body。
+- handler 按请求 body 的 `keyword` gating；用例必须保持关键词断言，确保错误关键词不会返回 fixture。
 
 ## 用户操作步骤
 

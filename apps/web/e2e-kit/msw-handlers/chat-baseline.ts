@@ -35,6 +35,20 @@ function appConfig() {
   return { ...MOCK_APP_CONFIG, mail_on: mailOn ? "1" : "0" };
 }
 
+function e2eScenario(request?: Request): string {
+  const cookie = request?.headers.get("cookie")?.match(/(?:^|;\s*)e2e_scenario=([^;]+)/)?.[1];
+  if (cookie) return decodeURIComponent(cookie);
+  try {
+    const fromStorage = sessionStorage.getItem("__e2e_scenario");
+    if (fromStorage) return fromStorage;
+  } catch { /* fall back to request URL */ }
+  try {
+    const fromUrl = new URL(request?.url ?? "").searchParams.get("e2e_scenario");
+    if (fromUrl) return fromUrl;
+  } catch { /* fall back to session storage */ }
+  return "";
+}
+
 // Space fixture (单 space, 用户是 owner).
 const MOCK_SPACE = {
   space_id: MOCK_SPACE_ID,
@@ -100,8 +114,6 @@ export const chatBaselineHandlers = [
   http.get("*/voice/local-config", () =>
     HttpResponse.json({ enabled: false, timeout_ms: null, probe_url: null, transcribe_url: null })
   ),
-  http.post("*/user/login", () => HttpResponse.json({ uid: "e2e-user-1", token: "e2e-mock-token", app_id: "e2e-app", short_no: "10000", name: "E2E Tester", sex: 1 })),
-  http.post("*/user/emaillogin", () => HttpResponse.json({ uid: "e2e-user-1", token: "e2e-mock-token", app_id: "e2e-app", short_no: "10000", name: "E2E Tester", sex: 1 })),
   http.get("*/api/v1/common/updater/android/1.0", () =>
     HttpResponse.json({ url: "https://example.com/download/android" })
   ),
@@ -141,20 +153,14 @@ export const chatBaselineHandlers = [
   // === Space ===
   http.get("*/space/my", ({ request }) => {
     if (!request.headers.get("token")) return HttpResponse.json([]);
-    return HttpResponse.json([
-      MOCK_SPACE,
-      { ...MOCK_SPACE, space_id: "sp2-invite-space", name: "SP2 邀请空间", space_no: "sp2-invite-space" },
-    ]);
+    return HttpResponse.json([MOCK_SPACE]);
   }),
-  // Invite landing is loaded before a page-specific handler can be installed.
-  // Keep this boot-safe fixture unconditional; the join transition remains case-owned.
-  http.get("*/space/invite/SP2-INVITE", () => HttpResponse.json({ invite_code: "SP2-INVITE", space_id: "sp2-invite-space", space_name: "SP2 邀请空间", member_count: 1, max_users: 100 })),
-  http.post("*/space/join", async ({ request }) => {
-    let body: { invite_code?: string } | null = null;
-    try { body = await request.json() as { invite_code?: string }; } catch { /* invalid body */ }
-    if (body?.invite_code !== "SP2-INVITE") return HttpResponse.json({ msg: "invalid invite code" }, { status: 400 });
-    try { sessionStorage.setItem("__sp2_joined", "1"); localStorage.setItem("currentSpaceId", "sp2-invite-space"); } catch { /* no-op */ }
-    return HttpResponse.json({ space_id: "sp2-invite-space", status: "JOINED" });
+  // Invite landing is the first request on SP2's fresh navigation, before the
+  // page-specific handler can be installed. Keep only this boot fixture in the
+  // baseline, and scope it to SP2 so other scenarios do not see invite data.
+  http.get("*/space/invite/SP2-INVITE", ({ request }) => {
+    if (e2eScenario(request) !== "sp2-space-invite-login") return HttpResponse.json({ msg: "not found" }, { status: 404 });
+    return HttpResponse.json({ invite_code: "SP2-INVITE", space_id: "sp2-invite-space", space_name: "SP2 邀请空间", member_count: 1, max_users: 100 });
   }),
   http.get("*/spaces/:spaceId/categories", ({ request }) => HttpResponse.json(
     chatFollowScenario(request)
@@ -246,17 +252,31 @@ export const chatBaselineHandlers = [
   http.get("*/summary/api/v1/summaries", () =>
     HttpResponse.json({ code: 0, message: "ok", data: { items: [], total: 0 } })
   ),
-  http.get("*/summary/api/v1/summaries/e2e-task-026", () => HttpResponse.json({ code: 0, message: "ok", data: {
-    task_id: 2601, task_no: "e2e-task-026", title: "S26 独立总结详情", topic: "S26 独立总结详情", summary_mode: 1, status: 3, trigger_type: 1,
-    time_range_start: "2026-08-24T00:00:00Z", time_range_end: "2026-08-25T00:00:00Z", sources: [{ source_type: 1, source_id: "s26-source", source_name: "S26 项目群" }], participants: [],
-    result: { content: "## S26 独立详情\n\n这是从任务链接直接打开的总结正文。", abstract: "S26 独立详情摘要", total_msg_count: 8, total_token_used: 100, model_version: "e2e-model", generated_at: "2026-08-25T08:00:00Z", version: 1, citations: [], team_citations: [] },
-    error_message: null, creator_id: "e2e-user-1", creator_name: "E2E Tester", origin_channel_id: "s26-source", origin_channel_type: 2, created_at: "2026-08-25T08:00:00Z", updated_at: "2026-08-25T08:05:00Z", result_version: 1, preview: "S26 独立详情摘要", content: "## S26 独立详情\n\n这是从任务链接直接打开的总结正文。",
-  } })),
-  http.post("*/summary/api/v1/summaries/2601/read", () => HttpResponse.json({ code: 0, message: "ok", data: { is_unread: false, has_pending_invitation: false, needs_attention: false } })),
-  http.get("*/summary/api/v1/summaries/2601/versions", () => HttpResponse.json({ code: 0, message: "ok", data: { versions: [], keep_limit: 3 } })),
-  http.get("*/summary/api/v1/summary-shares/e2e-share-026", () => HttpResponse.json({ code: 0, message: "ok", data: { share_id: "e2e-share-026", source_accessible: true, snapshot: {
-    id: 2602, task_id: 2601, task_no: "e2e-share-026", space_id: "e2e-space-001", title: "S26 分享总结", source_name: "S26 项目群", source_count: 1, participant_count: 2, message_count: 8, time_range_start: "2026-08-24T00:00:00Z", time_range_end: "2026-08-25T00:00:00Z", summary_mode: 1, result_version: 1, preview: "S26 分享正文", content: "## S26 分享详情\n\n这是从分享链接直接打开的总结正文。", created_at: "2026-08-25T08:00:00Z",
-  } } })),
+  // Deep-link Summary requests can happen on the fresh document before the
+  // per-case handler is installed. Keep these fallbacks scoped to S26 only.
+  http.get("*/summary/api/v1/summaries/e2e-task-026", () => {
+    if (e2eScenario() !== "s26-summary-standalone-links") return HttpResponse.json({ code: 404, message: "not found" }, { status: 404 });
+    return HttpResponse.json({ code: 0, message: "ok", data: {
+      task_id: 2601, task_no: "e2e-task-026", title: "S26 独立总结详情", topic: "S26 独立总结详情", summary_mode: 1, status: 3, trigger_type: 1,
+      time_range_start: "2026-08-24T00:00:00Z", time_range_end: "2026-08-25T00:00:00Z", sources: [{ source_type: 1, source_id: "s26-source", source_name: "S26 项目群" }], participants: [],
+      result: { content: "## S26 独立详情\n\n这是从任务链接直接打开的总结正文。", abstract: "S26 独立详情摘要", total_msg_count: 8, total_token_used: 100, model_version: "e2e-model", generated_at: "2026-08-25T08:00:00Z", version: 1, citations: [], team_citations: [] },
+      error_message: null, creator_id: "e2e-user-1", creator_name: "E2E Tester", origin_channel_id: "s26-source", origin_channel_type: 2, created_at: "2026-08-25T08:00:00Z", updated_at: "2026-08-25T08:05:00Z", result_version: 1, preview: "S26 独立详情摘要", content: "## S26 独立详情\n\n这是从任务链接直接打开的总结正文。",
+    } });
+  }),
+  http.post("*/summary/api/v1/summaries/2601/read", () => {
+    if (e2eScenario() !== "s26-summary-standalone-links") return HttpResponse.json({ code: 404, message: "not found" }, { status: 404 });
+    return HttpResponse.json({ code: 0, message: "ok", data: { is_unread: false, has_pending_invitation: false, needs_attention: false } });
+  }),
+  http.get("*/summary/api/v1/summaries/2601/versions", () => {
+    if (e2eScenario() !== "s26-summary-standalone-links") return HttpResponse.json({ code: 404, message: "not found" }, { status: 404 });
+    return HttpResponse.json({ code: 0, message: "ok", data: { versions: [], keep_limit: 3 } });
+  }),
+  http.get("*/summary/api/v1/summary-shares/e2e-share-026", () => {
+    if (e2eScenario() !== "s26-summary-standalone-links") return HttpResponse.json({ code: 404, message: "not found" }, { status: 404 });
+    return HttpResponse.json({ code: 0, message: "ok", data: { share_id: "e2e-share-026", source_accessible: true, snapshot: {
+      id: 2602, task_id: 2601, task_no: "e2e-share-026", space_id: "e2e-space-001", title: "S26 分享总结", source_name: "S26 项目群", source_count: 1, participant_count: 2, message_count: 8, time_range_start: "2026-08-24T00:00:00Z", time_range_end: "2026-08-25T00:00:00Z", summary_mode: 1, result_version: 1, preview: "S26 分享正文", content: "## S26 分享详情\n\n这是从分享链接直接打开的总结正文。", created_at: "2026-08-25T08:00:00Z",
+    } } });
+  }),
   http.get("*/summary/api/v1/summary-templates", () =>
     HttpResponse.json({ templates: [], custom_template_limit: 30 })
   ),

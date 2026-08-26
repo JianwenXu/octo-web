@@ -1,19 +1,36 @@
 import type { Page } from "@playwright/test";
 
 export async function registerV1ChatVoiceInput(page: Page): Promise<void> {
-  const install = () => page.evaluate(() => {
-    type Msw = { worker: { use: (...handlers: unknown[]) => void }; http: { get: (path: string, resolver: () => unknown) => unknown }; HttpResponse: { json: (body: unknown) => unknown } };
-    const msw = (window as unknown as { __msw?: Msw }).__msw;
-    if (!msw) return;
+  function install() {
+    type Msw = {
+      worker: { use: (...handlers: unknown[]) => void };
+      http: { get: (path: string, resolver: (info: unknown) => unknown) => unknown };
+      HttpResponse: { json: (body: unknown) => unknown };
+    };
+    const win = window as unknown as { __msw?: Msw; __v1MswInstalled?: boolean; __v1MswTimer?: number };
+    const msw = win.__msw;
+    if (!msw) {
+      if (!win.__v1MswTimer) {
+        let attempts = 0;
+        win.__v1MswTimer = window.setInterval(() => {
+          if (++attempts > 300) {
+            window.clearInterval(win.__v1MswTimer);
+            throw new Error("[V1] MSW worker 未在 3 秒内就绪");
+          }
+          if (install()) window.clearInterval(win.__v1MswTimer);
+        }, 10);
+      }
+      return false;
+    }
+    if (win.__v1MswInstalled) return true;
+    if (sessionStorage.getItem("__e2e_scenario") !== "v1-chat-voice-input") {
+      throw new Error("[V1] 缺少 v1-chat-voice-input scenario");
+    }
     msw.worker.use(msw.http.get("*/voice/config", () => msw.HttpResponse.json({ enabled: true, max_file_size: 5_000_000, max_duration: 60 })));
-  });
-  await page.addInitScript(() => {
-    const timer = window.setInterval(() => {
-      const msw = (window as unknown as { __msw?: { worker: { use: (...handlers: unknown[]) => void }; http: { get: (path: string, resolver: () => unknown) => unknown }; HttpResponse: { json: (body: unknown) => unknown } } }).__msw;
-      if (!msw) return;
-      msw.worker.use(msw.http.get("*/voice/config", () => msw.HttpResponse.json({ enabled: true, max_file_size: 5_000_000, max_duration: 60 })));
-      window.clearInterval(timer);
-    }, 0);
-  });
-  await install();
+    win.__v1MswInstalled = true;
+    return true;
+  }
+
+  await page.addInitScript(install);
+  await page.evaluate(install);
 }

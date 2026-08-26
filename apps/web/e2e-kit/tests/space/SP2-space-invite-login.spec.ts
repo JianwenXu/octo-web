@@ -4,8 +4,8 @@ import { registerSP2SpaceInviteLogin } from "../../msw-handlers/sp2-space-invite
 test("@SP2 @p1 @space @invite @login 邀请链接登录后自动加入 Space", async ({ pagePlain }) => {
   await pagePlain.addInitScript(({ sid, auth, spaceKey, spaceId, localeKey, locale, onboardingKey, scenario }) => {
     if (!sessionStorage.getItem("__e2e_scenario")) {
-      localStorage.clear();
-      sessionStorage.setItem("octo.session.sid", sid); sessionStorage.setItem("__e2e_scenario", scenario);
+    localStorage.clear();
+      sessionStorage.setItem("octo.session.sid", sid); sessionStorage.setItem("__e2e_scenario", scenario); document.cookie = `e2e_scenario=${scenario}; path=/`;
       for (const [key, value] of Object.entries(auth)) localStorage.setItem(`${key}${sid}`, value);
       localStorage.setItem(spaceKey, spaceId); localStorage.setItem(localeKey, locale); localStorage.setItem(onboardingKey, "seen");
     }
@@ -19,34 +19,24 @@ test("@SP2 @p1 @space @invite @login 邀请链接登录后自动加入 Space", a
       for (const key of Object.keys(localStorage)) if (authKey.test(key)) localStorage.removeItem(key);
     }
   }, { sid: E2E_SID });
-  const loginResponse = { uid: "e2e-user-1", token: "e2e-mock-token", app_id: "e2e-app", short_no: "10000", name: "E2E Tester", sex: 1 };
-  await pagePlain.route("**/api/v1/user/login**", (route) => route.fulfill({ json: loginResponse }));
-  await pagePlain.route("**/api/v1/user/emaillogin**", (route) => route.fulfill({ json: loginResponse }));
-  await pagePlain.route("**/api/v1/space/join**", async (route) => {
-    const body = await route.request().postDataJSON().catch(() => null) as { invite_code?: string } | null;
-    if (body?.invite_code !== "SP2-INVITE") return route.fulfill({ status: 400, json: { msg: "invalid invite code" } });
-    return route.fulfill({ json: { space_id: "sp2-invite-space", status: "JOINED" } });
-  });
   await pagePlain.goto(`/?sid=${E2E_SID}`);
   await pagePlain.waitForFunction(() => (globalThis as { __MSW_READY__?: boolean }).__MSW_READY__ === true);
   await registerSP2SpaceInviteLogin(pagePlain);
-  await pagePlain.goto(`/?sid=${E2E_SID}&invite=SP2-INVITE`);
-  await pagePlain.waitForFunction(async () => {
-    await navigator.serviceWorker?.ready;
-    return Boolean(navigator.serviceWorker?.controller);
-  });
+  await pagePlain.goto(`/?sid=${E2E_SID}&invite=SP2-INVITE&e2e_scenario=sp2-space-invite-login`);
+  await pagePlain.waitForFunction(() => (globalThis as { __MSW_READY__?: boolean }).__MSW_READY__ === true);
   await expect(pagePlain.getByTestId("invite-landing-login-cta")).toBeVisible({ timeout: 15_000 });
   await pagePlain.getByTestId("invite-landing-login-cta").click();
   await expect(pagePlain.locator('input[name="username"]')).toBeVisible({ timeout: 15_000 });
   await pagePlain.locator('input[name="username"]').fill("e2e@example.com");
   await pagePlain.locator('input[name="password"]').fill("e2e-password");
   await pagePlain.waitForFunction(() => (globalThis as { __MSW_READY__?: boolean }).__MSW_READY__ === true);
-  await pagePlain.evaluate(() => localStorage.setItem("pendingInviteCode", "SP2-INVITE"));
+  await expect.poll(() => pagePlain.evaluate(() => localStorage.getItem("pendingInviteCode"))).toBe("SP2-INVITE");
   const joinRequest = pagePlain.waitForRequest("**/api/v1/space/join**");
   await pagePlain.getByRole("button", { name: "登录" }).click();
   expect((await (await joinRequest).postDataJSON() as { invite_code?: string }).invite_code).toBe("SP2-INVITE");
-  const skipOnboarding = pagePlain.getByRole("button", { name: "跳过引导，进入主页面" });
-  await skipOnboarding.click({ timeout: 10_000 }).catch(() => undefined);
+  const skipOnboarding = pagePlain.locator(".wk-onboarding-intro-skip");
+  await skipOnboarding.waitFor({ state: "visible", timeout: 3_000 });
+  await skipOnboarding.click();
   await expect(pagePlain.getByRole("button", { name: "切换组织" })).toContainText("SP2 邀请空间", { timeout: 15_000 });
   await expect(pagePlain.getByTestId("invite-landing-login-cta")).toHaveCount(0);
 });
