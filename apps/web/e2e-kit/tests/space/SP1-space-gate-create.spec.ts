@@ -7,7 +7,9 @@ import { registerSP1SpaceGateCreate } from "../../msw-handlers/sp1-space-gate-cr
 test("@SP1 @p0 @space @space-gate 无 Space 后创建组织进入主界面", async ({ pagePlain }) => {
   let created = false;
   const space = { space_id: "sp1-created-space", name: "SP1 新组织", description: "", logo: "", create_at: "2026-08-25T00:00:00Z", update_at: "2026-08-25T00:00:00Z", space_no: "sp1-created-space", owner: "e2e-user-1", status: 1, role: 1 };
-  // Cold-start guards only; the per-case MSW handler owns business endpoints.
+  // The MSW baseline owns cold-start and post-create bootstrap endpoints.
+  // Playwright routes remain as a cold-start fallback when the worker has not
+  // taken control yet; the MSW scenario owns the same business state.
   await pagePlain.route("**/api/v1/space/my**", (route) => route.fulfill({ json: created ? [space] : [] }));
   await pagePlain.route("**/api/v1/users/e2e-user-1/avatar**", (route) => route.fulfill({ status: 200, contentType: "image/png", body: Buffer.from([]) }));
   await pagePlain.route("**/api/v1/sidebar/sync", (route) => route.fulfill({ json: { conversations: [], groups: [], users: [] } }));

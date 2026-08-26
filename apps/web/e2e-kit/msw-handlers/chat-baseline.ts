@@ -63,6 +63,19 @@ const MOCK_SPACE = {
   role: 1,
 };
 
+const SP1_CREATED_SPACE = {
+  space_id: "sp1-created-space",
+  name: "SP1 新组织",
+  description: "",
+  logo: "",
+  create_at: "2026-08-25T00:00:00Z",
+  update_at: "2026-08-25T00:00:00Z",
+  space_no: "sp1-created-space",
+  owner: MOCK_UID,
+  status: 1,
+  role: 1,
+};
+
 function chatFollowScenario(request?: Request): string {
   const header = request?.headers.get("x-e2e-chat-follow-scenario");
   if (header) return header;
@@ -153,6 +166,11 @@ export const chatBaselineHandlers = [
   // === Space ===
   http.get("*/space/my", ({ request }) => {
     if (!request.headers.get("token")) return HttpResponse.json([]);
+    const scenario = e2eScenario(request);
+    if (scenario === "sp1-space-gate-created") return HttpResponse.json([SP1_CREATED_SPACE]);
+    if (scenario === "sp1-space-gate") {
+      return HttpResponse.json([]);
+    }
     return HttpResponse.json([MOCK_SPACE]);
   }),
   // Invite landing is the first request on SP2's fresh navigation, before the

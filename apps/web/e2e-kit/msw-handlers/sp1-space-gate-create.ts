@@ -37,7 +37,6 @@ export async function registerSP1SpaceGateCreate(page: Page): Promise<void> {
       msw.http.post("*/space/create", async ({ request }: { request: Request }) => {
         const body = await request.json().catch(() => null) as { name?: string } | null;
         if (body?.name !== space.name) return msw.HttpResponse.json({ msg: "invalid space name" }, { status: 400 });
-        sessionStorage.setItem("__sp1_created", "1");
         return msw.HttpResponse.json({ space_id: space.space_id, name: space.name });
       }),
       msw.http.post("*/space/sp1-created-space/invite", () =>
