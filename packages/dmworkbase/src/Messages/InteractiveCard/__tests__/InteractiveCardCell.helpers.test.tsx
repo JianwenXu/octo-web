@@ -16,21 +16,30 @@ describe("InteractiveCardCell rendering guards", () => {
     cell.componentWillUnmount()
   })
 
-  it("handles action type guards without requiring the card SDK", () => {
+  it("handles supported actions for a non-interactive card", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText } })
     const cell: any = new InteractiveCardCell({
       message: { fromUID: "u", channel: { channelID: "g", channelType: 2 }, content: { plain: "x" } },
       context: { editOn: () => false, openWebhookPreview: vi.fn() },
     } as any)
     const card: any = { getAllInputs: () => [] }
-    for (const type of ["Action.ToggleVisibility", "Action.CopyToClipboard", "Action.Submit", "Action.Unknown"]) {
-      try { cell.handleCardAction({ getJsonTypeName: () => type, text: "copy", id: "a" }, card) } catch {}
-    }
-    try { cell.computeState() } catch {}
-    try { cell.handleSubmit({ id: "" }, card) } catch {}
-    try { cell.performSubmit(card, "action", null) } catch {}
-    try { cell.render() } catch {}
+    expect(cell.computeState().plain).toBe("x")
+    expect(cell.computeState().decision.kind).toBe("plain")
+
+    cell.handleCardAction({ getJsonTypeName: () => "Action.CopyToClipboard", text: "copy", id: "a" }, card)
+    await Promise.resolve()
+    expect(writeText).toHaveBeenCalledWith("copy")
+
+    const scheduleEnhance = vi.spyOn(cell, "scheduleEnhanceMountedCard")
+    cell.handleCardAction({ getJsonTypeName: () => "Action.ToggleVisibility" }, card)
+    expect(scheduleEnhance).toHaveBeenCalledOnce()
+
+    const performSubmit = vi.spyOn(cell, "performSubmit")
+    cell.handleCardAction({ getJsonTypeName: () => "Action.Submit", id: "a" }, card)
+    expect(performSubmit).not.toHaveBeenCalled()
+    expect(() => cell.handleCardAction({ getJsonTypeName: () => "Action.Unknown" }, card)).not.toThrow()
     cell.clearSubmitTimer()
-    expect(cell).toBeTruthy()
   })
 
   it("covers lifecycle, card fingerprint, table copy, and timeout cleanup", async () => {

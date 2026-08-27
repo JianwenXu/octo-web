@@ -49,40 +49,6 @@ describe("BaseModule smoke contract", () => {
     }
   })
 
-  it("evaluates the common message context menu guards", () => {
-    const module = new BaseModule()
-    try { module.init() } catch { /* optional host integrations are absent */ }
-    const channel = new Channel("g", 2)
-    const message: any = {
-      messageID: "1", fromUID: "u2", channel, channelType: 2,
-      contentType: 1, send: true, timestamp: Date.now(),
-      content: { text: "hello", conversationDigest: "hello", contentObj: {}, encodeJSON: () => ({}) },
-    }
-    const context: any = {
-      getCachedSelectedText: () => "selected",
-      channel: () => channel,
-      reply: vi.fn(), fowardMessageUI: vi.fn(), setEditOn: vi.fn(),
-      revokeMessage: vi.fn().mockResolvedValue(undefined),
-    }
-    for (const id of [
-      "contextmenus.copy", "contextmenus.copyImage", "contextmenus.addSticker",
-      "contextmenus.reaction", "contextmenus.forward", "contextmenus.reply",
-      "contextmenus.muli", "contextmenus.revoke", "contextmenus.createThread",
-    ]) {
-      const endpoint = EndpointManager.shared.get(id)
-      if (!endpoint) continue
-      try {
-        const action = endpoint.handler!(message, context)
-        action?.onClick?.()
-      } catch { /* host services are intentionally absent in this smoke test */ }
-    }
-    message.contentType = 2
-    try { EndpointManager.shared.get("contextmenus.copyImage")?.handler!(message, context) } catch {}
-    message.contentType = 1
-    message.messageID = ""
-    try { EndpointManager.shared.get("contextmenus.reaction")?.handler!(message, context) } catch {}
-  })
-
   it("applies notification guards and reuses the message tone", async () => {
     const module: any = new BaseModule()
     const channel = new Channel("group-notify", 2)

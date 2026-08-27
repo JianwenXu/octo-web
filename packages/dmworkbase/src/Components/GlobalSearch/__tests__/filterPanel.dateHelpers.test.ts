@@ -19,8 +19,8 @@ describe("global search filter date helpers", () => {
     expect(dateFromSeconds(0)).toBeUndefined()
     expect(dateFromSeconds(1000)?.getTime()).toBe(1000000)
     expect(dateDisplayValue()).toBe("")
-    const middayUtc = Date.UTC(2026, 0, 15, 12, 0, 0) / 1000
-    expect(dateDisplayValue(middayUtc, "en-US")).toMatch(/^2026\/01\/15 /)
+    const local = new Date(2026, 0, 15, 12, 0, 0)
+    expect(dateDisplayValue(Math.floor(local.getTime() / 1000), "en-US")).toMatch(/^2026\/01\/15 /)
   })
 
   it("accepts picker dates, arrays, strings, and invalid values", () => {
