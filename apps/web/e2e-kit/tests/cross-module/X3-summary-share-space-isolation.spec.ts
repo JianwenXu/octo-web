@@ -1,0 +1,24 @@
+/* eslint-disable no-undef -- e2e code runs in Node */
+/** spec: e2e-kit/case-specs/cross-module/X3-summary-share-space-isolation.md */
+import { test, expect, AUTH_KEYS_SUFFIXED, E2E_SID, MOCK_LOCALE, LOCALE_STORAGE_KEY, ONBOARDING_STORAGE_KEY, SPACE_STORAGE_KEY } from "../../fixtures-authed";
+import { registerX3SummaryShareSpaceIsolation } from "../../msw-handlers/x3-summary-share-space-isolation";
+
+test("@X3 @p1 @cross-module @summary @deep-link @space-isolation Summary 分享不跨 Space 泄露", async ({ pagePlain }) => {
+  await pagePlain.addInitScript(({ sid, auth, spaceKey, localeKey, locale, onboardingKey }) => {
+    sessionStorage.setItem("octo.session.sid", sid);
+    for (const [key, value] of Object.entries(auth)) localStorage.setItem(`${key}${sid}`, value);
+    localStorage.setItem(spaceKey, "e2e-space-002");
+    localStorage.setItem(localeKey, locale);
+    localStorage.setItem(onboardingKey, "seen");
+  }, { sid: E2E_SID, auth: AUTH_KEYS_SUFFIXED, spaceKey: SPACE_STORAGE_KEY, localeKey: LOCALE_STORAGE_KEY, locale: MOCK_LOCALE, onboardingKey: ONBOARDING_STORAGE_KEY });
+
+  await pagePlain.goto(`/?sid=${E2E_SID}`);
+  await pagePlain.waitForFunction(() => (globalThis as { __MSW_READY__?: boolean }).__MSW_READY__ === true);
+  await registerX3SummaryShareSpaceIsolation(pagePlain);
+  await pagePlain.goto(`/s/share/e2e-share-026?sid=${E2E_SID}`);
+  await pagePlain.waitForFunction(() => (globalThis as { __x3Installed?: boolean }).__x3Installed === true, undefined, { timeout: 15_000 });
+
+  await expect(pagePlain.getByText("该分享不存在、已失效或你无权查看", { exact: true })).toBeVisible({ timeout: 15_000 });
+  await expect(pagePlain.getByRole("heading", { name: "S26 分享总结" })).toHaveCount(0);
+  await expect(pagePlain.getByText("这是从分享链接直接打开的总结正文。", { exact: true })).toHaveCount(0);
+});
