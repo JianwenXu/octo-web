@@ -15,23 +15,23 @@
 ## 前置条件
 
 - fixture: `fixtures-authed`，Space 为 `e2e-space-001`。
-- mock-im-runtime seed: `x1-project-group` / `X1 项目群`，作为当前会话。
+- mock-im-runtime seed: 复用 `s22-project-group` / `S22 项目群`，作为当前会话。
 - Per-case handler: `e2e-kit/msw-handlers/x1-cross-module-chat-summary-return.ts`
   - 复用 Summary Panel 历史和详情的稳定响应结构。
 
 ## 用户操作步骤
 
-1. 进入 Chat 并打开 `X1 项目群`。
+1. 进入 Chat 并打开 `S22 项目群`。
 2. 点击聊天 header 的「智能总结」入口。
 3. 点击历史总结进入内嵌详情。
 4. 点击详情中的「返回」。
 
 ## 预期结果
 
-- Summary Panel 显示历史总结 `X1 聊天内总结`。
-- 进入详情后显示正文 `X1 聊天内详情正文` 和「返回」入口。
+- Summary Panel 显示历史总结 `S22 聊天内总结`。
+- 进入详情后显示正文 `S22 聊天内详情正文` 和「返回」入口。
 - 点击返回后重新显示「聊天内的智能总结」历史列表。
-- Chat 仍显示 `X1 项目群`，未跳转到全局 Summary 列表或登录页。
+- Chat 仍显示 `S22 项目群`，未跳转到全局 Summary 列表或登录页。
 
 ## 反例
 

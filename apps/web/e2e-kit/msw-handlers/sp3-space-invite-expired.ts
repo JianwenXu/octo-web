@@ -17,7 +17,10 @@ export async function registerSP3SpaceInviteExpired(page: Page): Promise<void> {
       if (!win.__sp3MswTimer) {
         let attempts = 0;
         win.__sp3MswTimer = window.setInterval(() => {
-          if (install()) window.clearInterval(win.__sp3MswTimer);
+          if (install()) {
+            window.clearInterval(win.__sp3MswTimer);
+            return;
+          }
           if (++attempts > 300) {
             window.clearInterval(win.__sp3MswTimer);
             win.__sp3MswError = "[SP3] MSW worker 未在 3 秒内就绪";
@@ -27,10 +30,10 @@ export async function registerSP3SpaceInviteExpired(page: Page): Promise<void> {
       return false;
     }
     if (win.__sp3MswInstalled) return true;
+    const expired = () => win.__msw!.HttpResponse.json({}, { status: 410 });
     win.__msw.worker.use(
-      win.__msw.http.get("*/space/invite/SP3-EXPIRED", () =>
-        win.__msw!.HttpResponse.json({}, { status: 410 })
-      )
+      win.__msw.http.get("*/space/invite/SP3-EXPIRED", expired),
+      win.__msw.http.get("*/api/v1/space/invite/SP3-EXPIRED", expired),
     );
     win.__sp3MswInstalled = true;
     return true;

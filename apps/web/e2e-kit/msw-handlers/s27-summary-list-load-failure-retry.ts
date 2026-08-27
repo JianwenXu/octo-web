@@ -44,16 +44,22 @@ export async function registerS27SummaryListLoadFailureRetry(page: Page): Promis
     };
     (window as unknown as { __s27State__: { listCalls: number } }).__s27State__ = { listCalls: 0 };
 
-    worker.use(
-      http.get("*/summary/api/v1/summaries", () => {
+    const list = () => {
         const state = (window as unknown as { __s27State__: { listCalls: number } }).__s27State__;
         state.listCalls += 1;
-        if (state.listCalls === 2) return HttpResponse.json({ code: 0, message: "service unavailable" }, { status: 503 });
+        if (state.listCalls === 1) return HttpResponse.json({ code: 0, message: "service unavailable" }, { status: 503 });
         return env({ items: [item], total: 1, attention_count: 0, unread_count: 0, pending_invitation_count: 0 });
-      }),
+    };
+    const templates = () =>
+      env({ templates: [], custom_template_limit: 30 });
+
+    worker.use(
+      http.get("*/summary/api/v1/summaries", list),
+      http.get("*/api/v1/summaries", list),
       http.get("*/summary/api/v1/summary-templates", () =>
-        env({ templates: [], custom_template_limit: 30 })
-      )
+        templates()
+      ),
+      http.get("*/api/v1/summary-templates", templates),
     );
   });
 }

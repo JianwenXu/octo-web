@@ -9,6 +9,7 @@ test("@CT4 @p1 @contacts @contacts-search 通讯录搜索无结果显示空态",
   });
   await registerCT4ContactsSearchEmpty(authedPage);
   await authedPage.getByRole("button", { name: "通讯录", exact: true }).click();
+  await expect(authedPage.getByText("E2E 联系人", { exact: true })).toBeVisible();
   await authedPage.getByPlaceholder("搜索通讯录", { exact: true }).fill("不存在的人");
   await expect(authedPage.getByText("没有找到相关联系人", { exact: true })).toBeVisible();
   await expect(authedPage.getByText("E2E 联系人", { exact: true })).toHaveCount(0);

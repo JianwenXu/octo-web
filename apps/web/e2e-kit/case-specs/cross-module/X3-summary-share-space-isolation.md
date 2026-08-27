@@ -1,4 +1,4 @@
-# X3 Summary 分享多 Space 隔离
+# X3 Summary 分享无权访问错误态
 
 ## Metadata
 
@@ -6,31 +6,29 @@
 - 目标模式: standalone deep link
 - 登录状态: authed fixture
 - 优先级: P1
-- Tags: `@X3 @p1 @cross-module @summary @deep-link @space-isolation`
+- Tags: `@X3 @p1 @cross-module @summary @deep-link @permission`
 
 ## 目标
 
-验证当前用户切换到其他 Space 后，不能通过分享链接读取原 Space 的分享内容。
+验证分享详情接口返回无权访问时，页面展示明确错误态，不泄露分享正文。
 
 ## 前置条件
 
-- 当前 Space 为 `e2e-space-002`。
-- 分享快照属于 `e2e-space-001`。
-- Per-case handler: `e2e-kit/msw-handlers/x3-summary-share-space-isolation.ts`，返回跨 Space 访问失败。
+- Per-case handler: `e2e-kit/msw-handlers/x3-summary-share-space-isolation.ts`，返回 HTTP 403 无权访问。
 
 ## 用户操作步骤
 
-1. 在 `e2e-space-002` 直接打开 `/s/share/x3-share-026`。
+1. 直接打开复用的分享链接 `/s/share/e2e-share-026`。
 2. 观察分享页状态。
 
 ## 预期结果
 
 - 页面显示「该分享不存在、已失效或你无权查看」。
-- 不显示原 Space 的分享标题和正文。
+- 不显示分享标题和正文。
 
 ## 反例
 
-- 页面显示其他 Space 的分享正文，说明 Space 隔离失效，case 应失败。
+- 页面显示分享正文，说明无权错误没有被正确展示，case 应失败。
 
 ## 视觉基准
 

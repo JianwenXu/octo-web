@@ -7,7 +7,7 @@ export async function registerX3SummaryShareSpaceIsolation(page: Page): Promise<
   function install() {
     type MSW = {
       worker: { use: (...handlers: unknown[]) => void };
-      http: { get: (path: string, resolver: (info: unknown) => unknown) => unknown };
+      http: { get: (path: string, resolver: () => unknown) => unknown };
       HttpResponse: { json: (body: unknown, init?: unknown) => unknown };
     };
     const win = window as unknown as { __msw?: MSW; __x3Installed?: boolean; __x3Timer?: number };

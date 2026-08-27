@@ -21,6 +21,13 @@ test("@SP3 @p1 @space @invite @expired 过期邀请链接显示不可用状态",
   await pagePlain.goto(`/?sid=${E2E_SID}`);
   await pagePlain.waitForFunction(() => (globalThis as { __MSW_READY__?: boolean }).__MSW_READY__ === true);
   await registerSP3SpaceInviteExpired(pagePlain);
+  await pagePlain.waitForFunction(() => (globalThis as { __sp3MswInstalled?: boolean }).__sp3MswInstalled === true, undefined, { timeout: 15_000 });
+  // The invite page fetches during the navigation that enters it. Keep a
+  // Playwright fallback for preview runs where the service worker is restarted
+  // between the seed page and the invite deep link.
+  await pagePlain.route("**/api/v1/space/invite/SP3-EXPIRED", (route) =>
+    route.fulfill({ status: 410, contentType: "application/json", body: "{}" })
+  );
   await pagePlain.goto(`/?sid=${E2E_SID}&invite=SP3-EXPIRED`);
 
   await expect(pagePlain.getByText(/邀请码无效/)).toBeVisible();

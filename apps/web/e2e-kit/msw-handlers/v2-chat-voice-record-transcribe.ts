@@ -54,5 +54,4 @@ export async function registerV2ChatVoiceRecordTranscribe(page: Page): Promise<v
       }, 10);
     }
   });
-  await page.evaluate(() => undefined);
 }

@@ -11,6 +11,7 @@ test("@GS3 @p1 @search @global-search @filter 全局搜索文件类型筛选与�
   await search.fill("E2E 文件筛选");
   await authedPage.getByRole("button", { name: "文件" }).click();
   await expect(authedPage.getByText("GS3 文件.pdf", { exact: true })).toBeVisible({ timeout: 10_000 });
+  await expect(authedPage.getByText("GS3 其它.txt", { exact: true })).toBeVisible();
 
   const filter = authedPage.getByRole("button", { name: "筛选" });
   await filter.click();
@@ -19,9 +20,11 @@ test("@GS3 @p1 @search @global-search @filter 全局搜索文件类型筛选与�
   await documentType.click();
   await expect(filter).toContainText("1");
   await expect(documentType).toHaveAttribute("aria-pressed", "true");
+  await expect(authedPage.getByText("GS3 其它.txt", { exact: true })).toHaveCount(0);
 
   await authedPage.getByRole("button", { name: "重置" }).click();
   await expect(filter).not.toContainText("1");
   await expect(documentType).toHaveAttribute("aria-pressed", "false");
   await expect(authedPage.getByText("GS3 文件.pdf", { exact: true })).toBeVisible();
+  await expect(authedPage.getByText("GS3 其它.txt", { exact: true })).toBeVisible();
 });

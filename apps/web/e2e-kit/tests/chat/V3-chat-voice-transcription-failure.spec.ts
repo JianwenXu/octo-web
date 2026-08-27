@@ -23,5 +23,5 @@ test("@V3 @p1 @chat @voice @transcription @error Chat 录音后转写失败提�
   await new Promise((resolve) => setTimeout(resolve, 1_100));
   await stopEntry.click();
   await expect(authedPage.getByText("转写失败，请重试", { exact: true })).toBeVisible({ timeout: 15_000 });
-  await expect(authedPage.getByRole("textbox")).not.toContainText("V3 语音转写结果");
+  await expect(authedPage.getByRole("textbox")).toHaveText("", { exact: true });
 });

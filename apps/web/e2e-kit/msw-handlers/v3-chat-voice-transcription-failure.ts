@@ -54,5 +54,4 @@ export async function registerV3ChatVoiceTranscriptionFailure(page: Page): Promi
       }, 10);
     }
   });
-  await page.evaluate(() => undefined);
 }

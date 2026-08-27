@@ -15,5 +15,9 @@ test("@GS4 @p1 @search @global-search @race 全局搜索新关键词覆盖旧请
 
   await expect(search).toHaveValue("E2E 新关键词");
   await expect(authedPage.getByText("GS4 新结果", { exact: true })).toBeVisible({ timeout: 10_000 });
+  // The old response is intentionally delayed by 900 ms. Let it arrive before
+  // asserting that the requestId guard keeps it from replacing the new result.
+  await authedPage.waitForTimeout(1_000);
   await expect(authedPage.getByText("GS4 旧结果", { exact: true })).toHaveCount(0);
+  await expect(authedPage.getByText("GS4 新结果", { exact: true })).toBeVisible();
 });

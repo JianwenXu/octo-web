@@ -9,14 +9,20 @@ export async function registerC38McpListRetry(page: Page): Promise<void> {
       return false;
     }
     if (win.__c38Installed) return true;
-    let attempts = 0;
+    let failedOnce = false;
+    const list = () => {
+      if (!failedOnce) {
+        failedOnce = true;
+        return win.__msw!.HttpResponse.json({ message: "temporary failure" }, { status: 500 });
+      }
+      return win.__msw!.HttpResponse.json({ data: [{ mcp_id: "retryable-search", name: "Retryable Search MCP", slogan: "Retryable search", category: "search", icon: "🔎", tags: ["search"], tool_count: 1, visibility: "public", source: "space", creator_name: "Alice", created_by_type: "human", match_reasons: [], updated_at: "2026-08-26T00:00:00Z" }], pagination: { total: 1, page: 1, page_size: 20 } });
+    };
+    const categories = () => win.__msw!.HttpResponse.json({ data: [{ key: "search", count: 1 }] });
     win.__msw.worker.use(
-      win.__msw.http.get("*/market/api/v1/mcps", () => {
-        attempts += 1;
-        if (attempts <= 2) return win.__msw!.HttpResponse.json({ message: "temporary failure" }, { status: 500 });
-        return win.__msw!.HttpResponse.json({ data: [{ mcp_id: "retryable-search", name: "Retryable Search MCP", slogan: "Retryable search", category: "search", icon: "🔎", tags: ["search"], tool_count: 1, visibility: "public", source: "space", creator_name: "Alice", created_by_type: "human", match_reasons: [], updated_at: "2026-08-26T00:00:00Z" }], pagination: { total: 1, page: 1, page_size: 20 } });
-      }),
-      win.__msw.http.get("*/market/api/v1/mcp_categories", () => win.__msw!.HttpResponse.json({ data: [{ key: "search", count: 1 }] })),
+      win.__msw.http.get("*/market/api/v1/mcps", list),
+      win.__msw.http.get("*/api/v1/mcps", list),
+      win.__msw.http.get("*/market/api/v1/mcp_categories", categories),
+      win.__msw.http.get("*/api/v1/mcp_categories", categories),
     );
     win.__c38Installed = true;
     return true;

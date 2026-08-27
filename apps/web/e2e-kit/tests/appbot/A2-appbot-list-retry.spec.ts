@@ -8,5 +8,5 @@ test("@A2 @p1 @appbot @appbot-retry 应用列表加载失败后可重试", async
   await expect(authedPage.getByText("加载失败", { exact: true })).toBeVisible();
   await authedPage.getByRole("button", { name: "重试", exact: true }).click();
   await expect(authedPage.getByText("文档助手", { exact: true })).toBeVisible();
-  expect(await authedPage.getByText("加载失败", { exact: true }).count()).toBe(0);
+  await expect(authedPage.getByText("加载失败", { exact: true })).toHaveCount(0);
 });

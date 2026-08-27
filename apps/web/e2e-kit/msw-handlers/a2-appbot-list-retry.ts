@@ -9,10 +9,12 @@ export async function registerA2AppbotListRetry(page: Page): Promise<void> {
       return false;
     }
     if (win.__a2Installed) return true;
-    let attempts = 0;
+    let failedOnce = false;
     win.__msw.worker.use(win.__msw.http.get("*/api/v1/app_bot/available", () => {
-      attempts += 1;
-      if (attempts <= 2) return win.__msw!.HttpResponse.json({ msg: "temporary failure" }, { status: 500 });
+      if (!failedOnce) {
+        failedOnce = true;
+        return win.__msw!.HttpResponse.json({ msg: "temporary failure" }, { status: 500 });
+      }
       return win.__msw!.HttpResponse.json([{ id: "app-docs", uid: "app-docs-bot", display_name: "文档助手", description: "搜索和整理文档", scope: "platform" }]);
     }));
     win.__a2Installed = true;
