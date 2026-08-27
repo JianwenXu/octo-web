@@ -42,7 +42,10 @@ export async function registerV2ChatVoiceRecordTranscribe(page: Page): Promise<v
       msw.worker.use(
         msw.http.get("*/voice/config", () => msw.HttpResponse.json({ enabled: true, max_file_size: 5_000_000, max_duration: 60 })),
         msw.http.get("*/voice/context", () => msw.HttpResponse.json({ status: 200, has_context: false, context: "", updated_at: "2026-08-26T00:00:00Z" })),
-        msw.http.post("*/voice/transcribe", () => msw.HttpResponse.json({ text: "V2 语音转写结果", m: "e2e-voice-model", request_id: "v2-request" }))
+        msw.http.post("*/voice/transcribe", async () => {
+          await new Promise((resolve) => setTimeout(resolve, 300));
+          return msw.HttpResponse.json({ text: "V2 语音转写结果", m: "e2e-voice-model", request_id: "v2-request" });
+        })
       );
       win.__v2VoiceInstalled = true;
       return true;

@@ -16,8 +16,8 @@
 
 - fixture: `fixtures-authed`，本地 mock 模式已预置登录态、Space `e2e-space-001` 和中文 locale。
 - Per-case MSW handler: `e2e-kit/msw-handlers/s27-summary-list-load-failure-retry.ts`
-  - 初始 `GET */summary/api/v1/summaries` 返回一条可见的 Summary 列表项。
-  - 用户触发的刷新请求返回 HTTP 503，点击重试后的请求恢复同一条列表项。
+  - 初始 `GET */summary/api/v1/summaries` 返回 HTTP 503。
+  - 点击重试后的请求恢复并返回一条可见的 Summary 列表项。
   - `GET */summary/api/v1/summary-templates` 返回空模板列表，作为页面预加载兜底。
 
 ## 用户操作步骤

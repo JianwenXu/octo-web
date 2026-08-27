@@ -8,6 +8,9 @@ test("@C39 @p1 @mcp @mcp-probe MCP 试连失败保留向导并展示原因", asy
   authedPage,
 }) => {
   await registerC39McpProbeFailure(authedPage);
+  await authedPage.waitForFunction(
+    () => (globalThis as { __c39Installed?: boolean }).__c39Installed === true,
+  );
   await authedPage.goto("/mcp-market/mcp?sid=e2etest");
 
   await authedPage.getByTestId("mcp-publish-entry").click();

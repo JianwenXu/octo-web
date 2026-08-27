@@ -37,5 +37,7 @@ test("@X1 @p1 @cross-module @chat @summary @deep-link Chat 进入 Summary 详情
   await panel.getByTestId(T.chatPanelBackBtn).click();
   await expect(panel.getByRole("heading", { name: "聊天内的智能总结" })).toBeVisible();
   await expect(panel.getByText("S22 聊天内总结", { exact: true })).toBeVisible();
-  await expect(authedPage.getByRole("heading", { name: "S22 项目群", level: 3 })).toBeVisible();
+  await expect(
+    authedPage.locator(".wk-chat-conversation-header-channel-info-name", { hasText: "S22 项目群" }),
+  ).toBeVisible();
 });

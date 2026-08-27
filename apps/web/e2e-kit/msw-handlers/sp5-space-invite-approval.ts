@@ -33,6 +33,7 @@ export async function registerSP5SpaceInviteApproval(page: Page): Promise<void> 
     };
     win.__msw.worker.use(
       win.__msw.http.get("*/space/invite/SP5-APPROVAL", () => win.__msw!.HttpResponse.json(space)),
+      win.__msw.http.get("*/api/v1/space/invite/SP5-APPROVAL", () => win.__msw!.HttpResponse.json(space)),
       win.__msw.http.post("*/space/join", () =>
         win.__msw!.HttpResponse.json({ space_id: space.space_id, status: "NEED_APPROVAL" })
       )

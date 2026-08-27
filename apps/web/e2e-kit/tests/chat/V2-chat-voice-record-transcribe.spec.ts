@@ -23,5 +23,6 @@ test("@V2 @p1 @chat @voice @transcription Chat 录音停止后转写回填", asy
   await new Promise((resolve) => setTimeout(resolve, 1_100));
   await stopEntry.click();
   const composer = authedPage.getByRole("textbox");
+  await expect(authedPage.getByText("转写中", { exact: true })).toBeVisible();
   await expect(composer).toContainText("V2 语音转写结果", { timeout: 15_000 });
 });

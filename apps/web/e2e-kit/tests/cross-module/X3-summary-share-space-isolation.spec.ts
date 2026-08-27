@@ -16,6 +16,13 @@ test("@X3 @p1 @cross-module @summary @deep-link @permission Summary 分享无权
   await pagePlain.waitForFunction(() => (globalThis as { __MSW_READY__?: boolean }).__MSW_READY__ === true);
   await registerX3SummaryShareSpaceIsolation(pagePlain);
   await pagePlain.waitForFunction(() => (globalThis as { __s26MswInstalled?: boolean }).__s26MswInstalled === true, undefined, { timeout: 15_000 });
+  await pagePlain.route(/\/summary-shares\/e2e-share-026(?:\?.*)?$/, (route) =>
+    route.fulfill({
+      status: 403,
+      contentType: "application/json",
+      body: JSON.stringify({ code: 40301, message: "space access denied", data: null }),
+    }),
+  );
   await pagePlain.goto(`/s/share/e2e-share-026?sid=${E2E_SID}`);
   await pagePlain.waitForFunction(() => (globalThis as { __x3Installed?: boolean }).__x3Installed === true, undefined, { timeout: 15_000 });
 

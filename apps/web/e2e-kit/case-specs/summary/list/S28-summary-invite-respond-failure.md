@@ -17,7 +17,7 @@
 - fixture: `fixtures-authed`，本地 mock 模式已预置登录态、Space 和中文 locale。
 - Per-case MSW handler: `e2e-kit/msw-handlers/s28-summary-invite-respond-failure.ts`
   - Summary 列表返回一条当前用户待确认邀请。
-  - 响应邀请接口返回业务失败 envelope。
+  - 响应邀请接口返回 HTTP 500，模拟服务端操作失败。
 
 ## 用户操作步骤
 

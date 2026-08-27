@@ -53,5 +53,5 @@ test("@X2 @p1 @cross-module @summary @deep-link @cold-start Summary 分享冷启
 
   await expect(pagePlain.getByRole("heading", { name: "S26 分享总结" })).toBeVisible({ timeout: 15_000 });
   await expect(pagePlain.getByText("这是从分享链接直接打开的总结正文。", { exact: true })).toBeVisible();
-  await expect(pagePlain.getByRole("button", { name: "返回聊天" })).toHaveCount(0);
+  await expect(pagePlain.getByRole("button", { name: "返回群聊", exact: true })).toHaveCount(0);
 });

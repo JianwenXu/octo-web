@@ -26,7 +26,11 @@ test("@SP3 @p1 @space @invite @expired 过期邀请链接显示不可用状态",
   // Playwright fallback for preview runs where the service worker is restarted
   // between the seed page and the invite deep link.
   await pagePlain.route("**/api/v1/space/invite/SP3-EXPIRED", (route) =>
-    route.fulfill({ status: 410, contentType: "application/json", body: "{}" })
+    route.fulfill({
+      status: 410,
+      contentType: "application/json",
+      body: JSON.stringify({ code: 41001, message: "邀请码已过期" }),
+    })
   );
   await pagePlain.goto(`/?sid=${E2E_SID}&invite=SP3-EXPIRED`);
 

@@ -15,7 +15,7 @@
 ## 前置条件
 
 - 使用 `fixtures-authed` 和默认 mock IM runtime。
-- Per-case handler `e2e-kit/msw-handlers/c39-mcp-probe-failure.ts`：为 MCP probe 返回 `ok=false`、`error.code=init_failed`，其余市场列表接口使用 baseline handler。
+- Per-case handler `e2e-kit/msw-handlers/c39-mcp-probe-failure.ts`：为 MCP probe 返回 `is_ok=false`、`error.code=init_failed`，并覆盖市场首屏列表与分类接口。
 - 进入 `/mcp-market/mcp?sid=e2etest`。
 
 ## 用户操作步骤

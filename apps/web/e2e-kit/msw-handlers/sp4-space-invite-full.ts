@@ -30,7 +30,16 @@ export async function registerSP4SpaceInviteFull(page: Page): Promise<void> {
           member_count: 100,
           max_users: 100,
         })
-      )
+      ),
+      win.__msw.http.get("*/api/v1/space/invite/SP4-FULL", () =>
+        win.__msw!.HttpResponse.json({
+          invite_code: "SP4-FULL",
+          space_id: "sp4-full-space",
+          space_name: "SP4 满员组织",
+          member_count: 100,
+          max_users: 100,
+        })
+      ),
     );
     win.__sp4MswInstalled = true;
     return true;

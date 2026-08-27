@@ -4,7 +4,10 @@ export async function registerC39McpProbeFailure(page: Page): Promise<void> {
   function install() {
     type Msw = {
       worker: { use: (...handlers: unknown[]) => void };
-      http: { post: (path: string, resolver: () => unknown) => unknown };
+      http: {
+        get: (path: string, resolver: () => unknown) => unknown;
+        post: (path: string, resolver: () => unknown) => unknown;
+      };
       HttpResponse: { json: (body: unknown, init?: unknown) => unknown };
     };
     const win = globalThis as unknown as {
@@ -21,6 +24,8 @@ export async function registerC39McpProbeFailure(page: Page): Promise<void> {
       return false;
     }
     if (win.__c39Installed) return true;
+    const list = () => win.__msw!.HttpResponse.json({ data: [], pagination: { total: 0, page: 1, page_size: 20 } });
+    const categories = () => win.__msw!.HttpResponse.json({ data: [] });
     const probeFailure = () =>
       win.__msw!.HttpResponse.json({
         data: {
@@ -33,6 +38,8 @@ export async function registerC39McpProbeFailure(page: Page): Promise<void> {
         },
       });
     win.__msw.worker.use(
+      win.__msw.http.get("*/market/api/v1/mcps", list),
+      win.__msw.http.get("*/market/api/v1/mcp_categories", categories),
       win.__msw.http.post("*/market/api/v1/mcps/_probe", probeFailure),
       win.__msw.http.post("*/market/api/v1/mcps/probe", probeFailure),
       win.__msw.http.post("*/api/v1/mcps/_probe", probeFailure),

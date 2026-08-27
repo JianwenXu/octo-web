@@ -30,7 +30,10 @@ export async function registerSP3SpaceInviteExpired(page: Page): Promise<void> {
       return false;
     }
     if (win.__sp3MswInstalled) return true;
-    const expired = () => win.__msw!.HttpResponse.json({}, { status: 410 });
+    const expired = () => win.__msw!.HttpResponse.json(
+      { code: 41001, message: "邀请码已过期" },
+      { status: 410 },
+    );
     win.__msw.worker.use(
       win.__msw.http.get("*/space/invite/SP3-EXPIRED", expired),
       win.__msw.http.get("*/api/v1/space/invite/SP3-EXPIRED", expired),

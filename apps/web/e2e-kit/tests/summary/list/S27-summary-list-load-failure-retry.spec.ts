@@ -24,6 +24,7 @@ test.describe("@S27 @p1 @summary @list @summary-list @summary-retry S27 — Summ
     await expect(authedPage.getByText("网络连接异常，请检查网络后重试")).toBeVisible({ timeout: 15_000 });
     const retryButton = authedPage.getByRole("button", { name: "重试" });
     await expect(retryButton).toBeVisible();
+    await authedPage.evaluate(() => { (globalThis as { __s27RetryRequested?: boolean }).__s27RetryRequested = true; });
     await retryButton.click();
 
     await expect(authedPage.getByText("S27 重试后恢复总结")).toBeVisible({ timeout: 15_000 });

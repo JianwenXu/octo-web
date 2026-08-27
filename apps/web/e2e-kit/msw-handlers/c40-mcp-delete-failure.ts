@@ -41,6 +41,9 @@ export async function registerC40McpDeleteFailure(page: Page): Promise<void> {
       updated_at: "2026-08-26T00:00:00Z",
     };
     win.__msw.worker.use(
+      win.__msw.http.get("*/market/api/v1/mcps", () =>
+        win.__msw!.HttpResponse.json({ data: [], pagination: { total: 0, page: 1, page_size: 20 } }),
+      ),
       win.__msw.http.get("*/market/api/v1/mcps/mine", () =>
         win.__msw!.HttpResponse.json({
           data: [item],

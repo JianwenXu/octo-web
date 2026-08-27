@@ -8,6 +8,9 @@ test("@C40 @p1 @mcp @mcp-delete MCP 删除失败保留确认弹窗和条目", as
   authedPage,
 }) => {
   await registerC40McpDeleteFailure(authedPage);
+  await authedPage.waitForFunction(
+    () => (globalThis as { __c40Installed?: boolean }).__c40Installed === true,
+  );
   await authedPage.goto("/mcp-market/mcp?sid=e2etest");
   await authedPage.getByRole("button", { name: "我的", exact: true }).click();
 
